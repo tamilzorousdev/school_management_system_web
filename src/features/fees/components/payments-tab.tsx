@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { FileDown, Wallet } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -8,8 +9,9 @@ import { Input } from '@/components/ui/input'
 import { formatDate } from '@/lib/format'
 import { useClasses } from '@/features/setup/api'
 import { usePaymentSummary, usePayments, type FeePayment, type PaymentMode } from '../api'
-import { MODE_OPTIONS, PAYMENT_MODES, openReceipt, rupees } from '../labels'
+import { MODE_OPTIONS, PAYMENT_MODES, rupees } from '../labels'
 import type { FeesSearch } from '../search'
+import { ReceiptModal } from './receipt-modal'
 
 const LIMIT = 20
 
@@ -40,6 +42,7 @@ export function PaymentsTab({
   const filtered = Boolean(
     search.search || search.from || search.to || search.mode || search.class_id
   )
+  const [selectedPayment, setSelectedPayment] = useState<FeePayment | null>(null)
 
   useShortcut('app.refresh', () => {
     void payments.refetch()
@@ -53,7 +56,7 @@ export function PaymentsTab({
       aria-label={`Receipt ${payment.receipt_no}`}
       onClick={(event) => {
         event.stopPropagation()
-        openReceipt(payment.id)
+        setSelectedPayment(payment)
       }}
     >
       <FileDown />
@@ -242,6 +245,9 @@ export function PaymentsTab({
           </div>
         )}
       />
+      {selectedPayment && (
+        <ReceiptModal payment={selectedPayment} onClose={() => setSelectedPayment(null)} />
+      )}
     </Card>
   )
 }

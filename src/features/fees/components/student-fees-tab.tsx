@@ -7,16 +7,18 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/lib/format'
 import { can, useMe } from '@/features/auth/api'
-import { useStudentFees, type FeeInvoice } from '../api'
-import { PAYMENT_MODES, STUDENT_FEE_STATUS, openReceipt, rupees } from '../labels'
+import { useStudentFees, type FeeInvoice, type FeePayment } from '../api'
+import { PAYMENT_MODES, STUDENT_FEE_STATUS, rupees } from '../labels'
 import { InvoiceModal, InvoiceStatusBadge } from './invoice-modal'
 import { PaymentModal } from './payment-modal'
+import { ReceiptModal } from './receipt-modal'
 
 export function StudentFeesTab({ studentId }: { studentId: number }) {
   const canManage = can(useMe().data, 'fees.manage')
   const fees = useStudentFees(studentId)
   const [openId, setOpenId] = useState<number | null>(null)
   const [paying, setPaying] = useState<FeeInvoice | null>(null)
+  const [receiptPayment, setReceiptPayment] = useState<FeePayment | null>(null)
   const data = fees.data
 
   if (fees.isPending) {
@@ -155,7 +157,7 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
                   size='sm'
                   variant='outline'
                   aria-label={`Receipt ${payment.receipt_no}`}
-                  onClick={() => openReceipt(payment.id)}
+                  onClick={() => setReceiptPayment(payment)}
                 >
                   <FileDown />
                   Receipt
@@ -183,7 +185,17 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
           onClose={() => setPaying(null)}
           onPaid={(payment) => {
             setPaying(null)
-            setOpenId(payment.invoice_id)
+            setReceiptPayment(payment)
+          }}
+        />
+      )}
+      {receiptPayment && (
+        <ReceiptModal
+          payment={receiptPayment}
+          onClose={() => {
+            const invId = receiptPayment.invoice_id
+            setReceiptPayment(null)
+            setOpenId(invId)
           }}
         />
       )}

@@ -86,6 +86,7 @@ export interface GuardianInput {
   occupation?: string | null
   qualification?: string | null
   is_primary?: boolean
+  can_pickup?: boolean
   receives_alerts?: boolean
   language?: Language
 }
@@ -102,6 +103,10 @@ export interface StudentInput {
   pincode?: string | null
   previous_school?: string | null
   identification_marks?: string | null
+  is_specially_abled?: boolean
+  disability_category?: string | null
+  disability_percentage?: number | null
+  is_adopted?: boolean
   admission_no?: string
   admission_date?: string
   class_id: number

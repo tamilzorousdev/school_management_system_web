@@ -85,3 +85,65 @@ export function openReceipt(paymentId: number) {
     alerts.error(error instanceof Error ? error.message : 'Could not open the receipt')
   )
 }
+
+const ONES = [
+  '',
+  'One',
+  'Two',
+  'Three',
+  'Four',
+  'Five',
+  'Six',
+  'Seven',
+  'Eight',
+  'Nine',
+  'Ten',
+  'Eleven',
+  'Twelve',
+  'Thirteen',
+  'Fourteen',
+  'Fifteen',
+  'Sixteen',
+  'Seventeen',
+  'Eighteen',
+  'Nineteen',
+]
+
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+function belowHundred(n: number): string {
+  if (n < 20) return ONES[n]
+  const ten = Math.floor(n / 10)
+  const one = n % 10
+  return `${TENS[ten]}${one ? ` ${ONES[one]}` : ''}`
+}
+
+function belowThousand(n: number): string {
+  const hundred = Math.floor(n / 100)
+  const rest = n % 100
+  if (!hundred) return belowHundred(rest)
+  return `${ONES[hundred]} Hundred${rest ? ` and ${belowHundred(rest)}` : ''}`
+}
+
+export function amountInWords(value: number): string {
+  let rest = Math.floor(value)
+  const paise = Math.round((value - rest) * 100)
+  if (rest === 0 && paise === 0) return 'Rupees Zero Only'
+  const parts: string[] = []
+  const scales = [
+    [10000000, 'Crore'],
+    [100000, 'Lakh'],
+    [1000, 'Thousand'],
+  ] as const
+  for (const [size, name] of scales) {
+    const count = Math.floor(rest / size)
+    if (count) {
+      parts.push(`${count >= 100 ? belowThousand(count) : belowHundred(count)} ${name}`)
+    }
+    rest %= size
+  }
+  if (rest) parts.push(belowThousand(rest))
+  const rupeesText = parts.length ? `Rupees ${parts.join(' ')}` : 'Rupees Zero'
+  return `${rupeesText}${paise ? ` and ${belowHundred(paise)} Paise` : ''} Only`
+}
+

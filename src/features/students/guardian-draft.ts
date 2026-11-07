@@ -14,4 +14,5 @@ export const emptyGuardian = (relation: GuardianInput['relation'] = 'father'): G
   email: '',
   language: 'en',
   receives_alerts: true,
+  can_pickup: true,
 })

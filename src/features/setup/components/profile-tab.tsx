@@ -102,6 +102,7 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
         <RootError message={errors.root} />
         <SchoolLogo school={school} canManage={canManage} />
         <SchoolSignature school={school} canManage={canManage} />
+        <SchoolSeal school={school} canManage={canManage} />
         {field('name', 'School name')}
         <FormField id='school-board' label='Board'>
           <Combobox
@@ -272,9 +273,9 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
   return (
     <FormField
       id='school-signature'
-      label='Authorized digital signature / seal'
+      label='Authorized digital signature'
       error={error}
-      hint='PNG with transparent background or JPG, up to 2 MB. Displayed on official payslips.'
+      hint='PNG with transparent background or JPG, up to 2 MB. Displayed on receipts, payslips and report cards.'
       className='sm:col-span-2'
     >
       <div className='flex flex-wrap items-center gap-4'>
@@ -323,6 +324,101 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
                   try {
                     await save.mutateAsync(null)
                     alerts.success('Authorized signature removed')
+                  } catch (caught) {
+                    setError(toApiError(caught).message)
+                  }
+                }}
+              >
+                <Trash2 />
+                Remove
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </FormField>
+  )
+}
+
+
+function SchoolSeal({ school, canManage }: { school: SchoolProfile; canManage: boolean }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const save = useSetupMutation((seal_file_id: number | null) =>
+    setupApi.updateSchool({ seal_file_id })
+  )
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return
+    setError('')
+    if (!LOGO_TYPES.includes(file.type)) return setError('Choose a PNG, JPG or WEBP image')
+    if (file.size > 2 * 1024 * 1024) return setError('The seal must be 2 MB or smaller')
+    setUploading(true)
+    try {
+      const uploaded = await filesApi.upload(file, 'school_seal')
+      await save.mutateAsync(uploaded.id)
+      alerts.success('Official school seal saved')
+    } catch (caught) {
+      setError(toApiError(caught).message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <FormField
+      id='school-seal'
+      label='Official school seal / stamp'
+      error={error}
+      hint='Circular or oval stamp PNG with transparent background or JPG, up to 2 MB. Stamped on fee receipts, payslips, report cards and TCs.'
+      className='sm:col-span-2'
+    >
+      <div className='flex flex-wrap items-center gap-4'>
+        <div className='grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-dashed border-emerald-600/40 bg-white p-2 shadow-xs'>
+          {school.seal_url ? (
+            <img
+              src={school.seal_url}
+              alt='Official school seal'
+              className='size-full object-contain'
+            />
+          ) : (
+            <ImageUp className='size-6 text-muted-foreground' aria-hidden />
+          )}
+        </div>
+        {canManage && (
+          <div className='flex flex-wrap gap-2'>
+            <Button asChild variant='outline' size='sm' disabled={uploading}>
+              <label htmlFor='school-seal' className='cursor-pointer'>
+                <ImageUp />
+                {uploading
+                  ? 'Uploading…'
+                  : school.seal_url
+                    ? 'Change seal'
+                    : 'Upload seal'}
+                <input
+                  id='school-seal'
+                  type='file'
+                  accept={LOGO_TYPES.join(',')}
+                  className='sr-only'
+                  disabled={uploading}
+                  onChange={(event) => {
+                    void upload(event.target.files?.[0])
+                    event.target.value = ''
+                  }}
+                />
+              </label>
+            </Button>
+            {school.seal_url && (
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                className='text-destructive hover:bg-destructive/10'
+                loading={save.isPending && !uploading}
+                onClick={async () => {
+                  try {
+                    await save.mutateAsync(null)
+                    alerts.success('Official school seal removed')
                   } catch (caught) {
                     setError(toApiError(caught).message)
                   }

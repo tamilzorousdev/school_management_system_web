@@ -106,6 +106,8 @@ export interface SchoolProfile {
   logo_url: string | null
   signature_file_id: number | null
   signature_url: string | null
+  seal_file_id: number | null
+  seal_url: string | null
   timezone: string
   is_active: boolean
   student_count: number

@@ -11,22 +11,24 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { alerts } from '@/lib/alerts'
 import { formatDate } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import {
   feesApi,
   useFeesMutation,
   useInvoice,
   type FeeInvoice,
   type FeeInvoiceDetail,
+  type FeePayment,
 } from '../api'
 import {
   INVOICE_STATUS,
   PAYMENT_MODES,
   amountError,
   formErrors,
-  openReceipt,
   round2,
   rupees,
 } from '../labels'
+import { ReceiptModal } from './receipt-modal'
 
 export function InvoiceStatusBadge({ invoice }: { invoice: FeeInvoice }) {
   if (invoice.is_overdue) {
@@ -54,6 +56,7 @@ export function InvoiceModal({
   const invoice = useInvoice(invoiceId)
   const [editingDiscount, setEditingDiscount] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<FeePayment | null>(null)
   const cancel = useFeesMutation(() => feesApi.cancel(invoiceId))
   const data = invoice.data
   const open = canManage && data && data.status !== 'cancelled'
@@ -155,7 +158,7 @@ export function InvoiceModal({
                       size='sm'
                       variant='outline'
                       aria-label={`Receipt ${payment.receipt_no}`}
-                      onClick={() => openReceipt(payment.id)}
+                      onClick={() => setSelectedPayment(payment)}
                     >
                       <FileDown />
                       Receipt
@@ -192,6 +195,9 @@ export function InvoiceModal({
           }
         }}
       />
+      {selectedPayment && (
+        <ReceiptModal payment={selectedPayment} onClose={() => setSelectedPayment(null)} />
+      )}
     </AppModal>
   )
 }
@@ -246,49 +252,140 @@ export function InvoiceLines({ invoice }: { invoice: FeeInvoiceDetail }) {
 }
 
 function DiscountForm({ invoice, onDone }: { invoice: FeeInvoiceDetail; onDone: () => void }) {
+  const [mode, setMode] = useState<'amount' | 'percent'>('amount')
   const [amount, setAmount] = useState(String(invoice.discount || ''))
+  const [percentage, setPercentage] = useState(
+    invoice.discount && invoice.gross > 0
+      ? String(round2((invoice.discount / invoice.gross) * 100))
+      : ''
+  )
   const [reason, setReason] = useState(invoice.discount_reason ?? '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const max = round2(invoice.gross - invoice.paid)
+  const maxPercent = invoice.gross > 0 ? round2((max / invoice.gross) * 100) : 100
+
+  const computedRupees =
+    mode === 'percent'
+      ? round2(((Number(percentage) || 0) / 100) * invoice.gross)
+      : Number(amount) || 0
+
+  const computedPercent =
+    mode === 'amount' && invoice.gross > 0
+      ? round2(((Number(amount) || 0) / invoice.gross) * 100)
+      : Number(percentage) || 0
+
   const save = useFeesMutation(() =>
-    feesApi.discount(invoice.id, Number(amount || 0), reason.trim() || null)
+    feesApi.discount(invoice.id, computedRupees, reason.trim() || null)
   )
 
   return (
     <form
       noValidate
-      className='grid gap-3 rounded-lg border bg-muted/30 p-3 sm:grid-cols-[10rem_1fr_auto] sm:items-start'
+      className='grid gap-3 rounded-lg border bg-muted/30 p-3 sm:grid-cols-[14rem_1fr_auto] sm:items-start'
       onSubmit={async (event) => {
         event.preventDefault()
         const next: Record<string, string> = {}
-        const message = amount.trim() ? amountError(amount, max, 'discount') : undefined
+        const valToTest = mode === 'percent' ? String(computedRupees) : amount
+        const message = valToTest.trim() ? amountError(valToTest, max, 'discount') : undefined
         if (message) next.discount = message
-        if (Number(amount) > 0 && reason.trim().length < 3) next.reason = 'Give the reason'
+        else if (mode === 'percent') {
+          const p = Number(percentage)
+          if (p < 0 || p > 100) next.discount = 'Enter a valid percentage between 0 and 100'
+          else if (p > maxPercent) next.discount = `Percentage cannot exceed ${maxPercent}% (${rupees(max)})`
+        }
+        if (computedRupees > 0 && reason.trim().length < 3) next.reason = 'Give the reason'
         setErrors(next)
         if (Object.keys(next).length) return
         try {
           await save.mutateAsync(undefined)
-          alerts.success(Number(amount) > 0 ? 'Discount saved' : 'Discount removed')
+          alerts.success(computedRupees > 0 ? 'Discount saved' : 'Discount removed')
           onDone()
         } catch (error) {
           setErrors(formErrors(error, { DISCOUNT_TOO_HIGH: 'discount' }))
         }
       }}
     >
-      <FormField id='discount-amount' label='Discount' error={errors.discount}>
-        <Input
-          id='discount-amount'
-          type='number'
-          inputMode='decimal'
-          min={0}
-          step='0.01'
-          className='tabular'
-          value={amount}
-          placeholder='0'
-          aria-invalid={Boolean(errors.discount) || undefined}
-          onChange={(event) => setAmount(event.target.value)}
-        />
-      </FormField>
+      <div className='grid gap-1.5'>
+        <div className='flex items-center justify-between'>
+          <span className='text-xs font-semibold text-muted-foreground'>Discount Type</span>
+          <div className='inline-flex rounded-md border bg-muted/60 p-0.5 text-xs'>
+            <button
+              type='button'
+              onClick={() => {
+                setMode('amount')
+                if (percentage) setAmount(String(computedRupees || ''))
+              }}
+              className={cn(
+                'rounded px-2 py-0.5 font-medium transition-colors',
+                mode === 'amount'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              ₹ Flat
+            </button>
+            <button
+              type='button'
+              onClick={() => {
+                setMode('percent')
+                if (amount) setPercentage(String(computedPercent || ''))
+              }}
+              className={cn(
+                'rounded px-2 py-0.5 font-medium transition-colors',
+                mode === 'percent'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              % Percent
+            </button>
+          </div>
+        </div>
+
+        {mode === 'amount' ? (
+          <FormField id='discount-amount' label='' error={errors.discount}>
+            <div className='relative'>
+              <span className='pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground'>
+                ₹
+              </span>
+              <Input
+                id='discount-amount'
+                type='number'
+                inputMode='decimal'
+                min={0}
+                step='0.01'
+                className='tabular pl-7'
+                value={amount}
+                placeholder='0.00'
+                aria-invalid={Boolean(errors.discount) || undefined}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+            </div>
+          </FormField>
+        ) : (
+          <FormField id='discount-percent' label='' error={errors.discount}>
+            <div className='relative'>
+              <Input
+                id='discount-percent'
+                type='number'
+                inputMode='decimal'
+                min={0}
+                max={100}
+                step='0.1'
+                className='tabular pr-7'
+                value={percentage}
+                placeholder='0'
+                aria-invalid={Boolean(errors.discount) || undefined}
+                onChange={(event) => setPercentage(event.target.value)}
+              />
+              <span className='pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground font-semibold'>
+                %
+              </span>
+            </div>
+          </FormField>
+        )}
+      </div>
+
       <FormField id='discount-reason' label='Reason' error={errors.reason}>
         <Input
           id='discount-reason'
@@ -299,6 +396,7 @@ function DiscountForm({ invoice, onDone }: { invoice: FeeInvoiceDetail; onDone: 
           onChange={(event) => setReason(event.target.value)}
         />
       </FormField>
+
       <div className='flex gap-2 sm:pt-6'>
         <Button type='button' variant='ghost' onClick={onDone}>
           Close
@@ -307,9 +405,22 @@ function DiscountForm({ invoice, onDone }: { invoice: FeeInvoiceDetail; onDone: 
           Save
         </Button>
       </div>
-      <p className='text-xs text-muted-foreground sm:col-span-3'>
-        Up to {rupees(max)}. Enter 0 to remove the discount.
-      </p>
+
+      <div className='text-xs text-muted-foreground sm:col-span-3 flex flex-wrap items-center justify-between gap-1'>
+        <span>
+          Up to {rupees(max)} ({maxPercent}%). Enter 0 to remove.
+        </span>
+        {mode === 'percent' && Number(percentage) > 0 && (
+          <span className='font-medium text-foreground'>
+            {percentage}% equals <span className='text-emerald-600 font-bold dark:text-emerald-400'>{rupees(computedRupees)}</span> discount
+          </span>
+        )}
+        {mode === 'amount' && Number(amount) > 0 && (
+          <span className='font-medium text-foreground'>
+            {rupees(Number(amount))} equals <span className='text-emerald-600 font-bold dark:text-emerald-400'>{computedPercent}%</span> of gross
+          </span>
+        )}
+      </div>
     </form>
   )
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
-import { openFile } from '@/lib/files'
+import { downloadFile, openFile } from '@/lib/files'
 import { payslipPdfUrl, type Payslip } from '../api'
 import { rupees } from '../labels'
 
@@ -93,6 +93,7 @@ export function PayslipModal({
     : 'School Campus Office, Chennai - 600001'
   const schoolLogoUrl = toRelativeUrl(schoolProfile?.logo_url || me?.school?.logo_url)
   const schoolSignatureUrl = toRelativeUrl(schoolProfile?.signature_url || me?.school?.signature_url)
+  const schoolSealUrl = toRelativeUrl(schoolProfile?.seal_url || me?.school?.seal_url)
   const [downloading, setDownloading] = useState(false)
 
   if (!slip) return null
@@ -100,7 +101,10 @@ export function PayslipModal({
   const handleDownloadPdf = async () => {
     setDownloading(true)
     try {
-      await openFile(payslipPdfUrl(slip.id))
+      await downloadFile(
+        payslipPdfUrl(slip.id),
+        `Payslip-${slip.employee_no}-${slip.month}.pdf`
+      )
     } catch (error) {
       alerts.error(toApiError(error).message)
     } finally {
@@ -108,8 +112,12 @@ export function PayslipModal({
     }
   }
 
-  const handlePrint = () => {
-    window.print()
+  const handlePrint = async () => {
+    try {
+      await openFile(payslipPdfUrl(slip.id))
+    } catch (error) {
+      alerts.error(toApiError(error).message)
+    }
   }
 
   // Earnings items
@@ -365,7 +373,21 @@ export function PayslipModal({
               </p>
             </div>
 
-            <div className='text-right'>
+            <div className='flex items-end justify-end gap-6 text-right'>
+              {schoolSealUrl && (
+                <div className='flex flex-col items-center justify-center'>
+                  <div className='grid h-16 w-16 place-items-center rounded-full border border-dashed border-[#059669]/40 bg-white p-1 shadow-xs'>
+                    <img
+                      src={schoolSealUrl}
+                      alt='Official School Seal'
+                      className='size-full object-contain'
+                    />
+                  </div>
+                  <span className='mt-1 text-[10px] font-medium uppercase tracking-wider text-[#6B7280]'>
+                    Official Seal
+                  </span>
+                </div>
+              )}
               <div className='inline-block w-40 sm:w-44 text-center'>
                 {schoolSignatureUrl ? (
                   <div className='flex h-14 sm:h-16 w-full items-end justify-center pb-1'>

@@ -13,12 +13,14 @@ import {
   useInstallments,
   useInvoices,
   type FeeInvoice,
+  type FeePayment,
   type InvoiceStatus,
 } from '../api'
 import { STATUS_OPTIONS, invoicesText, rupees, wholeRupees } from '../labels'
 import type { FeesSearch } from '../search'
 import { InvoiceModal, InvoiceStatusBadge } from './invoice-modal'
 import { PaymentModal } from './payment-modal'
+import { ReceiptModal } from './receipt-modal'
 
 const LIMIT = 20
 
@@ -48,6 +50,7 @@ export function DuesTab({
     order: search.order,
   })
   const [paying, setPaying] = useState<FeeInvoice | null>(null)
+  const [receiptPayment, setReceiptPayment] = useState<FeePayment | null>(null)
   const filtered = Boolean(
     search.search ||
     search.status ||
@@ -325,7 +328,17 @@ export function DuesTab({
           onClose={() => setPaying(null)}
           onPaid={(payment) => {
             setPaying(null)
-            onChange({ invoice_id: payment.invoice_id })
+            setReceiptPayment(payment)
+          }}
+        />
+      )}
+      {receiptPayment && (
+        <ReceiptModal
+          payment={receiptPayment}
+          onClose={() => {
+            const invId = receiptPayment.invoice_id
+            setReceiptPayment(null)
+            onChange({ invoice_id: invId })
           }}
         />
       )}

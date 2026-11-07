@@ -36,11 +36,22 @@ export function GuardianFields({
   const set = <K extends keyof GuardianDraft>(field: K, next: GuardianDraft[K]) =>
     onChange({ ...value, [field]: next })
 
+  const isParentOrGuardian =
+    value.relation === 'father' || value.relation === 'mother' || value.relation === 'guardian'
+  const displayTitle = isParentOrGuardian
+    ? RELATION_LABELS[value.relation]
+    : 'Emergency Contact / Authorized Caregiver'
+
   return (
     <fieldset className='grid gap-3 rounded-lg border bg-muted/30 p-3 sm:p-4'>
       <div className='flex items-center justify-between gap-2'>
         <legend className='text-sm font-bold'>
-          {RELATION_LABELS[value.relation]}
+          {displayTitle}
+          {!isParentOrGuardian && (
+            <span className='ml-2 rounded-full bg-secondary/80 px-2 py-0.5 text-[11px] font-semibold text-secondary-foreground'>
+              {RELATION_LABELS[value.relation]}
+            </span>
+          )}
           {primary && (
             <span className='ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary'>
               Main contact
@@ -59,7 +70,7 @@ export function GuardianFields({
               type='button'
               variant='ghost'
               size='icon-sm'
-              aria-label='Remove this guardian'
+              aria-label='Remove this contact'
               className='text-destructive hover:bg-destructive/10'
               onClick={onRemove}
             >
@@ -105,7 +116,7 @@ export function GuardianFields({
             value={value.relation}
             placeholder='Choose relation'
             options={toOptions(RELATION_LABELS)}
-            onChange={(next) => set('relation', (next ?? 'father') as GuardianInput['relation'])}
+            onChange={(next) => set('relation', (next ?? 'other') as GuardianInput['relation'])}
             highlightSelected={false}
             className='sm:w-full'
           />
@@ -137,6 +148,16 @@ export function GuardianFields({
           />
         </FormField>
       </div>
+      <label className='flex items-center justify-between gap-3 text-sm'>
+        <span className='grid'>
+          <span className='font-semibold'>Authorized for campus pickup</span>
+          <span className='text-xs text-muted-foreground'>Permitted to collect student from school</span>
+        </span>
+        <Switch
+          checked={value.can_pickup ?? true}
+          onCheckedChange={(checked) => set('can_pickup', checked)}
+        />
+      </label>
       <label className='flex items-center justify-between gap-3 text-sm'>
         <span className='grid'>
           <span className='font-semibold'>Parent app login and alerts</span>

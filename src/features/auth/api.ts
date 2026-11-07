@@ -27,6 +27,7 @@ export interface Me {
     code: string
     logo_url: string | null
     signature_url: string | null
+    seal_url: string | null
   } | null
   apps: AppSection[]
   permissions: string[]
