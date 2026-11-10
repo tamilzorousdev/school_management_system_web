@@ -136,6 +136,7 @@ export interface StudentLeave {
   from_date: string
   to_date: string
   days: number
+  half_day: 'morning' | 'afternoon' | null
   reason: string
   file_id: number | null
   status: StudentLeaveStatus

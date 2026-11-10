@@ -2650,6 +2650,71 @@ await TA('API-MTR-05', 'Meeting replies', 'POST', '/mobile/teacher/meetings/{id}
   return expectStatus(await teacher('POST', `/mobile/teacher/meetings/${replyMeeting.id}/accept`, {}), 409, 'MEETING_REPLY_CLOSED')
 })
 
+const ringMeeting = rosterStudent
+  ? (await teacher('POST', '/mobile/teacher/meetings', { student_id: rosterStudent.id, title: `RT ring ${RUN}`, scheduled_at: new Date(Date.now() + 2 * 60000).toISOString(), duration_minutes: 15 })).body.data
+  : null
+await TA('API-RING-01', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/join', 'Teacher joins: the parent is rung, join stays fast', '200 with channel_name and token in under 3 s', async () => {
+  if (!ringMeeting) return 'Skipped: teacher has no section'
+  const started = Date.now()
+  const joined = await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/join`, { platform: 'android' })
+  expectStatus(joined, 200)
+  const took = Date.now() - started
+  if (!joined.body.data.channel_name || !joined.body.data.token) throw new Error('No channel_name or token')
+  if (took > 3000) throw new Error(`join took ${took} ms`)
+  return `200 in ${took} ms`
+})
+await TA('API-RING-02', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/reject-call', 'Caller taps reject on their own call', '200, nothing changes, still in progress', async () => {
+  if (!ringMeeting) return 'Skipped: teacher has no section'
+  const result = await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/reject-call`)
+  expectStatus(result, 200)
+  if (result.body.data.status !== 'in_progress') throw new Error(result.body.data.status)
+  return '200, in progress'
+})
+await TA('API-RING-03', 'Meeting calls', 'POST', '/mobile/parent/meetings/{id}/reject-call', 'Reject a call on a meeting that does not exist', '404 MEETING_NOT_FOUND', async () =>
+  expectStatus(await parent('POST', '/mobile/parent/meetings/999999/reject-call'), 404, 'MEETING_NOT_FOUND')
+)
+await TA('API-RING-04', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/end', 'Host ends the call while it rings', '200 completed', async () => {
+  if (!ringMeeting) return 'Skipped: teacher has no section'
+  const ended = await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/end`)
+  expectStatus(ended, 200)
+  if (ended.body.data.status !== 'completed') throw new Error(ended.body.data.status)
+  return '200, completed'
+})
+
+await TA('API-REP-01', 'Attendance reports', 'GET', '/admin/attendance/sections/{id}/day', 'Daily report of a section', '200 with students, summary and marked flags', async () => {
+  if (!sessionSection) return 'Skipped: no section'
+  const result = await ao('GET', `/admin/attendance/sections/${sessionSection}/day?date=${lastWorkingDay}`)
+  expectStatus(result, 200)
+  const data = result.body.data
+  if (!Array.isArray(data.students) || !data.summary || !('morning_marked' in data)) throw new Error('Missing fields')
+  return `200, ${data.students.length} students`
+})
+await TA('API-REP-02', 'Attendance reports', 'GET', '/admin/attendance/sections/{id}/day', 'Daily report with a wrong date format', '400 on date', async () =>
+  expectFields(await ao('GET', `/admin/attendance/sections/${sessionSection ?? 1}/day?date=10-11-2026`), ['date'])
+)
+await TA('API-REP-03', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent sees the year and month-wise %', '200 with year and months', async () => {
+  const result = await parent('GET', `/mobile/parent/children/${replyKid.id}/attendance/summary`)
+  expectStatus(result, 200)
+  if (!result.body.data.year || !Array.isArray(result.body.data.months)) throw new Error('Missing year or months')
+  return `200, ${result.body.data.months.length} months, year ${result.body.data.year.percent}%`
+})
+await TA('API-REP-04', 'Attendance reports', 'GET', '/admin/attendance/students/{id}/summary', 'Admin sees the same year summary as the parent', '200, same year %', async () => {
+  const mine = (await parent('GET', `/mobile/parent/children/${replyKid.id}/attendance/summary`)).body.data
+  const result = await admin('GET', `/admin/attendance/students/${replyKid.id}/summary`)
+  expectStatus(result, 200)
+  if (result.body.data.year.percent !== mine.year.percent) throw new Error(`${result.body.data.year.percent} vs ${mine.year.percent}`)
+  return '200, same %'
+})
+await TA('API-REP-05', 'Attendance reports', 'GET', '/mobile/teacher/sections/{id}/attendance/report', 'A teacher who is not the class teacher opens the monthly report', '403 NOT_CLASS_TEACHER or 200 for own class', async () => {
+  if (!sessionSection) return 'Skipped: no section'
+  const result = await teacher('GET', `/mobile/teacher/sections/${sessionSection}/attendance/report?month=${lastWorkingDay.slice(0, 7)}`)
+  if (result.status === 200) return '200, own class'
+  return expectStatus(result, 403, 'NOT_CLASS_TEACHER')
+})
+await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>
+  expectStatus(await parent('GET', '/mobile/parent/children/999999/attendance/summary'), 404, 'CHILD_NOT_FOUND')
+)
+
 await TA('API-PAT-01', 'Attendance', 'PATCH', '/admin/attendance/sections/{id}', 'Mark three students with P, A and L in one call', '200 present, absent, late; L is late', async () => {
   const roster = (await ao('GET', `/admin/attendance/sections/${sessionSection}?date=${lastWorkingDay}&session=afternoon`)).body.data
   if (!roster?.working_day || roster.students.length < 3) return 'Skipped: no school day or too few students'
@@ -2668,6 +2733,23 @@ await TA('API-PAT-03', 'Devices', 'POST', '/me/devices', 'Register a phone with 
   expectStatus(result, 200)
   await teacher('DELETE', `/me/devices?push_token=rt-${RUN}`)
   return '200'
+})
+
+const halfKid = ((await parent('GET', '/mobile/parent/children')).body.data.items ?? (await parent('GET', '/mobile/parent/children')).body.data)[0]
+const halfDay = new Date(Date.now() + 5.5 * 3600e3 + 25 * 86400e3)
+if (halfDay.getUTCDay() === 0) halfDay.setUTCDate(halfDay.getUTCDate() + 1)
+const halfDate = halfDay.toISOString().slice(0, 10)
+await TA('API-HDL-01', 'Student leave', 'POST', '/mobile/parent/children/{id}/leaves', 'Half-day leave (morning)', '201 with days 0.5 and half_day morning', async () => {
+  const result = await parent('POST', `/mobile/parent/children/${halfKid.id}/leaves`, { from_date: halfDate, to_date: halfDate, half_day: 'morning', reason: `Regression half day ${RUN}` })
+  expectStatus(result, 201)
+  if (result.body.data.days !== 0.5 || result.body.data.half_day !== 'morning') throw new Error(`${result.body.data.days} ${result.body.data.half_day}`)
+  await parent('POST', `/mobile/parent/children/${halfKid.id}/leaves/${result.body.data.id}/cancel`)
+  return '201, 0.5 day'
+})
+await TA('API-HDL-02', 'Student leave', 'POST', '/mobile/parent/children/{id}/leaves', 'Half day over two dates', '400 on to_date', async () => {
+  const next = new Date(`${halfDate}T00:00:00Z`)
+  next.setUTCDate(next.getUTCDate() + 1)
+  return expectFields(await parent('POST', `/mobile/parent/children/${halfKid.id}/leaves`, { from_date: halfDate, to_date: next.toISOString().slice(0, 10), half_day: 'afternoon', reason: 'Regression bad half day' }), ['to_date'])
 })
 
 await admin('DELETE', `/admin/students/${studentId}`)

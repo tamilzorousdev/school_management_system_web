@@ -312,13 +312,7 @@ function RosterEditor({
   )
 }
 
-function ReportView({
-  sectionId,
-  sectionName,
-}: {
-  sectionId: number | null
-  sectionName: string
-}) {
+function ReportView({ sectionId, sectionName }: { sectionId: number | null; sectionName: string }) {
   const months = recentMonths()
   const [month, setMonth] = useState(months[0].value)
   const report = useSectionReport(sectionId, month)
@@ -409,7 +403,8 @@ function ReportView({
                 <Badge tone={percentTone(row.percent)}>{percentLabel(row.percent)}</Badge>
               </div>
               <span className='text-xs text-muted-foreground'>
-                Present {row.present} · Absent {row.absent} · Late {row.late} · Half day {row.half_day} · Leave {row.leave}
+                Present {row.present} · Absent {row.absent} · Late {row.late} · Half day{' '}
+                {row.half_day} · Leave {row.leave}
               </span>
             </div>
           )}

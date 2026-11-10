@@ -44,7 +44,7 @@ export interface Meeting {
   ended_at: string | null
   call_minutes: number | null
   ended_by: { id: number; name: string } | null
-  end_reason: 'host_ended' | 'empty' | null
+  end_reason: 'host_ended' | 'empty' | 'time_up' | null
   cancelled_by: { id: number; name: string } | null
   cancel_reason: string | null
   created_at: string

@@ -19,9 +19,10 @@ export const MEETING_STATUS: Record<MeetingStatus, { label: string; tone: BadgeT
 export const isLive = (status: MeetingStatus) =>
   status === 'in_progress' || status === 'time_exceeded'
 
-export const END_REASON: Record<'host_ended' | 'empty', string> = {
+export const END_REASON: Record<'host_ended' | 'empty' | 'time_up', string> = {
   host_ended: 'Ended by the teacher',
   empty: 'Closed after everyone left',
+  time_up: 'Closed when the time was up',
 }
 
 export const LEAVE_REASON: Record<string, string> = {

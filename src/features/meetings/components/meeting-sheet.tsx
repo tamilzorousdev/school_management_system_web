@@ -65,12 +65,14 @@ export function MeetingSheet({
                     <Badge tone='neutral'>
                       Booked by the {PARTY_LABEL[data.scheduled_by].toLowerCase()}
                     </Badge>
-                    <Badge
-                      tone={MEETING_RESPONSE[data.response].tone}
-                      title={data.response_note ?? undefined}
-                    >
-                      {data.to.label} · {MEETING_RESPONSE[data.response].label}
-                    </Badge>
+                    {data.status === 'scheduled' && (
+                      <Badge
+                        tone={MEETING_RESPONSE[data.response].tone}
+                        title={data.response_note ?? undefined}
+                      >
+                        {data.to.label} · {MEETING_RESPONSE[data.response].label}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>

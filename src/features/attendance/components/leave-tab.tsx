@@ -42,8 +42,14 @@ interface Rejecting {
 const range = (from: string, to: string) =>
   from === to ? formatDate(from) : `${formatDate(from)} to ${formatDate(to)}`
 
-const daysText = (days: number, halfDay = false) =>
-  halfDay ? 'Half day' : `${days} ${days === 1 ? 'day' : 'days'}`
+const daysText = (days: number, halfDay: boolean | 'morning' | 'afternoon' | null = false) =>
+  halfDay === 'morning'
+    ? 'Half day · morning'
+    : halfDay === 'afternoon'
+      ? 'Half day · afternoon'
+      : halfDay
+        ? 'Half day'
+        : `${days} ${days === 1 ? 'day' : 'days'}`
 
 const optionsOf = <T extends string>(labels: Record<T, { label: string }>) =>
   (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value].label }))
@@ -271,7 +277,9 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
       cell: (leave) => (
         <div className='grid'>
           <span className='text-sm'>{range(leave.from_date, leave.to_date)}</span>
-          <span className='text-xs text-muted-foreground'>{daysText(leave.days)}</span>
+          <span className='text-xs text-muted-foreground'>
+            {daysText(leave.days, leave.half_day)}
+          </span>
         </div>
       ),
     },
@@ -330,7 +338,7 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
                 <span className='truncate font-bold'>{leave.student.name}</span>
                 <span className='text-xs text-muted-foreground'>
                   {leave.class_section ? `Class ${leave.class_section} · ` : ''}
-                  {range(leave.from_date, leave.to_date)} · {daysText(leave.days)}
+                  {range(leave.from_date, leave.to_date)} · {daysText(leave.days, leave.half_day)}
                 </span>
               </span>
               <Badge tone={STUDENT_LEAVE_STATUS[leave.status].tone}>
