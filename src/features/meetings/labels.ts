@@ -1,5 +1,11 @@
 import type { BadgeTone } from '@/components/ui/badge'
-import type { MeetingParty, MeetingStatus } from './api'
+import type { MeetingParty, MeetingResponse, MeetingStatus } from './api'
+
+export const MEETING_RESPONSE: Record<MeetingResponse, { label: string; tone: BadgeTone }> = {
+  pending: { label: 'Reply pending', tone: 'neutral' },
+  accepted: { label: 'Accepted', tone: 'success' },
+  declined: { label: 'Declined', tone: 'danger' },
+}
 
 export const MEETING_STATUS: Record<MeetingStatus, { label: string; tone: BadgeTone }> = {
   scheduled: { label: 'Scheduled', tone: 'info' },

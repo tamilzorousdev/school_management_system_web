@@ -90,8 +90,31 @@ const go = async (url) => {
 const see = async (text, scope = page, timeout = 8000) => {
   await scope.getByText(text).locator('visible=true').first().waitFor({ state: 'visible', timeout })
 }
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const pickDate = async (trigger, iso) => {
+  if (!iso) {
+    const clear = trigger.getByRole('button', { name: 'Clear date' })
+    if (await clear.count()) await clear.click()
+    return
+  }
+  const [year, month, day] = iso.split('-').map(Number)
+  await trigger.click()
+  const calendar = page.locator('[data-radix-popper-content-wrapper]').last()
+  await calendar.waitFor({ state: 'visible', timeout: 5000 })
+  const shownMonth = (await calendar.getByRole('button', { name: new RegExp(`^(${MONTH_NAMES.join('|')})$`) }).first().innerText()).trim()
+  const shownYear = Number((await calendar.getByRole('button', { name: /^\d{4}$/ }).first().innerText()).trim())
+  let steps = (year - shownYear) * 12 + (month - 1 - MONTH_NAMES.indexOf(shownMonth))
+  while (steps >= 12) { await calendar.getByTitle('Next year').click(); steps -= 12 }
+  while (steps <= -12) { await calendar.getByTitle('Previous year').click(); steps += 12 }
+  while (steps > 0) { await calendar.getByTitle('Next month').click(); steps -= 1 }
+  while (steps < 0) { await calendar.getByTitle('Previous month').click(); steps += 1 }
+  const days = calendar.getByRole('button', { name: String(day), exact: true })
+  await (day >= 15 ? days.last() : days.first()).click()
+  await calendar.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => page.keyboard.press('Escape'))
+}
 const fill = async (scope, label, value) => {
   const field = scope.getByLabel(label).first()
+  if ((await field.getAttribute('data-slot')) === 'date-picker') return pickDate(field, value)
   await field.fill(value)
 }
 const pick = async (scope, name, option) => {
@@ -347,8 +370,8 @@ await test(
     module: 'School setup',
     type: 'Validation',
     title: 'Add holiday with nothing filled, then last day before first day',
-    steps: 'Holidays → Add holiday → Add. Then date 2026-12-10, last day 2026-12-05.',
-    expected: 'Enter a name · Choose the date · Must be on or after the first day',
+    steps: 'Holidays → Add holiday → Add. Then date 2026-12-10 and open Last day.',
+    expected: 'Enter a name · Choose the date · days before 10 Dec cannot be picked as the last day',
   },
   async () => {
     await go('/setup?tab=holidays')
@@ -358,9 +381,13 @@ await test(
     await see('Choose the date', dialog())
     await fill(dialog(), /^Name/, `RT Holiday ${RUN}`)
     await fill(dialog(), /^Date/, '2026-12-10')
-    await fill(dialog(), /^Last day/, '2026-12-05')
-    await click(dialog(), /^add$/i)
-    await see('Must be on or after the first day', dialog())
+    await dialog().getByLabel(/^Last day/).first().click()
+    const calendar = page.locator('[data-radix-popper-content-wrapper]').last()
+    await calendar.waitFor({ state: 'visible', timeout: 5000 })
+    if (!(await calendar.getByRole('button', { name: '5', exact: true }).first().isDisabled()))
+      throw new Error('5 Dec can still be picked as the last day')
+    await page.keyboard.press('Escape')
+    await calendar.waitFor({ state: 'hidden', timeout: 5000 })
   }
 )
 await test(
@@ -968,7 +995,7 @@ await test(
     if (!staffUrl) throw new Error('No staff from SF-02')
     await go(`${staffUrl}?tab=bank`)
     await page
-      .getByRole('button', { name: /bank details/i })
+      .getByRole('button', { name: /bank (details|accounts?)/i })
       .first()
       .click()
     await fill(dialog(), /holder/i, 'RT Teacher')
@@ -1371,6 +1398,26 @@ await D4(
 )
 
 const D5 = (meta, fn) => test({ ...meta, day: 'Day 5' }, fn)
+const sessionToken = async (file) => {
+  const stateFile = path.join(ROOT, file)
+  const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+  const entry = state.origins.flatMap((origin) => origin.localStorage).find((item) => item.name === 'tz-session')
+  const refreshed = await fetch(`${BASE}/api/v1/auth/refresh`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ refresh_token: JSON.parse(entry.value).refreshToken }),
+  }).then((response) => response.json())
+  if (!refreshed.data) throw new Error(`Session in ${file} has ended`)
+  entry.value = JSON.stringify({ accessToken: refreshed.data.access_token, refreshToken: refreshed.data.refresh_token })
+  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2))
+  return refreshed.data.access_token
+}
+const asUser = (token) => async (method, url, body) =>
+  fetch(`${BASE}/api/v1${url}`, {
+    method,
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  }).then((response) => response.json())
 const nextSchoolDay5 = (() => {
   for (let offset = 1; ; offset += 1) {
     const date = new Date(Date.now() + 5.5 * 3600 * 1000 + offset * 86400000).toISOString().slice(0, 10)
@@ -1388,6 +1435,22 @@ await D5(
     expected: 'Insight cards and a card for the teacher on leave with the leave type',
   },
   async () => {
+    const board = await api('GET', `/admin/substitutes?date=${nextSchoolDay5}`)
+    if (!board.data?.absent_teachers) {
+      const teacher = asUser(await sessionToken('.auth-teacher.json'))
+      const balances = (await teacher('GET', '/mobile/teacher/leave-balances')).data ?? []
+      const type = balances.find((item) => item.remaining > 0 && item.leave_type?.is_paid)
+      const applied = await teacher('POST', '/mobile/teacher/leaves', {
+        leave_type_id: type.leave_type.id,
+        from_date: nextSchoolDay5,
+        to_date: nextSchoolDay5,
+        half_day: false,
+        reason: 'Regression proxy check',
+      })
+      if (!applied.data) throw new Error(`Could not apply a test leave: ${applied.message}`)
+      const decided = await api('POST', `/admin/staff-leaves/${applied.data.id}/decision`, { status: 'approved' })
+      if (decided.data?.status !== 'approved') throw new Error(`Test leave not approved: ${decided.message}`)
+    }
     await go(`/substitutes?date=${nextSchoolDay5}`)
     await see('Teachers away')
     await see(/Casual leave|Sick leave|Earned leave/)
@@ -1468,9 +1531,19 @@ await D5(
   },
   async () => {
     await go('/payroll?tab=runs')
-    await pick(page, 'Month', 'October 2026')
+    const runs = await api('GET', '/admin/payroll/runs?limit=50')
+    const finals = new Set((runs.data?.items ?? runs.data ?? []).filter((run) => run.status === 'final').map((run) => run.month))
+    await page.getByRole('combobox', { name: 'Month' }).first().click()
+    const options = await page.getByRole('option').allInnerTexts()
+    const label = options.map((text) => text.trim()).find((text) => {
+      const [name, year] = text.split(' ')
+      const month = `${year}-${String(new Date(`${name} 1, ${year}`).getMonth() + 1).padStart(2, '0')}`
+      return !finals.has(month)
+    })
+    if (!label) throw new Error('Every month in the list is already final')
+    await page.getByRole('option', { name: label }).first().click()
     await click(page, 'Run payroll')
-    await see('October 2026 payroll')
+    await see(`${label} payroll`)
     await see('Payslips')
     await click(page, 'Delete draft')
     const confirm = page.getByRole('alertdialog').or(page.getByRole('dialog'))
@@ -2199,17 +2272,77 @@ await TA(
 )
 await test(
   {
+    id: 'BLK-01',
+    module: 'Attendance',
+    type: 'View',
+    title: 'Staff check-ins are paged with select boxes and bulk marking',
+    steps: 'Attendance, Staff tab.',
+    expected: 'Page 1 of the staff, Next page, select boxes and Mark selected',
+  },
+  async () => {
+    await go('/attendance?tab=staff')
+    await page.getByRole('heading', { name: 'Staff check-ins', exact: true }).waitFor({ timeout: 8000 })
+    await page.getByRole('button', { name: 'Next page' }).waitFor({ timeout: 8000 })
+    await page.getByRole('checkbox', { name: /^Select (?!everyone)/ }).first().check()
+    await see('Mark selected')
+    await page.getByRole('button', { name: 'Mark selected' }).click()
+    await see('Optional', dialog())
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
+    id: 'BLK-02',
+    module: 'Attendance',
+    type: 'View',
+    title: 'Sections can be ticked and marked together',
+    steps: 'Attendance, Students tab, tick a section.',
+    expected: 'Mark selected opens the bulk dialog with an optional reason',
+  },
+  async () => {
+    await go('/attendance?tab=students')
+    await page.getByRole('heading', { name: 'Sections', exact: true }).waitFor({ timeout: 8000 })
+    const boxes = page.getByRole('checkbox', { name: /^Select class/ })
+    if (!(await boxes.count())) return
+    await boxes.first().check()
+    await page.getByRole('button', { name: 'Mark selected' }).click()
+    await see('Status for every student', dialog())
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
+    id: 'SES-01',
+    module: 'Attendance',
+    type: 'View',
+    title: 'Morning and afternoon sessions and the class report',
+    steps: 'Attendance, Students tab, switch to Afternoon, open Class report.',
+    expected: 'Board switches to the afternoon session; class-wise report opens with an Excel button',
+  },
+  async () => {
+    await go('/attendance?tab=students')
+    await page.getByRole('heading', { name: 'Sections', exact: true }).waitFor({ timeout: 8000 })
+    await page.getByText('Afternoon · 5th period').first().click()
+    await page.waitForURL(/session=afternoon/, { timeout: 8000 })
+    await page.getByRole('button', { name: 'Class report' }).click()
+    await see('Class-wise report')
+    await page.getByRole('button', { name: 'Excel' }).waitFor({ timeout: 8000 })
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
     id: 'RCD-01',
     module: 'Report card',
     type: 'View',
     title: 'Student report card shows the marksheet with print and download',
     steps: 'Students, open a student with published results, Report card tab.',
-    expected: 'Progress report with subjects, overall grade and Print / Download PDF',
+    expected: 'Annual report card with subjects, overall percentage and Print / Download PDF',
   },
   async () => {
     await go('/students/30?tab=report-card')
-    await see('PROGRESS REPORT')
-    await see('Overall grade')
+    await see(/ANNUAL REPORT CARD|REPORT CARD/i)
+    await see(/Overall Percentage/i)
     await page.getByRole('button', { name: 'Print' }).waitFor({ timeout: 8000 })
     await page.getByRole('button', { name: 'Download PDF' }).waitFor({ timeout: 8000 })
   }
@@ -2255,7 +2388,7 @@ await test(
     ['RS-15', '/parent-preview', /Parent app/],
     ['RS-16', '/meetings', /Meetings/],
     ['RS-17', '/app-banners', 'Live now'],
-    ['RS-18', '/students/30?tab=report-card', 'PROGRESS REPORT'],
+    ['RS-18', '/students/30?tab=report-card', /annual report card/i],
   ]) {
     await test(
       {

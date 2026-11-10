@@ -13,11 +13,16 @@ export interface MeetingPerson {
   label: string | null
 }
 
+export type MeetingResponse = 'pending' | 'accepted' | 'declined'
+
 export interface Meeting {
   id: number
   title: string
   agenda: string | null
   status: MeetingStatus
+  response: MeetingResponse
+  responded_at: string | null
+  response_note: string | null
   scheduled_at: string
   ends_at: string
   duration_minutes: number

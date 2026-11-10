@@ -47,6 +47,10 @@ const steps = [
     'holidays',
     `UPDATE holidays SET deleted_at = now() WHERE deleted_at IS NULL AND name ~ '^RT Holiday'`,
   ],
+  [
+    'staff leaves',
+    `UPDATE staff_leave_requests SET deleted_at = now() WHERE deleted_at IS NULL AND reason ~ '^Regression'`,
+  ],
 ]
 for (const [label, sql] of steps) {
   const result = await db.query(sql, sql.includes('$1') ? [NAME] : [])

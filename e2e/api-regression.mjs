@@ -2516,6 +2516,160 @@ await TA('API-OTP-03', 'Sign-in', 'POST', '/auth/otp/resend', 'Resend for a numb
   expectStatus(await anonymous('POST', '/auth/otp/resend', { mobile: '9999999998' }), 404, 'MOBILE_NOT_REGISTERED')
 )
 
+const lastWorkingDay = (() => {
+  for (let offset = 1; ; offset += 1) {
+    const day = new Date(Date.now() + 5.5 * 3600 * 1000 - offset * 86400000).toISOString().slice(0, 10)
+    if (new Date(`${day}T00:00:00Z`).getUTCDay() !== 0) return day
+  }
+})()
+await TA('API-BLK-01', 'Bulk attendance', 'GET', '/admin/staff-attendance/board?page=2&limit=10', 'Staff board a page at a time', '200 with 10 rows and paging fields', async () => {
+  const result = await ao('GET', `/admin/staff-attendance/board?date=${lastWorkingDay}&page=1&limit=10`)
+  expectStatus(result, 200)
+  const data = result.body.data
+  if (data.staff.length > 10) throw new Error(`Got ${data.staff.length} rows`)
+  for (const key of ['page', 'limit', 'filtered_total', 'total_pages', 'has_next']) {
+    if (!(key in data)) throw new Error(`${key} missing`)
+  }
+  return `200, page ${data.page} of ${data.total_pages}, ${data.staff.length} of ${data.filtered_total}`
+})
+await TA('API-BLK-02', 'Bulk attendance', 'GET', '/admin/staff-attendance/board?status=not_checked_in&search=', 'Search and status filter on the staff board', '200, every row matches', async () => {
+  const result = await ao('GET', `/admin/staff-attendance/board?date=${lastWorkingDay}&status=not_checked_in&limit=100`)
+  expectStatus(result, 200)
+  if (result.body.data.staff.some((row) => !['not_checked_in', 'absent'].includes(row.status)))
+    throw new Error('A row does not match the status')
+  return `200, ${result.body.data.filtered_total} not checked in`
+})
+await TA('API-BLK-03', 'Bulk attendance', 'PUT', '/admin/staff-attendance/bulk', 'Bulk staff with nobody chosen', '400 on user_ids', async () =>
+  expectFields(await ao('PUT', '/admin/staff-attendance/bulk', { date: lastWorkingDay, status: 'present' }), ['user_ids'])
+)
+await TA('API-BLK-04', 'Bulk attendance', 'PUT', '/admin/staff-attendance/bulk', 'AO marks two staff present without a reason', '200 with marked', async () => {
+  const board = await ao('GET', `/admin/staff-attendance/board?date=${lastWorkingDay}&limit=100`)
+  const ids = board.body.data.staff.filter((row) => row.status !== 'on_leave').slice(0, 2).map((row) => row.user_id)
+  const result = await ao('PUT', '/admin/staff-attendance/bulk', { date: lastWorkingDay, user_ids: ids, status: 'present' })
+  expectStatus(result, 200)
+  if (result.body.data.marked !== ids.length) throw new Error(`Marked ${result.body.data.marked} of ${ids.length}`)
+  return `200, marked ${result.body.data.marked}`
+})
+await TA('API-BLK-05', 'Bulk attendance', 'PUT', '/admin/attendance/bulk', 'Bulk sections with a wrong status', '400 on status', async () =>
+  expectFields(await ao('PUT', '/admin/attendance/bulk', { date: lastWorkingDay, status: 'here' }), ['status'])
+)
+await TA('API-BLK-06', 'Bulk attendance', 'PUT', '/admin/attendance/bulk', 'A marked section is skipped without overwrite', '200 with the section in skipped', async () => {
+  const board = await ao('GET', `/admin/attendance/board?date=${lastWorkingDay}`)
+  if (!board.body.data.working_day) return `Skipped: ${lastWorkingDay} is not a school day`
+  const marked = board.body.data.sections.find((row) => row.marked)
+  if (!marked) return 'Skipped: no marked section'
+  const result = await ao('PUT', '/admin/attendance/bulk', { date: lastWorkingDay, section_ids: [marked.section_id], status: 'present' })
+  expectStatus(result, 200)
+  if (result.body.data.skipped[0]?.reason !== 'Already marked') throw new Error('Not skipped')
+  return '200, skipped: Already marked'
+})
+await TA('API-BLK-07', 'Bulk attendance', 'PUT', '/admin/staff-attendance/bulk', 'Teacher tries bulk marking', '403', async () =>
+  expectStatus(await teacher('PUT', '/admin/staff-attendance/bulk', { date: lastWorkingDay, status: 'present', all_not_checked_in: true }), 403)
+)
+
+const sessionBoard = (await ao('GET', `/admin/attendance/board?date=${lastWorkingDay}&session=afternoon`)).body?.data
+const sessionSection = sessionBoard?.sections?.[0]?.section_id
+await TA('API-SES-01', 'Attendance sessions', 'GET', '/admin/attendance/board?session=afternoon', 'Board for the afternoon session', '200 with session and morning/afternoon marked flags', async () => {
+  if (!sessionBoard) throw new Error('No board')
+  if (sessionBoard.session !== 'afternoon') throw new Error(`session ${sessionBoard.session}`)
+  if (!('morning_marked' in (sessionBoard.sections[0] ?? {}))) throw new Error('morning_marked missing')
+  return `200, ${sessionBoard.sections_not_marked} sections not marked in the afternoon`
+})
+await TA('API-SES-02', 'Attendance sessions', 'GET', '/admin/attendance/sections/{id}?session=afternoon', 'Afternoon roster', '200 with session afternoon and period 5', async () => {
+  const result = await ao('GET', `/admin/attendance/sections/${sessionSection}?date=${lastWorkingDay}&session=afternoon`)
+  expectStatus(result, 200)
+  if (result.body.data.period !== 5) throw new Error(`period ${result.body.data.period}`)
+  return '200, afternoon = period 5'
+})
+await TA('API-SES-03', 'Attendance sessions', 'GET', '/admin/attendance/sections/{id}?period=3', 'Any period other than 1st and 5th', '400 PERIOD_NOT_ALLOWED', async () =>
+  expectStatus(await ao('GET', `/admin/attendance/sections/${sessionSection}?date=${lastWorkingDay}&period=3`), 400, 'PERIOD_NOT_ALLOWED')
+)
+await TA('API-SES-04', 'Attendance sessions', 'GET', '/mobile/parent/children/{id}/attendance/today', 'Parent today has both sessions', '200 with status, morning and afternoon', async () => {
+  const kids = (await parent('GET', '/mobile/parent/children')).body.data
+  const kid = (kids.items ?? kids)[0]
+  const result = await parent('GET', `/mobile/parent/children/${kid.id}/attendance/today`)
+  expectStatus(result, 200)
+  for (const key of ['status', 'morning', 'afternoon']) if (!(key in result.body.data)) throw new Error(`${key} missing`)
+  return `200, day ${result.body.data.status}, morning ${result.body.data.morning}, afternoon ${result.body.data.afternoon}`
+})
+await TA('API-SES-05', 'Attendance reports', 'GET', '/admin/attendance/classes/{id}/report', 'Class-wise monthly report', '200 with sections and average', async () => {
+  const classes = (await ao('GET', '/admin/classes')).body.data
+  const withSections = classes.find((item) => item.sections?.length)
+  const result = await ao('GET', `/admin/attendance/classes/${withSections.id}/report?month=${lastWorkingDay.slice(0, 7)}`)
+  expectStatus(result, 200)
+  if (!Array.isArray(result.body.data.sections)) throw new Error('sections missing')
+  return `200, class ${result.body.data.class.name}: ${result.body.data.sections.length} sections, ${result.body.data.percent ?? '—'}%`
+})
+await TA('API-SES-06', 'Attendance reports', 'GET', '/admin/attendance/sections/{id}/report/xlsx', 'Section report as Excel', '200 spreadsheet', async () => {
+  const response = await fetch(`${API}/admin/attendance/sections/${sessionSection}/report/xlsx?month=${lastWorkingDay.slice(0, 7)}`, { headers: { authorization: `Bearer ${adminToken}` } })
+  const type = response.headers.get('content-type') ?? ''
+  if (response.status !== 200 || !type.includes('spreadsheetml')) throw new Error(`Got ${response.status} ${type}`)
+  return '200 xlsx'
+})
+await TA('API-SES-07', 'Attendance reports', 'GET', '/admin/attendance/classes/99999/report', 'Unknown class', '404 CLASS_NOT_FOUND', async () =>
+  expectStatus(await ao('GET', `/admin/attendance/classes/99999/report?month=${lastWorkingDay.slice(0, 7)}`), 404, 'CLASS_NOT_FOUND')
+)
+await TA('API-SES-08', 'Attendance sessions', 'PUT', '/mobile/teacher/sections/{id}/attendance', 'Teacher saves an earlier day', '400 SESSION_CLOSED (only the office can)', async () => {
+  if (!teacherSection) return 'Skipped: demo teacher has no section'
+  const roster = await teacher('GET', `/mobile/teacher/sections/${teacherSection}/attendance?date=${lastWorkingDay}&session=morning`)
+  expectStatus(roster, 200)
+  if (roster.body.data.open) throw new Error('An earlier day should not be open for a teacher')
+  const items = roster.body.data.students.map((row) => ({ student_id: row.student_id, status: row.status }))
+  return expectStatus(await teacher('PUT', `/mobile/teacher/sections/${teacherSection}/attendance`, { date: lastWorkingDay, session: 'morning', items }), 400, 'SESSION_CLOSED')
+})
+
+const replyKid = ((await parent('GET', '/mobile/parent/children')).body.data.items ?? (await parent('GET', '/mobile/parent/children')).body.data)[0]
+const replyTeacher = (await parent('GET', `/mobile/parent/children/${replyKid.id}/teachers`)).body.data?.[0]
+const replyAt = new Date(Date.now() + 3 * 86400e3)
+replyAt.setUTCHours(9, 0, 0, 0)
+const replyMeeting = replyTeacher
+  ? (await parent('POST', `/mobile/parent/children/${replyKid.id}/meetings`, { teacher_user_id: replyTeacher.id, title: `RT reply ${RUN}`, scheduled_at: replyAt.toISOString() })).body.data
+  : null
+await TA('API-MTR-01', 'Meeting replies', 'POST', '/mobile/parent/children/{id}/meetings', 'Parent books a meeting', '201 with response pending', async () => {
+  if (!replyMeeting) throw new Error('Could not book')
+  if (replyMeeting.response !== 'pending') throw new Error(`response ${replyMeeting.response}`)
+  return '201, pending'
+})
+await TA('API-MTR-02', 'Meeting replies', 'POST', '/mobile/parent/meetings/{id}/accept', 'Parent replies to their own booking', '403 NOT_MEETING_INVITEE', async () =>
+  expectStatus(await parent('POST', `/mobile/parent/meetings/${replyMeeting.id}/accept`, {}), 403, 'NOT_MEETING_INVITEE')
+)
+await TA('API-MTR-03', 'Meeting replies', 'POST', '/mobile/teacher/meetings/{id}/decline', 'Teacher declines with a note', '200 declined, still scheduled', async () => {
+  const result = await teacher('POST', `/mobile/teacher/meetings/${replyMeeting.id}/decline`, { note: 'Exam duty' })
+  expectStatus(result, 200)
+  if (result.body.data.response !== 'declined' || result.body.data.status !== 'scheduled') throw new Error(`${result.body.data.response} / ${result.body.data.status}`)
+  return '200, declined and still scheduled'
+})
+await TA('API-MTR-04', 'Meeting replies', 'POST', '/mobile/teacher/meetings/{id}/accept', 'Teacher changes to accept', '200 accepted', async () => {
+  const result = await teacher('POST', `/mobile/teacher/meetings/${replyMeeting.id}/accept`, {})
+  expectStatus(result, 200)
+  if (result.body.data.response !== 'accepted') throw new Error(result.body.data.response)
+  return '200, accepted'
+})
+await TA('API-MTR-05', 'Meeting replies', 'POST', '/mobile/teacher/meetings/{id}/accept', 'Reply after the meeting is cancelled', '409 MEETING_REPLY_CLOSED', async () => {
+  await parent('POST', `/mobile/parent/meetings/${replyMeeting.id}/cancel`, { reason: 'Regression clean up' })
+  return expectStatus(await teacher('POST', `/mobile/teacher/meetings/${replyMeeting.id}/accept`, {}), 409, 'MEETING_REPLY_CLOSED')
+})
+
+await TA('API-PAT-01', 'Attendance', 'PATCH', '/admin/attendance/sections/{id}', 'Mark three students with P, A and L in one call', '200 present, absent, late; L is late', async () => {
+  const roster = (await ao('GET', `/admin/attendance/sections/${sessionSection}?date=${lastWorkingDay}&session=afternoon`)).body.data
+  if (!roster?.working_day || roster.students.length < 3) return 'Skipped: no school day or too few students'
+  const [a, b, c] = roster.students
+  const result = await ao('PATCH', `/admin/attendance/sections/${sessionSection}`, { date: lastWorkingDay, session: 'afternoon', items: [{ student_id: a.student_id, status: 'P' }, { student_id: b.student_id, status: 'A' }, { student_id: c.student_id, status: 'L' }] })
+  expectStatus(result, 200)
+  const got = result.body.data.students.slice(0, 3).map((row) => row.status).join(',')
+  if (got !== 'present,absent,late') throw new Error(got)
+  return `200, ${got}`
+})
+await TA('API-PAT-02', 'Attendance', 'PATCH', '/admin/attendance/sections/{id}', 'A student from another section', '400 STUDENT_NOT_IN_SECTION', async () =>
+  expectStatus(await ao('PATCH', `/admin/attendance/sections/${sessionSection}`, { date: lastWorkingDay, session: 'afternoon', items: [{ student_id: 999999, status: 'A' }] }), 400, 'STUDENT_NOT_IN_SECTION')
+)
+await TA('API-PAT-03', 'Devices', 'POST', '/me/devices', 'Register a phone with push_token', '200 Device registered', async () => {
+  const result = await teacher('POST', '/me/devices', { push_token: `rt-${RUN}`, platform: 'android' })
+  expectStatus(result, 200)
+  await teacher('DELETE', `/me/devices?push_token=rt-${RUN}`)
+  return '200'
+})
+
 await admin('DELETE', `/admin/students/${studentId}`)
 if (userId) await admin('DELETE', `/admin/users/${userId}`)
 

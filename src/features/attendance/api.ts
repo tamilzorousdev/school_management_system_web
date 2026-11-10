@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginated } from '@/lib/api/client'
+import { downloadFile } from '@/lib/files'
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day' | 'leave'
 export type StudentLeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
@@ -25,17 +26,22 @@ export interface AttendanceSummary {
   percent: number | null
 }
 
+export type AttendanceSessionName = 'morning' | 'afternoon'
+
 export interface BoardSection extends AttendanceSummary {
   section_id: number
   name: string
   class_teacher: string | null
   marked: boolean
+  morning_marked: boolean
+  afternoon_marked: boolean
   taken_by: string | null
   taken_at: string | null
 }
 
 export interface AttendanceBoard {
   date: string
+  session: AttendanceSessionName
   working_day: boolean
   holiday: string | null
   summary: AttendanceSummary
@@ -59,7 +65,10 @@ export interface RosterStudent {
 export interface Roster {
   section: Ref
   date: string
+  session: AttendanceSessionName
   period: number
+  open: boolean
+  opens_at: string | null
   working_day: boolean
   holiday: string | null
   marked: boolean
@@ -77,7 +86,7 @@ export interface MarkItem {
 
 export interface MarkInput {
   date: string
-  period?: number
+  session: AttendanceSessionName
   subject_id?: number | null
   items: MarkItem[]
 }
@@ -99,6 +108,25 @@ export interface SectionReport {
   working_days: number
   marked_days: number
   students: SectionReportRow[]
+}
+
+export interface ClassReportSection {
+  section_id: number
+  name: string
+  students: number
+  marked_days: number
+  percent: number | null
+  below_75: number
+}
+
+export interface ClassReport {
+  month: string
+  class: Ref
+  working_days: number
+  students: number
+  percent: number | null
+  below_75: number
+  sections: ClassReportSection[]
 }
 
 export interface StudentLeave {
@@ -145,6 +173,57 @@ export interface StaffBoard {
   on_leave: number
   not_checked_in: number
   staff: StaffBoardRow[]
+  page: number
+  limit: number
+  filtered_total: number
+  total_pages: number
+  has_next: boolean
+}
+
+export interface StaffBoardParams {
+  date: string
+  page?: number
+  limit?: number
+  search?: string
+  status?: StaffBoardStatus
+}
+
+export interface BulkSkip {
+  id: number
+  name: string
+  reason: string
+}
+
+export interface BulkStaffInput {
+  date: string
+  user_ids?: number[]
+  all_not_checked_in?: boolean
+  status: StaffAttendanceStatus
+  check_in_at?: string | null
+  check_out_at?: string | null
+  remarks?: string | null
+}
+
+export interface BulkStaffResult {
+  date: string
+  marked: number
+  skipped: BulkSkip[]
+}
+
+export interface BulkSectionInput {
+  date: string
+  session: AttendanceSessionName
+  section_ids?: number[]
+  status: AttendanceStatus
+  remarks?: string | null
+  overwrite?: boolean
+}
+
+export interface BulkSectionResult {
+  date: string
+  marked: number
+  students: number
+  skipped: BulkSkip[]
 }
 
 export interface ManualMarkInput {
@@ -213,23 +292,45 @@ export interface DecisionInput {
 
 export const attendanceKeys = {
   all: ['attendance'] as const,
-  board: (date: string) => [...attendanceKeys.all, 'board', date] as const,
-  roster: (sectionId: number, date: string) =>
-    [...attendanceKeys.all, 'roster', sectionId, date] as const,
+  board: (date: string, session: AttendanceSessionName = 'morning') =>
+    [...attendanceKeys.all, 'board', date, session] as const,
+  roster: (sectionId: number, date: string, session: AttendanceSessionName) =>
+    [...attendanceKeys.all, 'roster', sectionId, date, session] as const,
+  classReport: (classId: number, month: string) =>
+    [...attendanceKeys.all, 'class-report', classId, month] as const,
   report: (sectionId: number, month: string) =>
     [...attendanceKeys.all, 'report', sectionId, month] as const,
   studentLeaves: (params: StudentLeaveParams) =>
     [...attendanceKeys.all, 'student-leaves', params] as const,
-  staffBoard: (date: string) => [...attendanceKeys.all, 'staff-board', date] as const,
+  staffBoard: (params: StaffBoardParams) => [...attendanceKeys.all, 'staff-board', params] as const,
   staffLeaves: (params: StaffLeaveParams) =>
     [...attendanceKeys.all, 'staff-leaves', params] as const,
   balances: (userId: number) => [...attendanceKeys.all, 'balances', userId] as const,
 }
 
 export const attendanceApi = {
-  board: (date: string) => api.get<AttendanceBoard>('/admin/attendance/board', { date }),
-  roster: (sectionId: number, date: string) =>
-    api.get<Roster>(`/admin/attendance/sections/${sectionId}`, { date, period: 0 }),
+  board: (date: string, session: AttendanceSessionName = 'morning') =>
+    api.get<AttendanceBoard>('/admin/attendance/board', { date, session }),
+  roster: (sectionId: number, date: string, session: AttendanceSessionName) =>
+    api.get<Roster>(`/admin/attendance/sections/${sectionId}`, { date, session }),
+  classReport: (classId: number, month: string) =>
+    api.get<ClassReport>(`/admin/attendance/classes/${classId}/report`, { month }),
+  downloadSectionReport: (sectionId: number, month: string, name: string) =>
+    downloadFile(
+      `/admin/attendance/sections/${sectionId}/report/xlsx`,
+      `Attendance-${name}-${month}.xlsx`,
+      {
+        month,
+      }
+    ),
+  downloadClassReport: (classId: number, month: string, name: string) =>
+    downloadFile(
+      `/admin/attendance/classes/${classId}/report/xlsx`,
+      `Attendance-Class-${name}-${month}.xlsx`,
+      {
+        month,
+      }
+    ),
   mark: (sectionId: number, input: MarkInput) =>
     api.put<Roster>(`/admin/attendance/sections/${sectionId}`, input),
   report: (sectionId: number, month: string) =>
@@ -238,7 +339,12 @@ export const attendanceApi = {
     api.get<Paginated<StudentLeave>>('/admin/student-leaves', { ...params }),
   decideStudentLeave: (id: number, input: DecisionInput) =>
     api.post<StudentLeave>(`/admin/student-leaves/${id}/decision`, input),
-  staffBoard: (date: string) => api.get<StaffBoard>('/admin/staff-attendance/board', { date }),
+  staffBoard: (params: StaffBoardParams) =>
+    api.get<StaffBoard>('/admin/staff-attendance/board', { ...params }),
+  bulkStaff: (input: BulkStaffInput) =>
+    api.put<BulkStaffResult>('/admin/staff-attendance/bulk', input),
+  bulkSections: (input: BulkSectionInput) =>
+    api.put<BulkSectionResult>('/admin/attendance/bulk', input),
   correctStaff: (userId: number, input: ManualMarkInput) =>
     api.put<StaffDay>(`/admin/staff-attendance/${userId}`, input),
   staffLeaves: (params: StaffLeaveParams) =>
@@ -248,18 +354,27 @@ export const attendanceApi = {
     api.post<StaffLeave>(`/admin/staff-leaves/${id}/decision`, input),
 }
 
-export function useAttendanceBoard(date: string) {
+export function useAttendanceBoard(date: string, session: AttendanceSessionName = 'morning') {
   return useQuery({
-    queryKey: attendanceKeys.board(date),
-    queryFn: () => attendanceApi.board(date),
+    queryKey: attendanceKeys.board(date, session),
+    queryFn: () => attendanceApi.board(date, session),
     placeholderData: keepPreviousData,
   })
 }
 
-export function useRoster(sectionId: number | null, date: string) {
+export function useClassReport(classId: number | undefined, month: string) {
   return useQuery({
-    queryKey: attendanceKeys.roster(sectionId ?? 0, date),
-    queryFn: () => attendanceApi.roster(sectionId!, date),
+    queryKey: attendanceKeys.classReport(classId ?? 0, month),
+    queryFn: () => attendanceApi.classReport(classId!, month),
+    enabled: Boolean(classId),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useRoster(sectionId: number | null, date: string, session: AttendanceSessionName) {
+  return useQuery({
+    queryKey: attendanceKeys.roster(sectionId ?? 0, date, session),
+    queryFn: () => attendanceApi.roster(sectionId!, date, session),
     enabled: Boolean(sectionId),
     staleTime: 0,
   })
@@ -282,10 +397,10 @@ export function useStudentLeaves(params: StudentLeaveParams) {
   })
 }
 
-export function useStaffBoard(date: string) {
+export function useStaffBoard(params: StaffBoardParams) {
   return useQuery({
-    queryKey: attendanceKeys.staffBoard(date),
-    queryFn: () => attendanceApi.staffBoard(date),
+    queryKey: attendanceKeys.staffBoard(params),
+    queryFn: () => attendanceApi.staffBoard(params),
     placeholderData: keepPreviousData,
   })
 }

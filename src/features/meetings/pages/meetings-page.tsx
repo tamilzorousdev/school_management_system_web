@@ -11,7 +11,7 @@ import { formatDateTime, formatTime } from '@/lib/format'
 import { useMeetingInsights, useMeetings, type Meeting, type MeetingStatus } from '../api'
 import { MeetingPeople } from '../components/meeting-people'
 import { MeetingSheet } from '../components/meeting-sheet'
-import { durationLabel, isLive, MEETING_STATUS } from '../labels'
+import { durationLabel, isLive, MEETING_RESPONSE, MEETING_STATUS } from '../labels'
 import type { MeetingsSearch } from '../search'
 
 const route = getRouteApi('/_app/meetings')
@@ -242,9 +242,17 @@ export function MeetingsPage() {
 
 function StatusBadge({ meeting }: { meeting: Meeting }) {
   const status = MEETING_STATUS[meeting.status]
+  const reply = MEETING_RESPONSE[meeting.response]
   return (
-    <Badge tone={status.tone} dot pulse={isLive(meeting.status)}>
-      {status.label}
-    </Badge>
+    <span className='flex flex-wrap gap-1'>
+      <Badge tone={status.tone} dot pulse={isLive(meeting.status)}>
+        {status.label}
+      </Badge>
+      {meeting.status === 'scheduled' && (
+        <Badge tone={reply.tone} title={meeting.response_note ?? undefined}>
+          {reply.label}
+        </Badge>
+      )}
+    </span>
   )
 }

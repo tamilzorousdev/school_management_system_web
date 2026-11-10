@@ -19,6 +19,7 @@ import {
   END_REASON,
   isLive,
   LEAVE_REASON,
+  MEETING_RESPONSE,
   MEETING_STATUS,
   PARTY_LABEL,
 } from '../labels'
@@ -63,6 +64,12 @@ export function MeetingSheet({
                     </Badge>
                     <Badge tone='neutral'>
                       Booked by the {PARTY_LABEL[data.scheduled_by].toLowerCase()}
+                    </Badge>
+                    <Badge
+                      tone={MEETING_RESPONSE[data.response].tone}
+                      title={data.response_note ?? undefined}
+                    >
+                      {data.to.label} · {MEETING_RESPONSE[data.response].label}
                     </Badge>
                   </div>
                 </div>

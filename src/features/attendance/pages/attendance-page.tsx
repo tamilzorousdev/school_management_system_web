@@ -53,6 +53,13 @@ export function AttendancePage() {
       {search.tab === 'students' && (
         <StudentsTab
           date={date}
+          session={search.session ?? 'morning'}
+          onSessionChange={(session) =>
+            setSearch({
+              session: session === 'morning' ? undefined : session,
+              section_id: undefined,
+            })
+          }
           sectionId={search.section_id}
           canManage={canManage}
           onDateChange={setDate}
@@ -70,7 +77,21 @@ export function AttendancePage() {
         />
       )}
       {search.tab === 'staff' && (
-        <StaffTab date={date} canManage={canManage} onDateChange={setDate} />
+        <StaffTab
+          date={date}
+          canManage={canManage}
+          page={search.staff_page ?? 1}
+          search={search.staff_search}
+          status={search.staff_status}
+          onDateChange={(next) =>
+            setSearch({
+              date: next === today() ? undefined : next,
+              section_id: undefined,
+              staff_page: 1,
+            })
+          }
+          onSearchChange={setSearch}
+        />
       )}
       {search.tab === 'leave' && (
         <LeaveTab

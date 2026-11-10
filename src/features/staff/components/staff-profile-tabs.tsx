@@ -229,11 +229,13 @@ export function DocumentsTab({ staff, canManage }: { staff: StaffDetail; canMana
 export function BankTab({ staff, canBank }: { staff: StaffDetail; canBank: boolean }) {
   const [revealed, setRevealed] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [adding, setAdding] = useState(false)
   const full = useStaffBank(staff.id, revealed && canBank)
   const setPrimary = useStaffMutation((bankId: number) => staffApi.setPrimaryBank(staff.id, bankId))
   const removeBank = useStaffMutation((bankId: number) => staffApi.removeBank(staff.id, bankId))
 
-  const bankList = staff.banks && staff.banks.length > 0 ? staff.banks : staff.bank.complete ? [staff.bank] : []
+  const bankList =
+    staff.banks && staff.banks.length > 0 ? staff.banks : staff.bank.complete ? [staff.bank] : []
   const hasAny = bankList.length > 0
 
   return (
@@ -247,6 +249,12 @@ export function BankTab({ staff, canBank }: { staff: StaffDetail; canBank: boole
               <Button size='sm' variant='outline' onClick={() => setRevealed((value) => !value)}>
                 {revealed ? <EyeOff className='size-4' /> : <Eye className='size-4' />}
                 {revealed ? 'Hide numbers' : 'Show full details'}
+              </Button>
+            )}
+            {hasAny && (
+              <Button size='sm' onClick={() => setAdding(true)}>
+                <Plus className='size-4' />
+                Add bank account
               </Button>
             )}
             <Button
@@ -365,6 +373,7 @@ export function BankTab({ staff, canBank }: { staff: StaffDetail; canBank: boole
         </div>
       )}
       <BankModal staff={staff} open={editing} onOpenChange={setEditing} />
+      <BankModal staff={staff} open={adding} onOpenChange={setAdding} addNew />
     </Section>
   )
 }

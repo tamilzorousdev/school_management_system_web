@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Check, Plus, Trash2 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { FormField } from '@/components/common/form-field'
@@ -111,10 +111,12 @@ export function BankModal({
   staff,
   open,
   onOpenChange,
+  addNew = false,
 }: {
   staff: StaffDetail
   open: boolean
   onOpenChange: (open: boolean) => void
+  addNew?: boolean
 }) {
   const hasAccounts = Boolean(staff.bank.complete || (staff.banks && staff.banks.length > 0))
   const current = useStaffBank(staff.id, open && hasAccounts)
@@ -125,7 +127,13 @@ export function BankModal({
     <AppModal
       open={open}
       onOpenChange={onOpenChange}
-      title={hasAccounts ? 'Manage bank accounts' : 'Add bank account'}
+      title={
+        hasAccounts
+          ? addNew
+            ? 'Add another bank account'
+            : 'Manage bank accounts'
+          : 'Add bank account'
+      }
       description='Used for salary payments. Select which account is primary for payroll.'
       formId='bank-form'
       loading={save.isPending}
@@ -141,6 +149,7 @@ export function BankModal({
         ) : (
           <BankForm
             initial={current.data}
+            addNew={addNew}
             fallbackName={staff.name}
             save={save.mutateAsync}
             onDone={() => onOpenChange(false)}
@@ -152,11 +161,13 @@ export function BankModal({
 
 function BankForm({
   initial,
+  addNew,
   fallbackName,
   save,
   onDone,
 }: {
   initial?: BankDetails[] | BankDetails
+  addNew: boolean
   fallbackName: string
   save: (input: BankInput[]) => Promise<StaffDetail>
   onDone: () => void
@@ -164,7 +175,7 @@ function BankForm({
   const [drafts, setDrafts] = useState<BankInput[]>(() => {
     const list = Array.isArray(initial) ? initial : initial ? [initial] : []
     if (list.length > 0) {
-      return list.map((item, idx) => ({
+      const existing = list.map((item, idx) => ({
         id: item.id,
         account_holder: item.account_holder ?? fallbackName,
         bank_name: item.bank_name ?? '',
@@ -173,6 +184,18 @@ function BankForm({
         pan: item.pan ?? '',
         is_primary: item.is_primary ?? idx === 0,
       }))
+      if (!addNew) return existing
+      return [
+        ...existing,
+        {
+          account_holder: fallbackName,
+          bank_name: '',
+          ifsc: '',
+          account_no: '',
+          pan: '',
+          is_primary: false,
+        },
+      ]
     }
     return [
       {
@@ -188,10 +211,17 @@ function BankForm({
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const [focusIndex] = useState(() => (addNew ? drafts.length - 1 : null))
+
+  useEffect(() => {
+    if (focusIndex === null) return
+    const field = document.getElementById(`bank_name_${focusIndex}`)
+    field?.scrollIntoView({ block: 'center' })
+    field?.focus()
+  }, [focusIndex])
+
   const updateDraft = (index: number, field: keyof BankInput, value: unknown) => {
-    setDrafts((prev) =>
-      prev.map((d, i) => (i === index ? { ...d, [field]: value } : d))
-    )
+    setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, [field]: value } : d)))
     setErrors((prev) => {
       const next = { ...prev }
       delete next[`${index}.${field}`]
@@ -282,11 +312,11 @@ function BankForm({
   return (
     <form id='bank-form' onSubmit={submit} noValidate className='flex flex-col gap-4'>
       <RootError message={errors.root} />
-      <div className='flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1'>
+      <div className='flex max-h-[60vh] flex-col gap-4 overflow-y-auto px-1'>
         {drafts.map((d, index) => (
           <div
             key={index}
-            className='relative rounded-lg border bg-card/60 p-4 shadow-sm flex flex-col gap-3'
+            className='relative flex flex-col gap-3 rounded-lg border bg-card/60 p-4 shadow-sm'
           >
             <div className='flex flex-wrap items-center justify-between gap-2 border-b pb-2.5'>
               <div className='flex items-center gap-2'>
@@ -297,14 +327,17 @@ function BankForm({
                   type='button'
                   onClick={() => setPrimary(index)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+                    'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
                     d.is_primary
-                      ? 'bg-primary/10 border-primary text-primary font-semibold'
-                      : 'bg-muted/40 border-border text-muted-foreground hover:bg-muted'
+                      ? 'border-primary bg-primary/10 font-semibold text-primary'
+                      : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted'
                   )}
                 >
                   <Check
-                    className={cn('size-3', d.is_primary ? 'opacity-100 text-primary' : 'opacity-0')}
+                    className={cn(
+                      'size-3',
+                      d.is_primary ? 'text-primary opacity-100' : 'opacity-0'
+                    )}
                   />
                   {d.is_primary ? 'Primary (salary)' : 'Select as primary'}
                 </button>
@@ -313,7 +346,7 @@ function BankForm({
                 <button
                   type='button'
                   onClick={() => removeAccount(index)}
-                  className='p-1 text-muted-foreground hover:text-destructive transition-colors rounded'
+                  className='rounded p-1 text-muted-foreground transition-colors hover:text-destructive'
                   title='Remove account'
                 >
                   <Trash2 className='size-4' />
@@ -350,12 +383,7 @@ function BankForm({
                   onChange={(event) => updateDraft(index, 'bank_name', event.target.value)}
                 />
               </FormField>
-              <FormField
-                id={`ifsc_${index}`}
-                label='IFSC'
-                required
-                error={errors[`${index}.ifsc`]}
-              >
+              <FormField id={`ifsc_${index}`} label='IFSC' required error={errors[`${index}.ifsc`]}>
                 <Input
                   id={`ifsc_${index}`}
                   placeholder='IDIB000T012'

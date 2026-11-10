@@ -1,36 +1,93 @@
-import { CalendarCheck, ClipboardX, Inbox, LayoutGrid, UserRoundX, UsersRound } from 'lucide-react'
+import { useState } from 'react'
+import {
+  CalendarCheck,
+  CheckCheck,
+  FileBarChart,
+  ClipboardX,
+  Inbox,
+  LayoutGrid,
+  UserRoundX,
+  UsersRound,
+  X,
+} from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { SegmentedControl } from '@/components/common/segmented-control'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/format'
-import { useAttendanceBoard, type BoardSection } from '../api'
+import { useAttendanceBoard, type AttendanceSessionName, type BoardSection } from '../api'
 import { dayOffText, percentLabel, percentTone, studentsText } from '../labels'
+import { BulkSectionsModal } from './bulk-mark-modal'
+import { ClassReportSheet } from './class-report-sheet'
 import { DateStepper } from './date-stepper'
 import { Notice } from './notice'
 import { SectionSheet } from './section-sheet'
 
+const SESSION_OPTIONS: { value: AttendanceSessionName; label: string }[] = [
+  { value: 'morning', label: 'Morning · 1st period' },
+  { value: 'afternoon', label: 'Afternoon · 5th period' },
+]
+
 export function StudentsTab({
   date,
+  session,
   sectionId,
   canManage,
   onDateChange,
+  onSessionChange,
   onOpenSection,
   onOpenLeave,
 }: {
   date: string
+  session: AttendanceSessionName
   sectionId?: number
   canManage: boolean
   onDateChange: (date: string) => void
+  onSessionChange: (session: AttendanceSessionName) => void
   onOpenSection: (sectionId: number | undefined) => void
   onOpenLeave: () => void
 }) {
-  const board = useAttendanceBoard(date)
+  const board = useAttendanceBoard(date, session)
+  const [classReport, setClassReport] = useState(false)
   const data = board.data
   const summary = data?.summary
   const rows = data?.sections ?? []
   const open = rows.find((row) => row.section_id === sectionId)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selectedDate, setSelectedDate] = useState(`${date}-${session}`)
+  const [bulk, setBulk] = useState<number[] | 'not_marked' | null>(null)
+  const selectionKey = `${date}-${session}`
+  if (selectedDate !== selectionKey) {
+    setSelectedDate(selectionKey)
+    setSelected(new Set())
+  }
+  const markable = rows.filter((row) => row.total > 0)
+  const canBulk = canManage && Boolean(data?.working_day)
+  const allSelected = markable.length > 0 && markable.every((row) => selected.has(row.section_id))
+  const toggle = (id: number) =>
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const toggleAll = () =>
+    setSelected(allSelected ? new Set() : new Set(markable.map((row) => row.section_id)))
+  const markedSelected = rows.filter((row) => selected.has(row.section_id) && row.marked).length
+  const checkbox = (row: BoardSection) => (
+    <input
+      type='checkbox'
+      aria-label={`Select class ${row.name}`}
+      className='size-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40'
+      disabled={row.total === 0}
+      checked={selected.has(row.section_id)}
+      onChange={() => toggle(row.section_id)}
+      onClick={(event) => event.stopPropagation()}
+    />
+  )
 
   useShortcut('app.refresh', () => void board.refetch())
 
@@ -73,6 +130,24 @@ export function StudentsTab({
   ]
 
   const columns: Column<BoardSection>[] = [
+    ...(canBulk
+      ? [
+          {
+            key: 'select',
+            header: (
+              <input
+                type='checkbox'
+                aria-label='Select every section'
+                className='size-4 cursor-pointer accent-primary'
+                checked={allSelected}
+                onChange={toggleAll}
+              />
+            ),
+            className: 'w-10',
+            cell: checkbox,
+          },
+        ]
+      : []),
     {
       key: 'name',
       header: 'Section',
@@ -88,7 +163,12 @@ export function StudentsTab({
     {
       key: 'status',
       header: 'Status',
-      cell: (row) => <MarkedBadge row={row} />,
+      cell: (row) => (
+        <div className='grid gap-1'>
+          <MarkedBadge row={row} />
+          <SessionDots row={row} />
+        </div>
+      ),
     },
     {
       key: 'counts',
@@ -130,16 +210,55 @@ export function StudentsTab({
 
   return (
     <div className='grid gap-4'>
-      <DateStepper id='attendance-date' value={date} onChange={onDateChange} />
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <DateStepper id='attendance-date' value={date} onChange={onDateChange} />
+        <div className='flex flex-wrap items-center gap-2'>
+          <SegmentedControl
+            label='Attendance session'
+            value={session}
+            onChange={onSessionChange}
+            options={SESSION_OPTIONS}
+          />
+          <Button variant='outline' size='sm' onClick={() => setClassReport(true)}>
+            <FileBarChart />
+            Class report
+          </Button>
+        </div>
+      </div>
       {data && !data.working_day && <Notice>{dayOffText(data.holiday)}</Notice>}
       <InsightCards items={cards} loading={board.isPending} />
       <Card className='overflow-hidden'>
         <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
           <h2 className='font-bold'>Sections</h2>
-          <span className='text-xs text-muted-foreground'>
-            Click a section to {canManage ? 'mark or view' : 'view'} attendance
-          </span>
+          <div className='flex flex-wrap items-center gap-2'>
+            <span className='text-xs text-muted-foreground'>
+              Click a section to {canManage ? 'mark or view' : 'view'} attendance
+            </span>
+            {canBulk && Boolean(data?.sections_not_marked) && (
+              <Button size='sm' variant='outline' onClick={() => setBulk('not_marked')}>
+                <CheckCheck />
+                Mark all sections not marked
+              </Button>
+            )}
+          </div>
         </div>
+        {canBulk && selected.size > 0 && (
+          <div className='flex flex-wrap items-center justify-between gap-2 border-b bg-primary/5 px-4 py-2'>
+            <span className='text-sm font-semibold'>
+              {selected.size} {selected.size === 1 ? 'section' : 'sections'} selected
+            </span>
+            <div className='flex flex-wrap gap-2'>
+              <Button size='sm' variant='ghost' onClick={() => setSelected(new Set())}>
+                <X />
+                Clear
+              </Button>
+              <Button size='sm' onClick={() => setBulk([...selected])}>
+                <CheckCheck />
+                Mark selected
+              </Button>
+            </div>
+          </div>
+        )}
         <DataTable
           rows={rows}
           columns={columns}
@@ -156,7 +275,8 @@ export function StudentsTab({
           card={(row) => (
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
-                <span className='grid min-w-0'>
+                {canBulk && <span className='pt-1'>{checkbox(row)}</span>}
+                <span className='grid min-w-0 flex-1'>
                   <span className='font-bold'>Class {row.name}</span>
                   <span className='truncate text-xs text-muted-foreground'>
                     {row.class_teacher ?? 'No class teacher'}
@@ -181,10 +301,38 @@ export function StudentsTab({
         sectionId={sectionId ?? null}
         sectionName={open?.name ?? ''}
         date={date}
+        session={session}
         canManage={canManage}
         onClose={() => onOpenSection(undefined)}
       />
+      {bulk && (
+        <BulkSectionsModal
+          date={date}
+          session={session}
+          sectionIds={bulk}
+          markedCount={bulk === 'not_marked' ? 0 : markedSelected}
+          onClose={() => setBulk(null)}
+          onDone={() => {
+            setBulk(null)
+            setSelected(new Set())
+          }}
+        />
+      )}
+      <ClassReportSheet open={classReport} onClose={() => setClassReport(false)} />
     </div>
+  )
+}
+
+function SessionDots({ row }: { row: BoardSection }) {
+  return (
+    <span className='flex gap-2 text-[11px] text-muted-foreground'>
+      <span className={row.morning_marked ? 'text-success' : undefined}>
+        {row.morning_marked ? '✓' : '○'} Morning
+      </span>
+      <span className={row.afternoon_marked ? 'text-success' : undefined}>
+        {row.afternoon_marked ? '✓' : '○'} Afternoon
+      </span>
+    </span>
   )
 }
 

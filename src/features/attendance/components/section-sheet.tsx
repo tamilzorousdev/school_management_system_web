@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCheck, Save, UsersRound } from 'lucide-react'
+import { CheckCheck, Download, Save, UsersRound } from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -25,6 +25,7 @@ import {
   useAttendanceMutation,
   useRoster,
   useSectionReport,
+  type AttendanceSessionName,
   type AttendanceStatus,
   type MarkInput,
   type Roster,
@@ -61,22 +62,30 @@ const STATUS_OPTIONS = ATTENDANCE_STATUSES.map((value) => ({
   label: ATTENDANCE_STATUS[value].short,
 }))
 
+const SESSION_TEXT: Record<AttendanceSessionName, string> = {
+  morning: 'Morning attendance (1st period)',
+  afternoon: 'Afternoon attendance (5th period)',
+}
+
 export function SectionSheet({
   sectionId,
   sectionName,
   date,
+  session,
   canManage,
   onClose,
 }: {
   sectionId: number | null
   sectionName: string
   date: string
+  session: AttendanceSessionName
   canManage: boolean
   onClose: () => void
 }) {
   const [view, setView] = useState<View>('mark')
-  const roster = useRoster(sectionId, date)
-  const data = roster.data?.date === date ? roster.data : undefined
+  const roster = useRoster(sectionId, date, session)
+  const data =
+    roster.data?.date === date && roster.data.session === session ? roster.data : undefined
 
   return (
     <Sheet open={Boolean(sectionId)} onOpenChange={(open) => !open && onClose()}>
@@ -84,7 +93,9 @@ export function SectionSheet({
         <SheetHeader>
           <SheetTitle>Class {data?.section.name ?? sectionName}</SheetTitle>
           <SheetDescription>
-            {view === 'mark' ? `Daily attendance for ${formatDate(date)}` : 'Monthly attendance'}
+            {view === 'mark'
+              ? `${SESSION_TEXT[session]} for ${formatDate(date)}`
+              : 'Monthly attendance, both sessions together'}
           </SheetDescription>
           <div className='mt-2 flex flex-wrap items-center gap-2'>
             <SegmentedControl
@@ -107,7 +118,7 @@ export function SectionSheet({
         </SheetHeader>
         {view === 'report' ? (
           <SheetBody>
-            <ReportView sectionId={sectionId} />
+            <ReportView sectionId={sectionId} sectionName={data?.section.name ?? sectionName} />
           </SheetBody>
         ) : roster.isError && !data ? (
           <SheetBody>
@@ -121,7 +132,7 @@ export function SectionSheet({
           </SheetBody>
         ) : (
           <RosterEditor
-            key={`${sectionId}-${date}`}
+            key={`${sectionId}-${date}-${session}`}
             roster={data}
             canManage={canManage}
             sectionId={sectionId!}
@@ -178,7 +189,7 @@ function RosterEditor({
     try {
       const result = await save.mutateAsync({
         date: roster.date,
-        period: 0,
+        session: roster.session,
         items: roster.students.map((student) => ({
           student_id: student.student_id,
           status: marks[student.student_id].status,
@@ -301,11 +312,18 @@ function RosterEditor({
   )
 }
 
-function ReportView({ sectionId }: { sectionId: number | null }) {
+function ReportView({
+  sectionId,
+  sectionName,
+}: {
+  sectionId: number | null
+  sectionName: string
+}) {
   const months = recentMonths()
   const [month, setMonth] = useState(months[0].value)
   const report = useSectionReport(sectionId, month)
   const data = report.data
+  const [downloading, setDownloading] = useState(false)
 
   const columns: Column<SectionReportRow>[] = [
     {
@@ -349,6 +367,27 @@ function ReportView({ sectionId }: { sectionId: number | null }) {
             {data.marked_days} of {data.working_days} school days marked
           </span>
         )}
+        <Button
+          variant='outline'
+          size='sm'
+          className='ml-auto'
+          disabled={!data || !sectionId}
+          loading={downloading}
+          onClick={async () => {
+            if (!sectionId) return
+            setDownloading(true)
+            try {
+              await attendanceApi.downloadSectionReport(sectionId, month, sectionName)
+            } catch (error) {
+              alerts.error(toApiError(error).message)
+            } finally {
+              setDownloading(false)
+            }
+          }}
+        >
+          <Download />
+          Excel
+        </Button>
       </div>
       <div className='overflow-hidden rounded-lg border'>
         <DataTable

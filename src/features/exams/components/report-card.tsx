@@ -130,7 +130,9 @@ export function ReportCard({ studentId }: { studentId: number }) {
           />
         </Card>
       ) : (
-        <Sheet data={data} fetching={card.isFetching} />
+        <div className='max-w-full overflow-x-auto'>
+          <Sheet data={data} fetching={card.isFetching} />
+        </div>
       )}
     </div>
   )
