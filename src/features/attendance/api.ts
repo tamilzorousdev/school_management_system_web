@@ -32,7 +32,9 @@ export interface BoardSection extends AttendanceSummary {
   section_id: number
   name: string
   class_teacher: string | null
+  class_teacher_id: number | null
   marked: boolean
+  missed: boolean
   morning_marked: boolean
   afternoon_marked: boolean
   taken_by: string | null
@@ -47,9 +49,35 @@ export interface AttendanceBoard {
   summary: AttendanceSummary
   sections_total: number
   sections_not_marked: number
+  sections_missed: number
+  opens_at: string | null
+  closes_at: string | null
+  grace_minutes: number
   below_75: number
   leave_pending: number
   sections: BoardSection[]
+}
+
+export interface MissedSession {
+  date: string
+  session: AttendanceSessionName
+  section_id: number
+  section: string
+  still_not_marked: boolean
+}
+
+export interface MissedTeacher {
+  teacher_id: number | null
+  teacher: string
+  missed: number
+  sessions: MissedSession[]
+}
+
+export interface MissedReport {
+  month: string
+  grace_minutes: number
+  total_missed: number
+  teachers: MissedTeacher[]
 }
 
 export interface RosterStudent {
@@ -283,7 +311,7 @@ export interface StudentLeaveParams extends LeaveListParams {
 }
 
 export interface StaffLeaveParams extends LeaveListParams {
-  status?: StaffLeaveStatus
+  status?: StaffLeaveStatus | 'waiting'
 }
 
 export interface DecisionInput {
@@ -301,6 +329,7 @@ export const attendanceKeys = {
     [...attendanceKeys.all, 'class-report', classId, month] as const,
   report: (sectionId: number, month: string) =>
     [...attendanceKeys.all, 'report', sectionId, month] as const,
+  missed: (month: string) => [...attendanceKeys.all, 'missed', month] as const,
   studentLeaves: (params: StudentLeaveParams) =>
     [...attendanceKeys.all, 'student-leaves', params] as const,
   staffBoard: (params: StaffBoardParams) => [...attendanceKeys.all, 'staff-board', params] as const,
@@ -316,6 +345,7 @@ export const attendanceApi = {
     api.get<Roster>(`/admin/attendance/sections/${sectionId}`, { date, session }),
   classReport: (classId: number, month: string) =>
     api.get<ClassReport>(`/admin/attendance/classes/${classId}/report`, { month }),
+  missed: (month: string) => api.get<MissedReport>('/admin/attendance/missed', { month }),
   downloadSectionReport: (sectionId: number, month: string, name: string) =>
     downloadFile(
       `/admin/attendance/sections/${sectionId}/report/xlsx`,
@@ -359,6 +389,15 @@ export function useAttendanceBoard(date: string, session: AttendanceSessionName 
   return useQuery({
     queryKey: attendanceKeys.board(date, session),
     queryFn: () => attendanceApi.board(date, session),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useMissedReport(month: string, enabled: boolean) {
+  return useQuery({
+    queryKey: attendanceKeys.missed(month),
+    queryFn: () => attendanceApi.missed(month),
+    enabled,
     placeholderData: keepPreviousData,
   })
 }

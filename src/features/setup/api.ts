@@ -99,6 +99,7 @@ export interface SchoolProfile {
   longitude: number | null
   geofence_radius_m: number
   staff_reporting_time: string
+  attendance_grace_minutes: number
   diary_review_mode: DiaryReviewMode
   chat_office_start: string
   chat_office_end: string

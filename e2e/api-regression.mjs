@@ -2711,6 +2711,52 @@ await TA('API-REP-05', 'Attendance reports', 'GET', '/mobile/teacher/sections/{i
   if (result.status === 200) return '200, own class'
   return expectStatus(result, 403, 'NOT_CLASS_TEACHER')
 })
+await TA('API-GRC-01', 'Attendance grace', 'GET', '/admin/attendance/board', 'Board shows the window with grace and the missed count', '200 with closes_at, grace_minutes, sections_missed', async () => {
+  const result = await ao('GET', `/admin/attendance/board?date=${lastWorkingDay}&session=morning`)
+  expectStatus(result, 200)
+  const data = result.body.data
+  if (typeof data.grace_minutes !== 'number' || !('sections_missed' in data) || !('closes_at' in data)) throw new Error('Missing grace fields')
+  if (!data.sections.every((row) => 'missed' in row)) throw new Error('missed missing on a section')
+  return `200, closes ${data.closes_at}, ${data.sections_missed} missed`
+})
+await TA('API-GRC-02', 'Attendance grace', 'GET', '/admin/attendance/board?status=missed', 'Missed filter returns only missed sections', '200, every section missed', async () => {
+  const result = await ao('GET', `/admin/attendance/board?date=${lastWorkingDay}&session=morning&status=missed`)
+  expectStatus(result, 200)
+  if (!result.body.data.sections.every((row) => row.missed)) throw new Error('A section is not missed')
+  return `200, ${result.body.data.sections.length} missed`
+})
+await TA('API-GRC-03', 'Attendance grace', 'GET', '/admin/attendance/missed', 'Monthly missed report per class teacher', '200 with total_missed and teachers', async () => {
+  const result = await ao('GET', `/admin/attendance/missed?month=${lastWorkingDay.slice(0, 7)}`)
+  expectStatus(result, 200)
+  if (!Array.isArray(result.body.data.teachers)) throw new Error('No teachers list')
+  return `200, ${result.body.data.total_missed} missed`
+})
+await TA('API-GRC-04', 'Attendance grace', 'PATCH', '/admin/school', 'Grace over 30 minutes', '400 on attendance_grace_minutes', async () =>
+  expectFields(await admin('PATCH', '/admin/school', { attendance_grace_minutes: 45 }), ['attendance_grace_minutes'])
+)
+await TA('API-GRC-05', 'Attendance grace', 'GET', '/mobile/teacher/sections/{id}/attendance/current', 'Teacher opens the current session without a date', '200 with today, session and closes_at', async () => {
+  if (!teacherSection) return 'Skipped: teacher has no section'
+  const result = await teacher('GET', `/mobile/teacher/sections/${teacherSection}/attendance/current`)
+  expectStatus(result, 200)
+  const data = result.body.data
+  if (!['morning', 'afternoon'].includes(data.session) || typeof data.grace_minutes !== 'number') throw new Error('Bad session or grace')
+  return `200, ${data.session} ${data.open ? 'open' : 'closed'} until ${data.closes_at}`
+})
+await TA('API-GRC-06', 'Attendance grace', 'PUT', '/mobile/teacher/sections/{id}/attendance/current', 'Teacher sends a date to the current call', '400, date is not allowed', async () => {
+  if (!teacherSection) return 'Skipped: teacher has no section'
+  return expectFields(await teacher('PUT', `/mobile/teacher/sections/${teacherSection}/attendance/current`, { date: lastWorkingDay, items: [{ student_id: 1, status: 'P' }] }), ['date'])
+})
+await TA('API-GRC-07', 'Attendance grace', 'PATCH', '/mobile/teacher/sections/{id}/attendance/current', 'Teacher marks outside the period plus grace', '400 SESSION_CLOSED or SESSION_NOT_OPEN, or 200 inside the window', async () => {
+  if (!teacherSection) return 'Skipped: teacher has no section'
+  const roster = (await teacher('GET', `/mobile/teacher/sections/${teacherSection}/attendance/current`)).body.data
+  if (!roster?.students?.length || !roster.working_day) return 'Skipped: no students or not a school day'
+  if (roster.open) return 'Skipped: the window is open now; not marking real attendance'
+  const result = await teacher('PATCH', `/mobile/teacher/sections/${teacherSection}/attendance/current`, { items: [{ student_id: roster.students[0].student_id, status: 'L' }] })
+  expectStatus(result, 400)
+  if (!['SESSION_CLOSED', 'SESSION_NOT_OPEN'].includes(result.body.error)) throw new Error(result.body.error)
+  return `400 ${result.body.error}`
+})
+
 await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>
   expectStatus(await parent('GET', '/mobile/parent/children/999999/attendance/summary'), 404, 'CHILD_NOT_FOUND')
 )

@@ -2332,6 +2332,47 @@ await test(
 )
 await test(
   {
+    id: 'MIS-01',
+    module: 'Attendance',
+    type: 'View',
+    title: 'Missed filter on the board and the missed attendance report',
+    steps: 'Attendance, Students tab, choose Missed, open Missed report.',
+    expected: 'Only missed sections (or "Nothing missed") are shown; the report opens with the month and the class teachers',
+  },
+  async () => {
+    await go('/attendance?tab=students')
+    await page.getByRole('heading', { name: 'Sections', exact: true }).waitFor({ timeout: 8000 })
+    await page.getByText('Missed', { exact: true }).first().click()
+    const missedBadges = await page.getByText('Missed', { exact: true }).count()
+    if (!missedBadges) await see('Nothing missed')
+    await page.getByRole('button', { name: 'Missed report' }).click()
+    await see('Missed attendance')
+    await see('Sessions missed')
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
+    id: 'MIS-02',
+    module: 'School setup',
+    type: 'Validation',
+    title: 'Attendance grace over 30 minutes is refused',
+    steps: 'School setup, Profile, set Attendance grace to 45, Save profile.',
+    expected: 'Field error on Attendance grace; the saved value stays the same',
+  },
+  async () => {
+    await go('/setup?tab=profile')
+    const grace = page.getByLabel('Attendance grace (minutes)')
+    await grace.waitFor({ timeout: 8000 })
+    const before = await grace.inputValue()
+    await grace.fill('45')
+    await page.getByRole('button', { name: 'Save profile' }).click()
+    await see('must not be greater than 30')
+    await grace.fill(before)
+  }
+)
+await test(
+  {
     id: 'RCD-01',
     module: 'Report card',
     type: 'View',

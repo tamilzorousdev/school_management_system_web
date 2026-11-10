@@ -19,7 +19,16 @@ export const attendanceSearchSchema = z.object({
   session: z.enum(['morning', 'afternoon']).optional().catch(undefined),
   leave: z.enum(LEAVE_KINDS).catch('student'),
   status: z
-    .enum(['pending', 'pending_hod', 'pending_principal', 'approved', 'rejected', 'cancelled'])
+    .enum([
+      'all',
+      'waiting',
+      'pending',
+      'pending_hod',
+      'pending_principal',
+      'approved',
+      'rejected',
+      'cancelled',
+    ])
     .optional()
     .catch(undefined),
   search: z.string().trim().max(100).optional().catch(undefined),

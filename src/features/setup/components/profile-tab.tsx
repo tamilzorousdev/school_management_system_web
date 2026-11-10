@@ -42,6 +42,7 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
     latitude: school.latitude?.toString() ?? '',
     longitude: school.longitude?.toString() ?? '',
     geofence_radius_m: String(school.geofence_radius_m),
+    attendance_grace_minutes: String(school.attendance_grace_minutes ?? 15),
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useSetupMutation((input: Partial<SchoolProfile>) => setupApi.updateSchool(input))
@@ -68,6 +69,10 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
         latitude: number(draft.latitude),
         longitude: number(draft.longitude),
         geofence_radius_m: Number(draft.geofence_radius_m) || 200,
+        attendance_grace_minutes:
+          draft.attendance_grace_minutes.trim() === ''
+            ? 15
+            : Number(draft.attendance_grace_minutes),
       })
       alerts.success('School profile saved')
       setErrors({})
@@ -140,6 +145,12 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
           'Geofence radius (metres)',
           { inputMode: 'numeric' },
           '50 to 2000'
+        )}
+        {field(
+          'attendance_grace_minutes',
+          'Attendance grace (minutes)',
+          { inputMode: 'numeric' },
+          '0 to 30. Extra time after the 1st and 5th period; after that the session shows as missed'
         )}
         {canManage && (
           <div className='flex justify-end sm:col-span-2'>
@@ -340,7 +351,6 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
   )
 }
 
-
 function SchoolSeal({ school, canManage }: { school: SchoolProfile; canManage: boolean }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -390,11 +400,7 @@ function SchoolSeal({ school, canManage }: { school: SchoolProfile; canManage: b
             <Button asChild variant='outline' size='sm' disabled={uploading}>
               <label htmlFor='school-seal' className='cursor-pointer'>
                 <ImageUp />
-                {uploading
-                  ? 'Uploading…'
-                  : school.seal_url
-                    ? 'Change seal'
-                    : 'Upload seal'}
+                {uploading ? 'Uploading…' : school.seal_url ? 'Change seal' : 'Upload seal'}
                 <input
                   id='school-seal'
                   type='file'

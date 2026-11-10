@@ -54,6 +54,16 @@ const daysText = (days: number, halfDay: boolean | 'morning' | 'afternoon' | nul
 const optionsOf = <T extends string>(labels: Record<T, { label: string }>) =>
   (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value].label }))
 
+const DEFAULT_STATUS: Record<LeaveKind, string> = { student: 'pending', staff: 'waiting' }
+
+const STAFF_STATUS_OPTIONS = [
+  { value: 'waiting', label: 'Waiting (HOD or principal)' },
+  ...optionsOf(STAFF_LEAVE_STATUS),
+]
+
+const statusOf = (search: AttendanceSearch, kind: LeaveKind) =>
+  search.status ?? DEFAULT_STATUS[kind]
+
 export function LeaveTab({
   search,
   canDecideStudent,
@@ -67,7 +77,7 @@ export function LeaveTab({
 }) {
   const kind = search.leave
   const [rejecting, setRejecting] = useState<Rejecting | null>(null)
-  const filtered = Boolean(search.search || search.status)
+  const filtered = Boolean(search.search) || statusOf(search, kind) !== DEFAULT_STATUS[kind]
 
   return (
     <div className='grid gap-4'>
@@ -167,6 +177,7 @@ function DecisionButtons({
 
 function Toolbar({
   search,
+  status,
   filtered,
   total,
   statusOptions,
@@ -174,6 +185,7 @@ function Toolbar({
   onSearchChange,
 }: {
   search: AttendanceSearch
+  status: string
   filtered: boolean
   total?: number
   statusOptions: { value: string; label: string }[]
@@ -197,21 +209,23 @@ function Toolbar({
         id='leave-status-filter'
         label='Filter by status'
         allLabel='Any status'
-        value={search.status}
+        value={status === 'all' ? undefined : status}
         options={statusOptions}
-        onChange={(value) => onSearchChange({ status: value as AttendanceSearch['status'] })}
+        onChange={(value) =>
+          onSearchChange({ status: (value ?? 'all') as AttendanceSearch['status'] })
+        }
       />
     </ListToolbar>
   )
 }
 
 function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }: ListProps) {
-  const status = search.status as StudentLeaveStatus | undefined
+  const status = statusOf(search, 'student')
   const leaves = useStudentLeaves({
     page: search.page,
     limit: LIMIT,
     search: search.search,
-    status: status && status in STUDENT_LEAVE_STATUS ? status : undefined,
+    status: status in STUDENT_LEAVE_STATUS ? (status as StudentLeaveStatus) : undefined,
   })
   const approve = useApprove('student')
   const [busy, setBusy] = useState<number | null>(null)
@@ -311,6 +325,7 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
     <>
       <Toolbar
         search={search}
+        status={status}
         filtered={filtered}
         total={leaves.data?.total}
         statusOptions={optionsOf(STUDENT_LEAVE_STATUS)}
@@ -326,10 +341,12 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
         onRetry={() => leaves.refetch()}
         empty={{
           icon: filtered ? CircleOff : Inbox,
-          title: filtered ? 'No leave requests match these filters' : 'No student leave requests',
+          title: filtered
+            ? 'No leave requests match these filters'
+            : 'Nothing waiting for a decision',
           description: filtered
             ? 'Try another name, or clear the filters.'
-            : 'Parents send leave requests from the app.',
+            : 'Choose Any status to see approved, rejected and cancelled requests.',
         }}
         card={(leave) => (
           <div className='grid gap-1.5'>
@@ -362,12 +379,17 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
 }
 
 function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: ListProps) {
-  const status = search.status as StaffLeaveStatus | undefined
+  const status = statusOf(search, 'staff')
   const leaves = useStaffLeaves({
     page: search.page,
     limit: LIMIT,
     search: search.search,
-    status: status && status in STAFF_LEAVE_STATUS ? status : undefined,
+    status:
+      status === 'waiting'
+        ? 'waiting'
+        : status in STAFF_LEAVE_STATUS
+          ? (status as StaffLeaveStatus)
+          : undefined,
   })
   const approve = useApprove('staff')
   const [busy, setBusy] = useState<number | null>(null)
@@ -473,9 +495,10 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
     <>
       <Toolbar
         search={search}
+        status={status}
         filtered={filtered}
         total={leaves.data?.total}
-        statusOptions={optionsOf(STAFF_LEAVE_STATUS)}
+        statusOptions={STAFF_STATUS_OPTIONS}
         placeholder='Staff name or reason'
         onSearchChange={onSearchChange}
       />
@@ -488,10 +511,12 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
         onRetry={() => leaves.refetch()}
         empty={{
           icon: filtered ? CircleOff : Inbox,
-          title: filtered ? 'No leave requests match these filters' : 'No staff leave requests',
+          title: filtered
+            ? 'No leave requests match these filters'
+            : 'Nothing waiting for a decision',
           description: filtered
             ? 'Try another name, or clear the filters.'
-            : 'Staff apply for leave from the app.',
+            : 'Choose Any status to see approved, rejected and cancelled requests.',
         }}
         card={(leave) => (
           <div className='grid gap-1.5'>

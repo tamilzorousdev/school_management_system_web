@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  AlarmClockOff,
   CalendarCheck,
   CheckCheck,
   FileBarChart,
@@ -23,8 +24,17 @@ import { dayOffText, percentLabel, percentTone, studentsText } from '../labels'
 import { BulkSectionsModal } from './bulk-mark-modal'
 import { ClassReportSheet } from './class-report-sheet'
 import { DateStepper } from './date-stepper'
+import { MissedReportSheet } from './missed-report-sheet'
 import { Notice } from './notice'
 import { SectionSheet } from './section-sheet'
+
+type BoardFilter = 'all' | 'not_marked' | 'missed'
+
+const FILTER_OPTIONS: { value: BoardFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'not_marked', label: 'Not marked' },
+  { value: 'missed', label: 'Missed' },
+]
 
 const SESSION_OPTIONS: { value: AttendanceSessionName; label: string }[] = [
   { value: 'morning', label: 'Morning · 1st period' },
@@ -52,10 +62,15 @@ export function StudentsTab({
 }) {
   const board = useAttendanceBoard(date, session)
   const [classReport, setClassReport] = useState(false)
+  const [missedReport, setMissedReport] = useState(false)
+  const [filter, setFilter] = useState<BoardFilter>('all')
   const data = board.data
   const summary = data?.summary
-  const rows = data?.sections ?? []
-  const open = rows.find((row) => row.section_id === sectionId)
+  const allRows = data?.sections ?? []
+  const rows = allRows.filter((row) =>
+    filter === 'missed' ? row.missed : filter === 'not_marked' ? !row.marked && row.total > 0 : true
+  )
+  const open = allRows.find((row) => row.section_id === sectionId)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [selectedDate, setSelectedDate] = useState(`${date}-${session}`)
   const [bulk, setBulk] = useState<number[] | 'not_marked' | null>(null)
@@ -109,12 +124,16 @@ export function StudentsTab({
       tone: summary?.absent ? 'danger' : 'neutral',
     },
     {
-      key: 'not-marked',
-      label: 'Sections not marked',
-      value: data?.sections_not_marked ?? 0,
-      hint: `of ${data?.sections_total ?? 0} sections`,
-      icon: ClipboardX,
-      tone: data?.sections_not_marked ? 'warning' : 'success',
+      key: 'missed',
+      label: 'Missed by teachers',
+      value: data?.sections_missed ?? 0,
+      hint: `${data?.sections_not_marked ?? 0} of ${data?.sections_total ?? 0} not marked${
+        data?.closes_at ? ` · open till ${data.closes_at}` : ''
+      }`,
+      icon: data?.sections_missed ? AlarmClockOff : ClipboardX,
+      tone: data?.sections_missed ? 'danger' : data?.sections_not_marked ? 'warning' : 'success',
+      active: filter === 'missed',
+      onClick: () => setFilter(filter === 'missed' ? 'all' : 'missed'),
     },
     {
       key: 'leave',
@@ -223,13 +242,25 @@ export function StudentsTab({
             <FileBarChart />
             Class report
           </Button>
+          <Button variant='outline' size='sm' onClick={() => setMissedReport(true)}>
+            <AlarmClockOff />
+            Missed report
+          </Button>
         </div>
       </div>
       {data && !data.working_day && <Notice>{dayOffText(data.holiday)}</Notice>}
       <InsightCards items={cards} loading={board.isPending} />
       <Card className='overflow-hidden'>
         <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-          <h2 className='font-bold'>Sections</h2>
+          <div className='flex flex-wrap items-center gap-3'>
+            <h2 className='font-bold'>Sections</h2>
+            <SegmentedControl
+              label='Show sections'
+              value={filter}
+              onChange={setFilter}
+              options={FILTER_OPTIONS}
+            />
+          </div>
           <div className='flex flex-wrap items-center gap-2'>
             <span className='text-xs text-muted-foreground'>
               Click a section to {canManage ? 'mark or view' : 'view'} attendance
@@ -267,11 +298,22 @@ export function StudentsTab({
           error={board.isError ? board.error.message : null}
           onRetry={() => board.refetch()}
           onRowClick={(row) => onOpenSection(row.section_id)}
-          empty={{
-            icon: LayoutGrid,
-            title: 'No sections this year',
-            description: 'Add classes and sections in School setup first.',
-          }}
+          empty={
+            filter === 'all'
+              ? {
+                  icon: LayoutGrid,
+                  title: 'No sections this year',
+                  description: 'Add classes and sections in School setup first.',
+                }
+              : {
+                  icon: CheckCheck,
+                  title: filter === 'missed' ? 'Nothing missed' : 'Every section is marked',
+                  description:
+                    filter === 'missed'
+                      ? 'No section has missed this session.'
+                      : 'All sections with students are marked for this session.',
+                }
+          }
           card={(row) => (
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
@@ -319,6 +361,7 @@ export function StudentsTab({
         />
       )}
       <ClassReportSheet open={classReport} onClose={() => setClassReport(false)} />
+      <MissedReportSheet open={missedReport} onClose={() => setMissedReport(false)} />
     </div>
   )
 }
@@ -338,6 +381,17 @@ function SessionDots({ row }: { row: BoardSection }) {
 
 function MarkedBadge({ row }: { row: BoardSection }) {
   if (row.total === 0) return <Badge tone='neutral'>No students</Badge>
+  if (row.missed) {
+    return (
+      <Badge
+        tone='danger'
+        dot
+        title={row.class_teacher ? `Missed by ${row.class_teacher}` : 'Missed'}
+      >
+        Missed
+      </Badge>
+    )
+  }
   return (
     <Badge tone={row.marked ? 'success' : 'warning'} dot>
       {row.marked ? 'Marked' : 'Not marked'}
