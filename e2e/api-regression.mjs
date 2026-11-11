@@ -2757,6 +2757,31 @@ await TA('API-GRC-07', 'Attendance grace', 'PATCH', '/mobile/teacher/sections/{i
   return `400 ${result.body.error}`
 })
 
+await TA('API-PPR-01', 'Parent profile', 'GET', '/mobile/parent/profile', 'Parent opens their profile', '200 with name, mobile and children', async () => {
+  const result = await parent('GET', '/mobile/parent/profile')
+  expectStatus(result, 200)
+  const data = result.body.data
+  if (!data.mobile || !Array.isArray(data.children) || !Array.isArray(data.co_guardians)) throw new Error('Missing profile fields')
+  return `200, ${data.children.length} children`
+})
+await TA('API-PPR-02', 'Parent profile', 'PATCH', '/mobile/parent/profile', 'Parent changes city and clears it again', '200 with the new city, then null', async () => {
+  const before = (await parent('GET', '/mobile/parent/profile')).body.data
+  const changed = await parent('PATCH', '/mobile/parent/profile', { city: `Regression ${RUN}` })
+  expectStatus(changed, 200)
+  if (changed.body.data.city !== `Regression ${RUN}`) throw new Error(changed.body.data.city)
+  expectStatus(await parent('PATCH', '/mobile/parent/profile', { city: before.city ?? null }), 200)
+  return '200, saved and restored'
+})
+await TA('API-PPR-03', 'Parent profile', 'PATCH', '/mobile/parent/profile', 'Parent tries to change name and mobile', '400 on name and mobile', async () =>
+  expectFields(await parent('PATCH', '/mobile/parent/profile', { name: 'Someone else', mobile: '9000000001' }), ['name', 'mobile'])
+)
+await TA('API-PPR-04', 'Parent profile', 'PATCH', '/mobile/parent/profile', 'Wrong pincode and alternate mobile', '400 on pincode and alt_mobile', async () =>
+  expectFields(await parent('PATCH', '/mobile/parent/profile', { pincode: '12', alt_mobile: '123' }), ['pincode', 'alt_mobile'])
+)
+await TA('API-PPR-05', 'Parent profile', 'GET', '/mobile/parent/profile', 'Teacher opens the parent profile', '403', async () =>
+  expectStatus(await teacher('GET', '/mobile/parent/profile'), 403)
+)
+
 await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>
   expectStatus(await parent('GET', '/mobile/parent/children/999999/attendance/summary'), 404, 'CHILD_NOT_FOUND')
 )
