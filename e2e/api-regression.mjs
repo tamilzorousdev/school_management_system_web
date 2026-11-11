@@ -2653,32 +2653,28 @@ await TA('API-MTR-05', 'Meeting replies', 'POST', '/mobile/teacher/meetings/{id}
 const ringMeeting = rosterStudent
   ? (await teacher('POST', '/mobile/teacher/meetings', { student_id: rosterStudent.id, title: `RT ring ${RUN}`, scheduled_at: new Date(Date.now() + 2 * 60000).toISOString(), duration_minutes: 15 })).body.data
   : null
-await TA('API-RING-01', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/join', 'Teacher joins: the parent is rung, join stays fast', '200 with channel_name and token in under 3 s', async () => {
+await TA('API-RING-01', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/join', 'Join before the parent accepts', '409 MEETING_NOT_ACCEPTED and can_join false', async () => {
   if (!ringMeeting) return 'Skipped: teacher has no section'
-  const started = Date.now()
-  const joined = await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/join`, { platform: 'android' })
-  expectStatus(joined, 200)
-  const took = Date.now() - started
-  if (!joined.body.data.channel_name || !joined.body.data.token) throw new Error('No channel_name or token')
-  if (took > 3000) throw new Error(`join took ${took} ms`)
-  return `200 in ${took} ms`
+  if (ringMeeting.can_join !== false) throw new Error('can_join should be false while pending')
+  return expectStatus(await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/join`, { platform: 'android' }), 409, 'MEETING_NOT_ACCEPTED')
 })
-await TA('API-RING-02', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/reject-call', 'Caller taps reject on their own call', '200, nothing changes, still in progress', async () => {
+await TA('API-RING-02', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/reject-call', 'Reject a call that is not ringing', '200, nothing changes', async () => {
   if (!ringMeeting) return 'Skipped: teacher has no section'
   const result = await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/reject-call`)
   expectStatus(result, 200)
-  if (result.body.data.status !== 'in_progress') throw new Error(result.body.data.status)
-  return '200, in progress'
+  if (result.body.data.status !== 'scheduled' || result.body.data.active_participants !== 0) throw new Error(JSON.stringify(result.body.data))
+  return '200, scheduled, nobody in the call'
 })
 await TA('API-RING-03', 'Meeting calls', 'POST', '/mobile/parent/meetings/{id}/reject-call', 'Reject a call on a meeting that does not exist', '404 MEETING_NOT_FOUND', async () =>
   expectStatus(await parent('POST', '/mobile/parent/meetings/999999/reject-call'), 404, 'MEETING_NOT_FOUND')
 )
-await TA('API-RING-04', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/end', 'Host ends the call while it rings', '200 completed', async () => {
+await TA('API-RING-04', 'Meeting calls', 'POST', '/mobile/teacher/meetings', 'A cancelled meeting frees the slot for a new booking', '201 for the same time after cancel', async () => {
   if (!ringMeeting) return 'Skipped: teacher has no section'
-  const ended = await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/end`)
-  expectStatus(ended, 200)
-  if (ended.body.data.status !== 'completed') throw new Error(ended.body.data.status)
-  return '200, completed'
+  expectStatus(await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/cancel`, { reason: 'Regression' }), 200)
+  const again = await teacher('POST', '/mobile/teacher/meetings', { student_id: rosterStudent.id, title: `RT ring again ${RUN}`, scheduled_at: ringMeeting.scheduled_at, duration_minutes: 15 })
+  expectStatus(again, 201)
+  await teacher('POST', `/mobile/teacher/meetings/${again.body.data.id}/cancel`, { reason: 'Regression clean up' })
+  return '201, slot free again'
 })
 
 await TA('API-REP-01', 'Attendance reports', 'GET', '/admin/attendance/sections/{id}/day', 'Daily report of a section', '200 with students, summary and marked flags', async () => {
