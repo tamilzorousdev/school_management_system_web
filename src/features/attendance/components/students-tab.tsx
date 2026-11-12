@@ -49,7 +49,6 @@ export function StudentsTab({
   onDateChange,
   onSessionChange,
   onOpenSection,
-  onOpenLeave,
 }: {
   date: string
   session: AttendanceSessionName
@@ -58,7 +57,6 @@ export function StudentsTab({
   onDateChange: (date: string) => void
   onSessionChange: (session: AttendanceSessionName) => void
   onOpenSection: (sectionId: number | undefined) => void
-  onOpenLeave: () => void
 }) {
   const board = useAttendanceBoard(date, session)
   const [classReport, setClassReport] = useState(false)
@@ -137,14 +135,13 @@ export function StudentsTab({
     },
     {
       key: 'leave',
-      label: 'Leave requests waiting',
+      label: 'Student leave waiting',
       value: data?.leave_pending ?? 0,
       hint: data?.below_75
         ? `${studentsText(data.below_75)} below 75% this month`
-        : 'From parents in the app',
+        : 'Class teachers approve these in the Staff app',
       icon: Inbox,
       tone: data?.leave_pending ? 'info' : 'neutral',
-      onClick: onOpenLeave,
     },
   ]
 

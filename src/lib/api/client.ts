@@ -2,6 +2,7 @@ import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axio
 import { config } from '@/config/env'
 import { schoolContext } from '@/lib/auth/school-context'
 import { session } from '@/lib/auth/session'
+import { yearContext } from '@/lib/auth/year-context'
 import { toApiError } from './errors'
 
 export interface ApiEnvelope<T> {
@@ -42,6 +43,8 @@ http.interceptors.request.use((request) => {
     request.headers.set('Authorization', `Bearer ${current.accessToken}`)
     const schoolId = schoolContext.get()
     if (schoolId) request.headers.set('X-School-Id', String(schoolId))
+    const yearId = yearContext.get()
+    if (yearId) request.headers.set('X-Academic-Year-Id', String(yearId))
   }
   return request
 })

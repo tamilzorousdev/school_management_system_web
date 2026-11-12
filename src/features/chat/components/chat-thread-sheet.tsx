@@ -176,38 +176,40 @@ export function ChatThreadSheet({
                             Hidden by {message.hidden_by?.name}: {message.hidden_reason}
                           </span>
                         )}
-                        <span className='flex flex-wrap gap-1.5'>
-                          {message.hidden ? (
-                            <Button
-                              size='sm'
-                              variant='ghost'
-                              loading={unhide.isPending && unhide.variables === message.id}
-                              onClick={() =>
-                                run(() => unhide.mutateAsync(message.id), 'Message shown again')
-                              }
-                            >
-                              <Eye />
-                              Show again
-                            </Button>
-                          ) : (
-                            <Button size='sm' variant='ghost' onClick={() => setHiding(message)}>
-                              <EyeOff />
-                              Hide
-                            </Button>
-                          )}
-                          {message.flagged && !message.hidden && (
-                            <Button
-                              size='sm'
-                              variant='ghost'
-                              loading={dismiss.isPending && dismiss.variables === message.id}
-                              onClick={() =>
-                                run(() => dismiss.mutateAsync(message.id), 'Report closed')
-                              }
-                            >
-                              Close report
-                            </Button>
-                          )}
-                        </span>
+                        {!data.archived && (
+                          <span className='flex flex-wrap gap-1.5'>
+                            {message.hidden ? (
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                loading={unhide.isPending && unhide.variables === message.id}
+                                onClick={() =>
+                                  run(() => unhide.mutateAsync(message.id), 'Message shown again')
+                                }
+                              >
+                                <Eye />
+                                Show again
+                              </Button>
+                            ) : (
+                              <Button size='sm' variant='ghost' onClick={() => setHiding(message)}>
+                                <EyeOff />
+                                Hide
+                              </Button>
+                            )}
+                            {message.flagged && !message.hidden && (
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                loading={dismiss.isPending && dismiss.variables === message.id}
+                                onClick={() =>
+                                  run(() => dismiss.mutateAsync(message.id), 'Report closed')
+                                }
+                              >
+                                Close report
+                              </Button>
+                            )}
+                          </span>
+                        )}
                       </li>
                     )
                   })}

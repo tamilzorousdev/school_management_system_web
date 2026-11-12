@@ -11,6 +11,7 @@ import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
 import { setupApi, useSchoolProfile, useSetupMutation, type SchoolProfile } from '../api'
 import { fieldErrorsOf } from '../form-actions'
+import { GeofencePicker } from './geofence-picker'
 import { RootError, Section } from './setup-shared'
 
 const BOARDS = [
@@ -133,18 +134,33 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
           { type: 'tel' },
           'Shown to parents in SOS and emergency messages'
         )}
-        {field(
-          'latitude',
-          'Gate latitude',
-          { inputMode: 'decimal' },
-          'Used for bus arrival and staff check-in'
-        )}
-        {field('longitude', 'Gate longitude', { inputMode: 'decimal' })}
-        {field(
-          'geofence_radius_m',
-          'Geofence radius (metres)',
-          { inputMode: 'numeric' },
-          '50 to 2000'
+        <GeofencePicker
+          value={{
+            latitude: draft.latitude,
+            longitude: draft.longitude,
+            radius: draft.geofence_radius_m,
+          }}
+          searchHint={[draft.name, draft.city].filter(Boolean).join(' ')}
+          disabled={!canManage}
+          onChange={(next) => {
+            setDraft((current) => ({
+              ...current,
+              latitude: next.latitude,
+              longitude: next.longitude,
+              geofence_radius_m: next.radius,
+            }))
+            setErrors((current) => ({
+              ...current,
+              latitude: '',
+              longitude: '',
+              geofence_radius_m: '',
+            }))
+          }}
+        />
+        {(errors.latitude || errors.longitude || errors.geofence_radius_m) && (
+          <p className='text-xs text-destructive sm:col-span-2' role='alert'>
+            {errors.latitude || errors.longitude || errors.geofence_radius_m}
+          </p>
         )}
         {field(
           'attendance_grace_minutes',

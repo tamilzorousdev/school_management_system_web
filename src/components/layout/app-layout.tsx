@@ -15,6 +15,7 @@ import { useTheme } from '@/providers/theme-context'
 import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
 import { SchoolGate } from './school-gate'
+import { PastYearBanner } from './year-switcher'
 
 const COLLAPSED_KEY = 'tz-sidebar-collapsed'
 
@@ -173,6 +174,7 @@ export function AppLayout() {
           onOpenMobile={() => setMobileOpen(true)}
         />
         <SchoolGate me={me.data}>
+          <PastYearBanner />
           <Outlet />
         </SchoolGate>
       </div>

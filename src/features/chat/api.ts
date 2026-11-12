@@ -28,6 +28,7 @@ export interface ChatThread {
   open_flags: number
   office_hours: { start: string; end: string; open_now: boolean; next_open_at: string | null }
   academic_year: Ref
+  archived: boolean
 }
 
 export interface AuditMessage {
@@ -78,6 +79,7 @@ export interface ChatThreadParams {
   limit: number
   search?: string
   flagged?: boolean
+  academic_year_id?: number
   sort?: string
   order?: 'asc' | 'desc'
 }

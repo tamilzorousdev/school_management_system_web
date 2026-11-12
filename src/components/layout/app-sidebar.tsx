@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { currentNav, NAV_GROUPS } from '@/config/nav'
 import { can, type Me } from '@/features/auth/api'
 import { cn } from '@/lib/utils'
+import { useSelectedSchool } from '@/lib/auth/school-context'
 import { SchoolSwitcher } from './school-switcher'
+import { YearSwitcher } from './year-switcher'
 
 interface AppSidebarProps {
   me: Me
@@ -17,6 +19,8 @@ interface AppSidebarProps {
 export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSidebarProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const activeTo = currentNav(pathname).item.to
+  const chosenSchool = useSelectedSchool()
+  const selectedSchool = can(me, 'platform.schools') ? chosenSchool : null
 
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
@@ -90,6 +94,12 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
               </div>
             </div>
           )
+        )}
+
+        {(me.school || selectedSchool) && (
+          <div className={cn('shrink-0 px-4 pt-3', collapsed && 'md:hidden')}>
+            <YearSwitcher key={selectedSchool ?? me.school?.id} />
+          </div>
         )}
 
         <nav className='sidebar-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3'>

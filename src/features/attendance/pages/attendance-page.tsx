@@ -3,7 +3,7 @@ import { CalendarCheck, Inbox, UsersRound } from 'lucide-react'
 import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { can, useMe } from '@/features/auth/api'
-import { useAttendanceBoard } from '../api'
+import { useStaffLeaves } from '../api'
 import { LeaveTab } from '../components/leave-tab'
 import { StaffTab } from '../components/staff-tab'
 import { StudentsTab } from '../components/students-tab'
@@ -19,7 +19,7 @@ export function AttendancePage() {
   const canManage = can(me, 'attendance.manage')
   const canApprove = can(me, 'leave.approve')
   const date = search.date ?? today()
-  const board = useAttendanceBoard(date)
+  const staffWaiting = useStaffLeaves({ page: 1, limit: 1, status: 'waiting' })
 
   const setSearch = (patch: Partial<AttendanceSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
@@ -46,7 +46,7 @@ export function AttendancePage() {
             value: 'leave',
             label: 'Leave requests',
             icon: Inbox,
-            count: board.data?.leave_pending || undefined,
+            count: staffWaiting.data?.total || undefined,
           },
         ]}
       />
@@ -64,16 +64,6 @@ export function AttendancePage() {
           canManage={canManage}
           onDateChange={setDate}
           onOpenSection={(section_id) => setSearch({ section_id })}
-          onOpenLeave={() =>
-            setSearch({
-              tab: 'leave',
-              leave: 'student',
-              status: 'pending',
-              page: 1,
-              search: undefined,
-              section_id: undefined,
-            })
-          }
         />
       )}
       {search.tab === 'staff' && (
@@ -96,7 +86,6 @@ export function AttendancePage() {
       {search.tab === 'leave' && (
         <LeaveTab
           search={search}
-          canDecideStudent={canManage}
           canDecideStaff={canApprove}
           onSearchChange={(patch) => setSearch({ page: 1, ...patch })}
         />

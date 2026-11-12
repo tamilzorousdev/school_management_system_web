@@ -74,11 +74,12 @@ async function sessionFor(stateFile, mobileNumber, app = 'admin') {
   return verified.data.access_token
 }
 
-const client = (token) => async (method, url, body) => {
+const client = (token, extra = {}) => async (method, url, body) => {
   const response = await fetch(`${API}${url}`, {
     method,
     headers: {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...extra,
       'content-type': 'application/json',
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -1608,8 +1609,11 @@ await D5(
     expectStatus(ordered, 200)
     const first = ordered.body.data.stop_list[0].name
     expectStatus(await admin('DELETE', `/admin/transport/routes/${id}`), 200)
-    if (first !== 'Far stop') throw new Error(`Auto order started at ${first}`)
-    return '201, 2 stops, auto order starts at the far stop, deleted'
+    const school = (await admin('GET', '/admin/school')).body.data
+    const away = (lat, lng) => Math.hypot(lat - school.latitude, lng - school.longitude)
+    const expected = away(13.0849, 80.2105) > away(13.0846, 80.1767) ? 'Near stop' : 'Far stop'
+    if (first !== expected) throw new Error(`Auto order started at ${first}, expected ${expected}`)
+    return `201, 2 stops, auto order starts at the stop farthest from the school (${expected}), deleted`
   }
 )
 await D5(
@@ -2823,6 +2827,80 @@ await TA('API-PTT-06', 'Parent: timetable and teachers', 'GET', '/mobile/parent/
 })
 await TA('API-PTT-05', 'Parent: timetable and teachers', 'GET', '/mobile/parent/children/{id}/teachers/{teacherId}', 'Profile of a teacher who does not teach the child', '404 TEACHER_NOT_FOUND', async () =>
   expectStatus(await parent('GET', `/mobile/parent/children/${replyKid.id}/teachers/999999`), 404, 'TEACHER_NOT_FOUND')
+)
+
+await TA('API-CHY-01', 'Chat by academic year', 'GET', '/admin/chat/threads?academic_year_id=', 'Office opens an earlier academic year', '200; every conversation of that year is archived', async () => {
+  const years = (await admin('GET', '/admin/academic-years')).body.data ?? []
+  const current = years.find((row) => row.is_current)
+  const past = years.find((row) => current && !row.is_current && row.end_date < current.start_date)
+  if (!past) return 'Skipped: no earlier academic year'
+  const result = await admin('GET', `/admin/chat/threads?academic_year_id=${past.id}`)
+  expectStatus(result, 200)
+  if (result.body.data.items.some((row) => !row.archived)) throw new Error('A past-year conversation is not archived')
+  return `200, ${result.body.data.total} archived conversations in ${past.name}`
+})
+await TA('API-CHY-02', 'Chat by academic year', 'GET', '/admin/chat/threads', 'Current year list has no archived conversations', '200; archived false for all', async () => {
+  const result = await admin('GET', '/admin/chat/threads')
+  expectStatus(result, 200)
+  if (result.body.data.items.some((row) => row.archived)) throw new Error('Archived conversation in the current year')
+  return `200, ${result.body.data.items.length} current conversations`
+})
+await TA('API-CHY-03', 'Chat by academic year', 'GET', '/admin/chat/threads?academic_year_id=abc', 'Wrong academic year value', '400 on academic_year_id', async () =>
+  expectFields(await admin('GET', '/admin/chat/threads?academic_year_id=abc'), ['academic_year_id'])
+)
+
+const yearsForSwitch = (await admin('GET', '/admin/academic-years')).body.data ?? []
+const currentYear = yearsForSwitch.find((row) => row.is_current)
+const pastYear = yearsForSwitch.find((row) => currentYear && !row.is_current && row.end_date < currentYear.start_date)
+const inYear = (id) => client(adminToken, { 'x-academic-year-id': String(id) })
+await TA('API-AYS-01', 'Academic year switcher', 'GET', '/admin/students (X-Academic-Year-Id)', 'Office views students of an earlier year', '200; only students enrolled that year, with their class that year', async () => {
+  if (!pastYear) return 'Skipped: no earlier academic year'
+  const past = await inYear(pastYear.id)('GET', '/admin/students?limit=100')
+  expectStatus(past, 200)
+  const now = await admin('GET', '/admin/students?limit=1')
+  if (past.body.data.total > now.body.data.total) throw new Error('Earlier year shows more students than this year')
+  return `200, ${past.body.data.total} students in ${pastYear.name} (this year ${now.body.data.total})`
+})
+await TA('API-AYS-02', 'Academic year switcher', 'GET', '/admin/attendance/board (X-Academic-Year-Id)', 'Attendance board of an earlier year', '200', async () => {
+  if (!pastYear) return 'Skipped: no earlier academic year'
+  const result = await inYear(pastYear.id)('GET', `/admin/attendance/board?date=${pastYear.end_date.slice(0, 10)}`)
+  expectStatus(result, 200)
+  return `200 for ${pastYear.name}`
+})
+await TA('API-AYS-03', 'Academic year switcher', 'POST', '/admin/academic-years (X-Academic-Year-Id)', 'Change something while viewing an earlier year', '403 YEAR_READ_ONLY', async () => {
+  if (!pastYear) return 'Skipped: no earlier academic year'
+  return expectStatus(await inYear(pastYear.id)('POST', '/admin/academic-years', {}), 403, 'YEAR_READ_ONLY')
+})
+await TA('API-AYS-04', 'Academic year switcher', 'GET', '/admin/students (X-Academic-Year-Id: 999999)', 'Year that is not this school', '404 ACADEMIC_YEAR_NOT_FOUND', async () =>
+  expectStatus(await inYear(999999)('GET', '/admin/students'), 404, 'ACADEMIC_YEAR_NOT_FOUND')
+)
+await TA('API-AYS-05', 'Academic year switcher', 'GET', '/admin/students (X-Academic-Year-Id: abc)', 'Wrong header value', '400 INVALID_ACADEMIC_YEAR', async () =>
+  expectStatus(await inYear('abc')('GET', '/admin/students'), 400, 'INVALID_ACADEMIC_YEAR')
+)
+await TA('API-AYS-06', 'Academic year switcher', 'GET', '/mobile/parent/children (X-Academic-Year-Id)', 'Apps ignore the header and stay on this year', '200', async () => {
+  const result = await client(parentToken, { 'x-academic-year-id': 'abc' })('GET', '/mobile/parent/children')
+  return expectStatus(result, 200)
+})
+
+await TA('API-YP-01', 'Year performance', 'GET', '/admin/dashboard/year-performance', 'Office compares academic years on the dashboard', '200; newest year first with students, attendance, studies, activities and fees', async () => {
+  const result = await admin('GET', '/admin/dashboard/year-performance')
+  expectStatus(result, 200)
+  const rows = result.body.data.years
+  if (!rows.length) throw new Error('No academic years')
+  if (!rows[0].academic_year.is_current) throw new Error('Current year is not first')
+  for (const key of ['students', 'attendance', 'studies', 'activities', 'fees'])
+    if (!rows[0][key]) throw new Error(`${key} missing for the school admin`)
+  if (!Array.isArray(rows[0].fees.heads)) throw new Error('Fee heads missing')
+  const heads = rows[0].fees.heads.map((head) => `${head.name} ${head.collection_percent ?? '-'}%`).join(', ')
+  return `200, ${rows.map((row) => `${row.academic_year.name}: pass ${row.studies.pass_percent ?? '-'}%, attendance ${row.attendance.percent ?? '-'}%, ${row.activities.total} achievements`).join('; ')}; heads: ${heads}`
+})
+await TA('API-YP-02', 'Year performance', 'GET', '/admin/dashboard/year-performance', 'Earlier year chosen in the switcher', '200; still lists every year so they can be compared', async () => {
+  const result = await (pastYear ? inYear(pastYear.id) : admin)('GET', '/admin/dashboard/year-performance')
+  expectStatus(result, 200)
+  return `200, ${result.body.data.years.length} years`
+})
+await TA('API-YP-03', 'Year performance', 'GET', '/admin/dashboard/year-performance', 'Without a token', '401', async () =>
+  expectStatus(await guest('GET', '/admin/dashboard/year-performance'), 401)
 )
 
 await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>

@@ -1235,17 +1235,18 @@ await D4(
 await D4(
   {
     id: 'AT-05',
-    module: 'Student leave',
-    type: 'Validation',
-    title: 'Rejecting a parent leave request needs a reason',
-    steps: 'Leave requests, Student leave, Reject the waiting request with an empty reason.',
-    expected: '"Give a reason for rejecting"; nothing is saved',
+    module: 'Leave requests',
+    type: 'View',
+    title: 'Admin leave requests show staff leave only',
+    steps: 'Attendance, Leave requests.',
+    expected: 'Staff leave list with the note that class teachers approve student leave; no Student leave switch',
   },
   async () => {
-    await go('/attendance?tab=leave&leave=student&status=pending')
-    await page.getByRole('button', { name: /^Reject leave for/ }).first().click()
-    await click(dialog(), /^Reject$/)
-    await see('Give a reason for rejecting', dialog())
+    await go('/attendance?tab=leave')
+    await see('Student leave from parents is approved by the class teacher')
+    if (await page.getByText('Student leave', { exact: true }).count()) {
+      throw new Error('Student leave switch is still shown')
+    }
   }
 )
 await D4(
@@ -2369,6 +2370,94 @@ await test(
     await page.getByRole('button', { name: 'Save profile' }).click()
     await see('must not be greater than 30')
     await grace.fill(before)
+  }
+)
+await test(
+  {
+    id: 'GEO-01',
+    module: 'School setup',
+    type: 'Add',
+    title: 'School campus is set on the map, not typed',
+    steps: 'School setup, Profile, click the map, move the radius slider. Do not save.',
+    expected: 'Map with the school pin and circle; clicking sets the gate, the slider changes the radius, the page stays on the profile',
+  },
+  async () => {
+    await go('/setup?tab=profile')
+    const radius = page.locator('#geofence-radius')
+    await radius.waitFor({ timeout: 8000 })
+    await page.getByLabel('School campus map').scrollIntoViewIfNeeded()
+    const read = () => radius.evaluate((input) => input.closest('div.grid')?.textContent ?? '')
+    const before = await read()
+    const box = await page.getByLabel('School campus map').boundingBox()
+    await page.mouse.click(box.x + box.width / 2 + 50, box.y + box.height / 2 + 25)
+    await page.waitForTimeout(500)
+    if ((await read()) === before) throw new Error('Clicking the map did not move the gate')
+    await radius.fill('400')
+    await see('Campus radius: 400 m')
+    await page.getByLabel('Search school or area').press('Enter')
+    await page.waitForTimeout(500)
+    if (!page.url().includes('tab=profile')) throw new Error('Search left the profile page')
+    await go('/setup?tab=profile')
+  }
+)
+await test(
+  {
+    id: 'CHY-01',
+    module: 'Chat audit',
+    type: 'View',
+    title: 'Office can read an earlier academic year of chat',
+    steps: 'Chat audit, Academic year filter.',
+    expected: 'The filter offers earlier years as archived; choosing one shows the archived note',
+  },
+  async () => {
+    await go('/chat')
+    await page.getByRole('heading', { name: 'Chat audit' }).waitFor({ timeout: 8000 })
+    await see('This year (')
+    await go('/chat?year=1')
+    await see('Archived year: these conversations are hidden from the Staff and Parent apps')
+    await go('/chat')
+  }
+)
+await test(
+  {
+    id: 'YP-01',
+    module: 'Dashboard',
+    type: 'View',
+    title: 'Dashboard compares academic years',
+    steps: 'Dashboard, Year by year card.',
+    expected: 'Studies (pass, fail and absent rates), attendance, sports and activities, fees and students for each year, current year marked',
+  },
+  async () => {
+    await go('/')
+    const card = page.getByRole('region', { name: 'Performance by academic year' })
+    await card.waitFor({ timeout: 10000 })
+    for (const text of ['Pass rate', 'Fail rate', 'Absent in exams', 'Sports and activities', 'Collection rate', 'Current'])
+      await card.getByText(text, { exact: true }).first().waitFor({ timeout: 8000 })
+    await card.getByRole('region', { name: 'Fees by head' }).waitFor({ timeout: 8000 })
+    await card.screenshot({ path: path.join(SHOTS, 'YP-01.png') })
+  }
+)
+await test(
+  {
+    id: 'AYS-01',
+    module: 'Academic year',
+    type: 'View',
+    title: 'Office switches to an earlier academic year and back',
+    steps: 'Sidebar, Academic year, choose an earlier year, then Back to current year.',
+    expected: 'A read-only banner names the year; Back to current year removes it',
+  },
+  async () => {
+    await go('/students')
+    await page.locator('#year-switcher').click()
+    const past = page.getByRole('option').filter({ hasText: 'Read only' }).first()
+    if (!(await past.count())) {
+      await page.keyboard.press('Escape')
+      return
+    }
+    await past.click()
+    await see('Earlier years are read only.')
+    await page.getByRole('button', { name: 'Back to current year' }).click()
+    await page.getByText('Earlier years are read only.').waitFor({ state: 'detached', timeout: 8000 })
   }
 )
 await test(

@@ -25,8 +25,11 @@ import { wholeRupees } from '@/features/fees/labels'
 import { useFleetLive, VEHICLE_STATE } from '@/features/fleet/api'
 import { formatNumber } from '@/lib/format'
 import { useDashboard, type Dashboard } from '../api'
+import { YearPerformanceCard } from '../components/year-performance-card'
 
 type Navigate = ReturnType<typeof useNavigate>
+
+const PERFORMANCE_PERMISSIONS = ['students.view', 'attendance.view', 'exams.view', 'fees.view']
 
 export function DashboardPage() {
   const me = useMe().data
@@ -47,6 +50,7 @@ export function DashboardPage() {
       ) : (
         items.length > 0 && <InsightCards items={items} loading={dashboard.isPending} />
       )}
+      {PERFORMANCE_PERMISSIONS.some((permission) => can(me, permission)) && <YearPerformanceCard />}
       {can(me, 'fleet.view') && <BusMap />}
       {can(me, 'exams.view') && <TopRankHoldersCard />}
       {can(me, 'students.view') && <SportsStarsCard />}

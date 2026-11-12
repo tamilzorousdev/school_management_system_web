@@ -2,13 +2,14 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { CircleOff, Clock, Flag, MessagesSquare, MessageSquareText } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
-import { ListToolbar, SearchBox } from '@/components/common/list-toolbar'
+import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/format'
 import { useChatInsights, useChatThreads, type ChatThread } from '../api'
+import { useAcademicYears } from '@/features/setup/api'
 import { ChatThreadSheet } from '../components/chat-thread-sheet'
 import type { ChatSearch } from '../search'
 
@@ -18,8 +19,14 @@ const LIMIT = 20
 export function ChatPage() {
   const search = route.useSearch()
   const navigate = useNavigate({ from: '/chat' })
-  const { thread: openId, ...filters } = search
-  const threads = useChatThreads({ ...filters, limit: LIMIT })
+  const { thread: openId, year, ...filters } = search
+  const threads = useChatThreads({ ...filters, academic_year_id: year, limit: LIMIT })
+  const years = useAcademicYears().data ?? []
+  const current = years.find((item) => item.is_current)
+  const pastYears = years
+    .filter((item) => current && !item.is_current && item.end_date < current.start_date)
+    .sort((a, b) => b.start_date.localeCompare(a.start_date))
+  const viewingPast = Boolean(year)
   const insights = useChatInsights()
   const rows = threads.data?.items ?? []
 
@@ -133,15 +140,23 @@ export function ChatPage() {
     },
   ]
 
-  const filtered = Boolean(search.search || search.flagged)
+  const filtered = Boolean(search.search || search.flagged || search.year)
 
   return (
     <Page>
       <PageHeader
         eyebrow='Communication'
         title='Chat audit'
-        description='Teacher and parent conversations this academic year. Read them, handle reported messages and hide what does not belong. Every visit is recorded.'
+        description='Teacher and parent conversations by academic year. Read them, handle reported messages and hide what does not belong. Every visit is recorded.'
       />
+
+      {viewingPast && (
+        <p className='rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground'>
+          Archived year: these conversations are hidden from the Staff and Parent apps so every year
+          starts fresh. Only the office can read them here. They are deleted for good 2 years after
+          that academic year ends.
+        </p>
+      )}
 
       <InsightCards items={cards} loading={insights.isPending} />
 
@@ -155,6 +170,19 @@ export function ChatPage() {
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Teacher, parent or student'
             label='Search conversations'
+          />
+          <FilterSelect
+            id='chat-year-filter'
+            label='Academic year'
+            allLabel={current ? `This year (${current.name})` : 'This year'}
+            value={year ? String(year) : undefined}
+            options={pastYears.map((item) => ({
+              value: String(item.id),
+              label: `${item.name} (archived)`,
+            }))}
+            onChange={(value) =>
+              setSearch({ year: value ? Number(value) : undefined, thread: undefined })
+            }
           />
         </ListToolbar>
 

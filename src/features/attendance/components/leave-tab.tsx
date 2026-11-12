@@ -4,7 +4,6 @@ import { AppModal } from '@/components/common/app-modal'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FormField } from '@/components/common/form-field'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
-import { SegmentedControl } from '@/components/common/segmented-control'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,14 +18,12 @@ import {
   useAttendanceMutation,
   useLeaveBalances,
   useStaffLeaves,
-  useStudentLeaves,
   type DecisionInput,
   type StaffLeave,
   type StaffLeaveStatus,
   type StudentLeave,
-  type StudentLeaveStatus,
 } from '../api'
-import { STAFF_LEAVE_STATUS, STUDENT_LEAVE_STATUS } from '../labels'
+import { STAFF_LEAVE_STATUS } from '../labels'
 import type { AttendanceSearch, LeaveKind } from '../search'
 
 const LIMIT = 20
@@ -66,49 +63,30 @@ const statusOf = (search: AttendanceSearch, kind: LeaveKind) =>
 
 export function LeaveTab({
   search,
-  canDecideStudent,
   canDecideStaff,
   onSearchChange,
 }: {
   search: AttendanceSearch
-  canDecideStudent: boolean
   canDecideStaff: boolean
   onSearchChange: (patch: Partial<AttendanceSearch>) => void
 }) {
-  const kind = search.leave
   const [rejecting, setRejecting] = useState<Rejecting | null>(null)
-  const filtered = Boolean(search.search) || statusOf(search, kind) !== DEFAULT_STATUS[kind]
+  const filtered = Boolean(search.search) || statusOf(search, 'staff') !== DEFAULT_STATUS.staff
 
   return (
     <div className='grid gap-4'>
-      <SegmentedControl
-        label='Leave requests from'
-        value={kind}
-        onChange={(leave) => onSearchChange({ leave, status: undefined, search: undefined })}
-        options={[
-          { value: 'student', label: 'Student leave' },
-          { value: 'staff', label: 'Staff leave' },
-        ]}
-        className='justify-self-start'
-      />
+      <p className='text-sm text-muted-foreground'>
+        Staff leave waiting for a decision. Student leave from parents is approved by the class
+        teacher in the Staff app.
+      </p>
       <Card className='overflow-hidden'>
-        {kind === 'student' ? (
-          <StudentLeaves
-            search={search}
-            filtered={filtered}
-            canDecide={canDecideStudent}
-            onSearchChange={onSearchChange}
-            onReject={setRejecting}
-          />
-        ) : (
-          <StaffLeaves
-            search={search}
-            filtered={filtered}
-            canDecide={canDecideStaff}
-            onSearchChange={onSearchChange}
-            onReject={setRejecting}
-          />
-        )}
+        <StaffLeaves
+          search={search}
+          filtered={filtered}
+          canDecide={canDecideStaff}
+          onSearchChange={onSearchChange}
+          onReject={setRejecting}
+        />
       </Card>
       {rejecting && <RejectModal target={rejecting} onClose={() => setRejecting(null)} />}
     </div>
@@ -216,165 +194,6 @@ function Toolbar({
         }
       />
     </ListToolbar>
-  )
-}
-
-function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }: ListProps) {
-  const status = statusOf(search, 'student')
-  const leaves = useStudentLeaves({
-    page: search.page,
-    limit: LIMIT,
-    search: search.search,
-    status: status in STUDENT_LEAVE_STATUS ? (status as StudentLeaveStatus) : undefined,
-  })
-  const approve = useApprove('student')
-  const [busy, setBusy] = useState<number | null>(null)
-
-  useShortcut('app.refresh', () => void leaves.refetch())
-
-  const approveLeave = async (leave: StudentLeave) => {
-    setBusy(leave.id)
-    try {
-      await approve.mutateAsync({ id: leave.id, input: { status: 'approved' } })
-      alerts.success(`Leave approved for ${leave.student.name}`)
-    } catch (error) {
-      alerts.error(toApiError(error).message)
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const actions = (leave: StudentLeave) =>
-    canDecide && leave.status === 'pending' ? (
-      <DecisionButtons
-        name={leave.student.name}
-        loading={busy === leave.id}
-        onApprove={() => void approveLeave(leave)}
-        onReject={() =>
-          onReject({
-            kind: 'student',
-            id: leave.id,
-            name: leave.student.name,
-            summary: `${range(leave.from_date, leave.to_date)} · ${leave.reason}`,
-          })
-        }
-      />
-    ) : null
-
-  const statusBadge = (leave: StudentLeave) => (
-    <span className='grid gap-0.5'>
-      <Badge tone={STUDENT_LEAVE_STATUS[leave.status].tone} className='justify-self-start'>
-        {STUDENT_LEAVE_STATUS[leave.status].label}
-      </Badge>
-      {leave.decided_by && (
-        <span className='text-xs text-muted-foreground'>by {leave.decided_by.name}</span>
-      )}
-    </span>
-  )
-
-  const columns: Column<StudentLeave>[] = [
-    {
-      key: 'student',
-      header: 'Student',
-      cell: (leave) => (
-        <div className='grid min-w-0'>
-          <span className='truncate font-bold'>{leave.student.name}</span>
-          <span className='text-xs text-muted-foreground'>
-            {leave.class_section ? `Class ${leave.class_section}` : '—'}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'dates',
-      header: 'Dates',
-      cell: (leave) => (
-        <div className='grid'>
-          <span className='text-sm'>{range(leave.from_date, leave.to_date)}</span>
-          <span className='text-xs text-muted-foreground'>
-            {daysText(leave.days, leave.half_day)}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'reason',
-      header: 'Reason',
-      cell: (leave) => (
-        <div className='grid max-w-72'>
-          <span className='line-clamp-2 text-sm'>{leave.reason}</span>
-          {leave.decision_note && (
-            <span className='truncate text-xs text-muted-foreground'>
-              Note: {leave.decision_note}
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'parent',
-      header: 'Sent by',
-      hideBelow: 'xl',
-      cell: (leave) => leave.requested_by?.name ?? '—',
-    },
-    { key: 'status', header: 'Status', cell: statusBadge },
-    ...(canDecide ? [{ key: 'actions', header: '', align: 'right' as const, cell: actions }] : []),
-  ]
-
-  return (
-    <>
-      <Toolbar
-        search={search}
-        status={status}
-        filtered={filtered}
-        total={leaves.data?.total}
-        statusOptions={optionsOf(STUDENT_LEAVE_STATUS)}
-        placeholder='Student, admission no. or reason'
-        onSearchChange={onSearchChange}
-      />
-      <DataTable
-        rows={leaves.data?.items ?? []}
-        columns={columns}
-        rowKey={(leave) => leave.id}
-        loading={leaves.isFetching}
-        error={leaves.isError ? leaves.error.message : null}
-        onRetry={() => leaves.refetch()}
-        empty={{
-          icon: filtered ? CircleOff : Inbox,
-          title: filtered
-            ? 'No leave requests match these filters'
-            : 'Nothing waiting for a decision',
-          description: filtered
-            ? 'Try another name, or clear the filters.'
-            : 'Choose Any status to see approved, rejected and cancelled requests.',
-        }}
-        card={(leave) => (
-          <div className='grid gap-1.5'>
-            <div className='flex items-start justify-between gap-2'>
-              <span className='grid min-w-0'>
-                <span className='truncate font-bold'>{leave.student.name}</span>
-                <span className='text-xs text-muted-foreground'>
-                  {leave.class_section ? `Class ${leave.class_section} · ` : ''}
-                  {range(leave.from_date, leave.to_date)} · {daysText(leave.days, leave.half_day)}
-                </span>
-              </span>
-              <Badge tone={STUDENT_LEAVE_STATUS[leave.status].tone}>
-                {STUDENT_LEAVE_STATUS[leave.status].label}
-              </Badge>
-            </div>
-            <span className='text-sm'>{leave.reason}</span>
-            {actions(leave)}
-          </div>
-        )}
-        pagination={{
-          page: search.page,
-          limit: LIMIT,
-          total: leaves.data?.total ?? 0,
-          label: 'requests',
-          onPageChange: (page) => onSearchChange({ page }),
-        }}
-      />
-    </>
   )
 }
 

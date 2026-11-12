@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Combobox } from '@/components/common/combobox'
 import { useSchoolOptions } from '@/features/schools/api'
 import { schoolContext, useSelectedSchool } from '@/lib/auth/school-context'
+import { yearContext } from '@/lib/auth/year-context'
 
 export function SchoolSwitcher() {
   const queryClient = useQueryClient()
@@ -28,6 +29,7 @@ export function SchoolSwitcher() {
         onChange={(value) => {
           if (!value) return
           schoolContext.set(Number(value))
+          yearContext.set(null)
           void queryClient.invalidateQueries()
         }}
         highlightSelected={false}

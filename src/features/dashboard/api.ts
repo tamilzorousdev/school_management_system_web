@@ -75,13 +75,62 @@ export interface Dashboard {
   exams: DashboardExams | null
 }
 
+export interface YearFeeHead {
+  name: string
+  is_transport: boolean
+  billed: number
+  collected: number
+  collection_percent: number | null
+}
+
+export interface YearPerformance {
+  academic_year: {
+    id: number
+    name: string
+    start_date: string
+    end_date: string
+    is_current: boolean
+  }
+  students: { enrolled: number; promoted: number; left: number } | null
+  attendance: {
+    percent: number | null
+    days_marked: number
+    below_75: number
+    staff_percent: number | null
+  } | null
+  studies: {
+    exams: number
+    students: number
+    average_percent: number | null
+    pass_percent: number | null
+    fail_percent: number | null
+    absent_percent: number | null
+  } | null
+  activities: {
+    total: number
+    sports: number
+    podium: number
+    students: number
+    points: number
+    top_level: string | null
+  } | null
+  fees: {
+    billed: number
+    collected: number
+    collection_percent: number | null
+    heads: YearFeeHead[]
+  } | null
+}
+
 export const dashboardKeys = {
   all: ['dashboard'] as const,
   overview: () => [...dashboardKeys.all, 'overview'] as const,
+  yearPerformance: () => [...dashboardKeys.all, 'year-performance'] as const,
 }
 
 export const dashboardApi = {
   overview: () => api.get<Dashboard>('/admin/dashboard'),
+  yearPerformance: () => api.get<{ years: YearPerformance[] }>('/admin/dashboard/year-performance'),
 }
 
 export function useDashboard() {
@@ -90,5 +139,13 @@ export function useDashboard() {
     queryFn: dashboardApi.overview,
     refetchInterval: config.refreshIntervalMs * 3,
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useYearPerformance() {
+  return useQuery({
+    queryKey: dashboardKeys.yearPerformance(),
+    queryFn: dashboardApi.yearPerformance,
+    select: (data) => data.years,
   })
 }
