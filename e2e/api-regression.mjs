@@ -2658,6 +2658,12 @@ await TA('API-RING-01', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/
   if (ringMeeting.can_join !== false) throw new Error('can_join should be false while pending')
   return expectStatus(await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/join`, { platform: 'android' }), 409, 'MEETING_NOT_ACCEPTED')
 })
+await TA('API-RING-05', 'Meeting calls', 'POST', '/mobile/teacher/meetings', 'Teacher books a meeting with themselves as the parent', '400 SAME_PERSON', async () => {
+  if (!rosterStudent) return 'Skipped: teacher has no section'
+  const me = (await teacher('GET', '/me')).body.data
+  const when = new Date(Date.now() + 3 * 86400000).toISOString()
+  return expectStatus(await teacher('POST', '/mobile/teacher/meetings', { student_id: rosterStudent.id, parent_user_id: me.id, title: 'Self', scheduled_at: when }), 400, 'SAME_PERSON')
+})
 await TA('API-RING-02', 'Meeting calls', 'POST', '/mobile/teacher/meetings/{id}/reject-call', 'Reject a call that is not ringing', '200, nothing changes', async () => {
   if (!ringMeeting) return 'Skipped: teacher has no section'
   const result = await teacher('POST', `/mobile/teacher/meetings/${ringMeeting.id}/reject-call`)
@@ -2776,6 +2782,47 @@ await TA('API-PPR-04', 'Parent profile', 'PATCH', '/mobile/parent/profile', 'Wro
 )
 await TA('API-PPR-05', 'Parent profile', 'GET', '/mobile/parent/profile', 'Teacher opens the parent profile', '403', async () =>
   expectStatus(await teacher('GET', '/mobile/parent/profile'), 403)
+)
+
+await TA('API-PTT-01', 'Parent: timetable and teachers', 'GET', '/mobile/parent/children/{id}/timetable', 'Child timetable for today', '200 with day and periods (bell order)', async () => {
+  const result = await parent('GET', `/mobile/parent/children/${replyKid.id}/timetable`)
+  expectStatus(result, 200)
+  const data = result.body.data
+  if (!data.day || !Array.isArray(data.periods)) throw new Error('Missing day or periods')
+  if (data.working_day && !data.periods.some((row) => row.is_break !== undefined && 'teacher' in row)) throw new Error('Period shape')
+  return `200, ${data.day}, ${data.periods.length} rows`
+})
+await TA('API-PTT-02', 'Parent: timetable and teachers', 'GET', '/mobile/parent/children/{id}/timetable?date=', 'Timetable with a wrong date format', '400 on date', async () =>
+  expectFields(await parent('GET', `/mobile/parent/children/${replyKid.id}/timetable?date=11-11-2026`), ['date'])
+)
+await TA('API-PTT-03', 'Parent: timetable and teachers', 'GET', '/mobile/parent/children/{id}/teachers', 'Teachers with designation and experience', '200, class teacher first, experience_years present', async () => {
+  const result = await parent('GET', `/mobile/parent/children/${replyKid.id}/teachers`)
+  expectStatus(result, 200)
+  const first = result.body.data[0]
+  if (first && (typeof first.experience_years !== 'number' || !('designation' in first))) throw new Error('Missing teacher details')
+  return `200, ${result.body.data.length} teachers`
+})
+await TA('API-PTT-04', 'Parent: timetable and teachers', 'GET', '/mobile/parent/children/{id}/teachers/{teacherId}', 'Teacher profile with qualifications and classes', '200 with classes; no phone or email', async () => {
+  const list = (await parent('GET', `/mobile/parent/children/${replyKid.id}/teachers`)).body.data
+  if (!list.length) return 'Skipped: no teachers for this child'
+  const result = await parent('GET', `/mobile/parent/children/${replyKid.id}/teachers/${list[0].id}`)
+  expectStatus(result, 200)
+  const data = result.body.data
+  if (!Array.isArray(data.classes) || !Array.isArray(data.qualifications)) throw new Error('Missing classes or qualifications')
+  if ('mobile' in data || 'email' in data) throw new Error('Private contact details shown')
+  return `200, ${data.classes.length} classes`
+})
+await TA('API-PTT-06', 'Parent: timetable and teachers', 'GET', '/mobile/parent/children/{id}/teachers-overview', 'Class teacher on its own, then subject teachers', '200; class teacher not repeated in subject teachers', async () => {
+  const result = await parent('GET', `/mobile/parent/children/${replyKid.id}/teachers-overview`)
+  expectStatus(result, 200)
+  const { class_teacher: classTeacher, subject_teachers: subjects } = result.body.data
+  if (!Array.isArray(subjects)) throw new Error('subject_teachers missing')
+  if (classTeacher && subjects.some((row) => row.id === classTeacher.id)) throw new Error('Class teacher repeated')
+  if (subjects.some((row) => row.is_class_teacher)) throw new Error('Class teacher in subject list')
+  return `200, class teacher ${classTeacher?.name ?? 'none'}, ${subjects.length} subject teachers`
+})
+await TA('API-PTT-05', 'Parent: timetable and teachers', 'GET', '/mobile/parent/children/{id}/teachers/{teacherId}', 'Profile of a teacher who does not teach the child', '404 TEACHER_NOT_FOUND', async () =>
+  expectStatus(await parent('GET', `/mobile/parent/children/${replyKid.id}/teachers/999999`), 404, 'TEACHER_NOT_FOUND')
 )
 
 await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>
