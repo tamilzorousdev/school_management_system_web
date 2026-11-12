@@ -1,13 +1,5 @@
-import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import {
-  BookOpenCheck,
-  CalendarClock,
-  CircleOff,
-  Hourglass,
-  Send,
-  Settings2,
-  Undo2,
-} from 'lucide-react'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { BookOpenCheck, CalendarClock, CircleOff, EyeOff, Send } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -25,10 +17,12 @@ import {
   type DiaryType,
 } from '../api'
 import { DiarySheet } from '../components/diary-sheet'
-import { DIARY_STATUS, DIARY_TYPE, REVIEW_MODE_LABEL } from '../labels'
+import { DIARY_STATUS, DIARY_TYPE } from '../labels'
 import type { DiarySearch } from '../search'
 
 const route = getRouteApi('/_app/diary')
+
+const SHOWN_STATUSES: DiaryStatus[] = ['published', 'hidden']
 const LIMIT = 20
 
 export function DiaryPage() {
@@ -55,16 +49,6 @@ export function DiaryPage() {
   const data = insights.data
   const cards: Insight[] = [
     {
-      key: 'pending',
-      label: 'Waiting for review',
-      value: data?.pending_review ?? 0,
-      hint: data ? REVIEW_MODE_LABEL[data.review_mode] : 'Review mode',
-      icon: Hourglass,
-      tone: 'warning',
-      active: search.status === 'pending_review',
-      onClick: () => toggleStatus('pending_review'),
-    },
-    {
       key: 'published',
       label: 'Published today',
       value: data?.published_today ?? 0,
@@ -86,14 +70,14 @@ export function DiaryPage() {
         setSearch({ type: search.type === 'homework' ? undefined : 'homework', status: undefined }),
     },
     {
-      key: 'rejected',
-      label: 'Sent back',
-      value: data?.rejected ?? 0,
-      hint: `${data?.hidden ?? 0} hidden`,
-      icon: Undo2,
+      key: 'hidden',
+      label: 'Hidden',
+      value: data?.hidden ?? 0,
+      hint: 'Taken down by the office',
+      icon: EyeOff,
       tone: 'danger',
-      active: search.status === 'rejected',
-      onClick: () => toggleStatus('rejected'),
+      active: search.status === 'hidden',
+      onClick: () => toggleStatus('hidden'),
     },
   ]
 
@@ -167,25 +151,8 @@ export function DiaryPage() {
     <Page>
       <PageHeader
         eyebrow='Communication'
-        title='Diary'
-        description='Homework, remarks, feedback and notes teachers send to parents this academic year. Approve, send back or hide posts here.'
-        actions={
-          can(me, 'schools.view') && (
-            <Link
-              to='/setup'
-              search={{ tab: 'communication' }}
-              className='inline-flex h-10 items-center gap-2 rounded-lg border bg-card px-3.5 text-sm font-semibold hover:bg-muted'
-            >
-              <Settings2 className='size-4' />
-              Review settings
-              {insights.data && (
-                <span className='font-normal text-muted-foreground'>
-                  · {REVIEW_MODE_LABEL[insights.data.review_mode]}
-                </span>
-              )}
-            </Link>
-          )
-        }
+        title='Homework'
+        description='Homework, remarks, feedback and notes teachers send to parents this academic year. They reach parents at once; hide a post here if parents should not see it.'
       />
 
       <InsightCards items={cards} loading={insights.isPending} />
@@ -199,14 +166,14 @@ export function DiaryPage() {
             value={search.search ?? ''}
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Title, message or teacher'
-            label='Search diary'
+            label='Search homework'
           />
           <FilterSelect
             id='diary-status-filter'
             label='Filter by status'
             allLabel='All statuses'
             value={search.status}
-            options={(Object.keys(DIARY_STATUS) as DiaryStatus[]).map((status) => ({
+            options={SHOWN_STATUSES.map((status) => ({
               value: status,
               label: DIARY_STATUS[status].label,
             }))}
@@ -237,7 +204,7 @@ export function DiaryPage() {
           onSortChange={(next) => setSearch(next as Partial<DiarySearch>)}
           empty={{
             icon: filtered ? CircleOff : BookOpenCheck,
-            title: filtered ? 'No posts match these filters' : 'No diary posts yet',
+            title: filtered ? 'No posts match these filters' : 'No homework posts yet',
             description: filtered
               ? 'Try another word, or clear the filters.'
               : 'When a teacher posts homework or a remark in the Staff app, it shows up here.',

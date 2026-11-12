@@ -17,6 +17,7 @@ export const attendanceSearchSchema = z.object({
   date,
   section_id: z.coerce.number().int().min(1).optional().catch(undefined),
   session: z.enum(['morning', 'afternoon']).optional().catch(undefined),
+  period: z.coerce.number().int().min(1).max(12).optional().catch(undefined),
   leave: z.enum(LEAVE_KINDS).catch('student'),
   status: z
     .enum([

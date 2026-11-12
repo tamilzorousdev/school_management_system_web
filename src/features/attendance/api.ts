@@ -27,6 +27,30 @@ export interface AttendanceSummary {
 }
 
 export type AttendanceSessionName = 'morning' | 'afternoon'
+export type AttendanceMode = 'session' | 'period'
+
+export interface AttendanceSlot {
+  session: AttendanceSessionName
+  period?: number
+}
+
+const ORDINAL_ENDINGS: Record<number, string> = { 1: 'st', 2: 'nd', 3: 'rd' }
+
+export const ordinal = (value: number) =>
+  `${value}${value % 100 >= 11 && value % 100 <= 13 ? 'th' : (ORDINAL_ENDINGS[value % 10] ?? 'th')}`
+
+export const slotParams = (slot: AttendanceSlot) =>
+  slot.period ? { period: slot.period } : { session: slot.session }
+
+export const slotKey = (slot: AttendanceSlot) => (slot.period ? `p${slot.period}` : slot.session)
+
+export function slotText(
+  mode: AttendanceMode | undefined,
+  slot: { session: AttendanceSessionName; period?: number }
+) {
+  if (mode === 'period' && slot.period) return `${ordinal(slot.period)} period`
+  return slot.session === 'morning' ? 'Morning (1st period)' : 'Afternoon (5th period)'
+}
 
 export interface BoardSection extends AttendanceSummary {
   section_id: number
@@ -43,7 +67,9 @@ export interface BoardSection extends AttendanceSummary {
 
 export interface AttendanceBoard {
   date: string
+  mode: AttendanceMode
   session: AttendanceSessionName
+  period: number
   working_day: boolean
   holiday: string | null
   summary: AttendanceSummary
@@ -61,6 +87,7 @@ export interface AttendanceBoard {
 export interface MissedSession {
   date: string
   session: AttendanceSessionName
+  period: number
   section_id: number
   section: string
   still_not_marked: boolean
@@ -93,6 +120,7 @@ export interface RosterStudent {
 export interface Roster {
   section: Ref
   date: string
+  mode: AttendanceMode
   session: AttendanceSessionName
   period: number
   open: boolean
@@ -115,6 +143,7 @@ export interface MarkItem {
 export interface MarkInput {
   date: string
   session: AttendanceSessionName
+  period?: number
   subject_id?: number | null
   items: MarkItem[]
 }
@@ -242,6 +271,7 @@ export interface BulkStaffResult {
 export interface BulkSectionInput {
   date: string
   session: AttendanceSessionName
+  period?: number
   section_ids?: number[]
   status: AttendanceStatus
   remarks?: string | null
@@ -321,10 +351,10 @@ export interface DecisionInput {
 
 export const attendanceKeys = {
   all: ['attendance'] as const,
-  board: (date: string, session: AttendanceSessionName = 'morning') =>
-    [...attendanceKeys.all, 'board', date, session] as const,
-  roster: (sectionId: number, date: string, session: AttendanceSessionName) =>
-    [...attendanceKeys.all, 'roster', sectionId, date, session] as const,
+  board: (date: string, slot: AttendanceSlot = { session: 'morning' }) =>
+    [...attendanceKeys.all, 'board', date, slotKey(slot)] as const,
+  roster: (sectionId: number, date: string, slot: AttendanceSlot) =>
+    [...attendanceKeys.all, 'roster', sectionId, date, slotKey(slot)] as const,
   classReport: (classId: number, month: string) =>
     [...attendanceKeys.all, 'class-report', classId, month] as const,
   report: (sectionId: number, month: string) =>
@@ -339,10 +369,10 @@ export const attendanceKeys = {
 }
 
 export const attendanceApi = {
-  board: (date: string, session: AttendanceSessionName = 'morning') =>
-    api.get<AttendanceBoard>('/admin/attendance/board', { date, session }),
-  roster: (sectionId: number, date: string, session: AttendanceSessionName) =>
-    api.get<Roster>(`/admin/attendance/sections/${sectionId}`, { date, session }),
+  board: (date: string, slot: AttendanceSlot = { session: 'morning' }) =>
+    api.get<AttendanceBoard>('/admin/attendance/board', { date, ...slotParams(slot) }),
+  roster: (sectionId: number, date: string, slot: AttendanceSlot) =>
+    api.get<Roster>(`/admin/attendance/sections/${sectionId}`, { date, ...slotParams(slot) }),
   classReport: (classId: number, month: string) =>
     api.get<ClassReport>(`/admin/attendance/classes/${classId}/report`, { month }),
   missed: (month: string) => api.get<MissedReport>('/admin/attendance/missed', { month }),
@@ -385,10 +415,10 @@ export const attendanceApi = {
     api.post<StaffLeave>(`/admin/staff-leaves/${id}/decision`, input),
 }
 
-export function useAttendanceBoard(date: string, session: AttendanceSessionName = 'morning') {
+export function useAttendanceBoard(date: string, slot: AttendanceSlot = { session: 'morning' }) {
   return useQuery({
-    queryKey: attendanceKeys.board(date, session),
-    queryFn: () => attendanceApi.board(date, session),
+    queryKey: attendanceKeys.board(date, slot),
+    queryFn: () => attendanceApi.board(date, slot),
     placeholderData: keepPreviousData,
   })
 }
@@ -411,10 +441,10 @@ export function useClassReport(classId: number | undefined, month: string) {
   })
 }
 
-export function useRoster(sectionId: number | null, date: string, session: AttendanceSessionName) {
+export function useRoster(sectionId: number | null, date: string, slot: AttendanceSlot) {
   return useQuery({
-    queryKey: attendanceKeys.roster(sectionId ?? 0, date, session),
-    queryFn: () => attendanceApi.roster(sectionId!, date, session),
+    queryKey: attendanceKeys.roster(sectionId ?? 0, date, slot),
+    queryFn: () => attendanceApi.roster(sectionId!, date, slot),
     enabled: Boolean(sectionId),
     staleTime: 0,
   })

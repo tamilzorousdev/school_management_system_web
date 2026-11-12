@@ -53,10 +53,11 @@ export function AttendancePage() {
       {search.tab === 'students' && (
         <StudentsTab
           date={date}
-          session={search.session ?? 'morning'}
-          onSessionChange={(session) =>
+          slot={{ session: search.session ?? 'morning', period: search.period }}
+          onSlotChange={(slot) =>
             setSearch({
-              session: session === 'morning' ? undefined : session,
+              session: slot.period || slot.session === 'morning' ? undefined : slot.session,
+              period: slot.period,
               section_id: undefined,
             })
           }

@@ -12,7 +12,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { formatDate } from '@/lib/format'
-import { useMissedReport, type MissedTeacher } from '../api'
+import { useMissedReport, type MissedTeacher, ordinal } from '../api'
 import { recentMonths } from '../labels'
 
 const SESSION_LABEL = { morning: 'Morning', afternoon: 'Afternoon' } as const
@@ -26,7 +26,10 @@ export function MissedReportSheet({ open, onClose }: { open: boolean; onClose: (
   const sessionsText = (row: MissedTeacher) =>
     row.sessions
       .slice(0, 4)
-      .map((item) => `${item.section} · ${formatDate(item.date)} ${SESSION_LABEL[item.session]}`)
+      .map(
+        (item) =>
+          `${item.section} · ${formatDate(item.date)} ${item.period === 1 || item.period === 5 ? SESSION_LABEL[item.session] : `${ordinal(item.period)} period`}`
+      )
       .join(', ') + (row.sessions.length > 4 ? ` and ${row.sessions.length - 4} more` : '')
 
   const columns: Column<MissedTeacher>[] = [

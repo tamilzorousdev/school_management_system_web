@@ -19,7 +19,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/format'
-import { useAttendanceBoard, type AttendanceSessionName, type BoardSection } from '../api'
+import { useBellSchedule } from '@/features/timetable/api'
+import {
+  ordinal,
+  slotKey,
+  slotText,
+  useAttendanceBoard,
+  type AttendanceSlot,
+  type BoardSection,
+} from '../api'
 import { dayOffText, percentLabel, percentTone, studentsText } from '../labels'
 import { BulkSectionsModal } from './bulk-mark-modal'
 import { ClassReportSheet } from './class-report-sheet'
@@ -36,29 +44,44 @@ const FILTER_OPTIONS: { value: BoardFilter; label: string }[] = [
   { value: 'missed', label: 'Missed' },
 ]
 
-const SESSION_OPTIONS: { value: AttendanceSessionName; label: string }[] = [
+const SESSION_OPTIONS = [
   { value: 'morning', label: 'Morning · 1st period' },
   { value: 'afternoon', label: 'Afternoon · 5th period' },
 ]
 
+const halfOf = (period: number) => (period < 5 ? 'morning' : 'afternoon')
+
 export function StudentsTab({
   date,
-  session,
+  slot,
   sectionId,
   canManage,
   onDateChange,
-  onSessionChange,
+  onSlotChange,
   onOpenSection,
 }: {
   date: string
-  session: AttendanceSessionName
+  slot: AttendanceSlot
   sectionId?: number
   canManage: boolean
   onDateChange: (date: string) => void
-  onSessionChange: (session: AttendanceSessionName) => void
+  onSlotChange: (slot: AttendanceSlot) => void
   onOpenSection: (sectionId: number | undefined) => void
 }) {
-  const board = useAttendanceBoard(date, session)
+  const board = useAttendanceBoard(date, slot)
+  const bells = useBellSchedule()
+  const periodMode = board.data?.mode === 'period'
+  const activeSlot: AttendanceSlot =
+    periodMode && board.data ? { session: board.data.session, period: board.data.period } : slot
+  const session = slotKey(activeSlot)
+  const slotOptions = periodMode
+    ? (bells.data ?? [])
+        .filter((period) => !period.is_break && period.period_no && !period.class_id)
+        .map((period) => ({
+          value: `p${period.period_no}`,
+          label: `${ordinal(period.period_no!)} · ${period.start_time}`,
+        }))
+    : SESSION_OPTIONS
   const [classReport, setClassReport] = useState(false)
   const [missedReport, setMissedReport] = useState(false)
   const [filter, setFilter] = useState<BoardFilter>('all')
@@ -230,10 +253,16 @@ export function StudentsTab({
         <DateStepper id='attendance-date' value={date} onChange={onDateChange} />
         <div className='flex flex-wrap items-center gap-2'>
           <SegmentedControl
-            label='Attendance session'
+            label={periodMode ? 'Attendance period' : 'Attendance session'}
             value={session}
-            onChange={onSessionChange}
-            options={SESSION_OPTIONS}
+            onChange={(value: string) =>
+              onSlotChange(
+                value.startsWith('p')
+                  ? { session: halfOf(Number(value.slice(1))), period: Number(value.slice(1)) }
+                  : { session: value === 'afternoon' ? 'afternoon' : 'morning' }
+              )
+            }
+            options={slotOptions}
           />
           <Button variant='outline' size='sm' onClick={() => setClassReport(true)}>
             <FileBarChart />
@@ -340,14 +369,16 @@ export function StudentsTab({
         sectionId={sectionId ?? null}
         sectionName={open?.name ?? ''}
         date={date}
-        session={session}
+        slot={activeSlot}
+        slotLabel={slotText(board.data?.mode, activeSlot)}
         canManage={canManage}
         onClose={() => onOpenSection(undefined)}
       />
       {bulk && (
         <BulkSectionsModal
           date={date}
-          session={session}
+          slot={activeSlot}
+          slotLabel={slotText(board.data?.mode, activeSlot)}
           sectionIds={bulk}
           markedCount={bulk === 'not_marked' ? 0 : markedSelected}
           onClose={() => setBulk(null)}

@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarCheck,
   CalendarRange,
+  ChartColumnBig,
   ClipboardCheck,
   ClipboardList,
   Repeat,
@@ -47,6 +48,7 @@ export type NavPath =
   | '/payroll'
   | '/fees'
   | '/exams'
+  | '/class-performance'
   | '/activities'
   | '/transport'
   | '/notifications'
@@ -194,6 +196,15 @@ export const NAV_GROUPS: NavGroup[] = [
         permission: 'exams.view',
       },
       {
+        to: '/class-performance',
+        label: 'Class performance',
+        description:
+          'Class-wise average, pass, fail and attendance, students below average and special classes',
+        icon: ChartColumnBig,
+        shortcut: 'nav.performance',
+        permission: 'exams.view',
+      },
+      {
         to: '/activities',
         label: 'Sports & activities',
         description: 'Students ranked by sports, competitions and activities, not only marks',
@@ -245,8 +256,8 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/diary',
-        label: 'Diary',
-        description: 'Homework, remarks and feedback to parents, with review',
+        label: 'Homework',
+        description: 'Homework, remarks, feedback and notes teachers send to parents',
         icon: BookOpenCheck,
         shortcut: 'nav.diary',
         permission: 'diary.view',

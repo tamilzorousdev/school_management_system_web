@@ -1356,7 +1356,19 @@ await D4(
   },
   async () => {
     await go('/timetable?tab=bells')
-    await click(page, 'Save bell schedule')
+    const save = page.getByRole('button', { name: 'Save bell schedule' })
+    await save.waitFor({ timeout: 10000 })
+    if (await save.isEnabled()) throw new Error('Save is on before any change')
+    const name = page.getByRole('textbox', { name: 'Name' }).first()
+    const original = (await name.inputValue()).replace(/ x$/, '')
+    await name.fill(`${original} x`)
+    await save.click()
+    await see(/saved/)
+    await page.reload()
+    await save.waitFor({ timeout: 10000 })
+    await page.waitForTimeout(800)
+    await name.fill(original)
+    await save.click()
     await see(/saved/)
   }
 )
@@ -2413,6 +2425,80 @@ await test(
     await go('/chat?year=1')
     await see('Archived year: these conversations are hidden from the Staff and Parent apps')
     await go('/chat')
+  }
+)
+await test(
+  {
+    id: 'HW-01',
+    module: 'Homework',
+    type: 'View',
+    title: 'Diary is now called Homework and has no review step',
+    steps: 'Sidebar, Homework; School setup, Chat.',
+    expected: 'Homework page without a waiting-for-review card; School setup has no Diary review options',
+  },
+  async () => {
+    await go('/diary')
+    await page.getByRole('heading', { name: 'Homework' }).waitFor({ timeout: 10000 })
+    if (await page.getByText('Waiting for review').count()) throw new Error('Review card still shown')
+    await go('/setup?tab=communication')
+    await page.getByText('Chat office hours').waitFor({ timeout: 10000 })
+    if (await page.getByText('Diary review').count()) throw new Error('Diary review options still shown')
+  }
+)
+await test(
+  {
+    id: 'CP-01',
+    module: 'Class performance',
+    type: 'View',
+    title: 'Class-wise report shows average, pass, fail and attendance',
+    steps: 'Academics, Class performance.',
+    expected: 'Insight cards and a row per class with Average, Pass %, Fail % and Attendance',
+  },
+  async () => {
+    await go('/class-performance')
+    await page.getByRole('heading', { name: 'Class performance' }).waitFor({ timeout: 10000 })
+    for (const text of ['Average result', 'Pass rate', 'Fail rate', 'Pass %', 'Fail %'])
+      await page.getByText(text, { exact: true }).first().waitFor({ timeout: 8000 })
+    await page.screenshot({ path: path.join(SHOTS, 'CP-01.png'), fullPage: true })
+  }
+)
+await test(
+  {
+    id: 'CP-02',
+    module: 'Class performance',
+    type: 'Flow',
+    title: 'Below-average students can be picked for a special class',
+    steps: 'Class report, click a class with students below average, tick students, Schedule special class.',
+    expected: 'Below average list with weak subjects; the special class form opens with the students ticked',
+  },
+  async () => {
+    await go('/class-performance')
+    const below = page.getByRole('button', { name: /students$/ }).first()
+    await below.waitFor({ timeout: 10000 })
+    await below.click()
+    await page.getByText('Class average', { exact: false }).first().waitFor({ timeout: 8000 })
+    await page.getByRole('checkbox', { name: 'Choose every student' }).check()
+    await page.getByRole('button', { name: /Schedule special class/ }).click()
+    await page.getByRole('dialog').getByText(/chosen\)/).waitFor({ timeout: 8000 })
+    await page.screenshot({ path: path.join(SHOTS, 'CP-02.png') })
+    await page.getByRole('dialog').getByRole('button', { name: 'Create special class' }).click()
+    await page.getByText('Choose the teacher').waitFor({ timeout: 8000 })
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
+    id: 'AM-01',
+    module: 'School setup',
+    type: 'View',
+    title: 'Attendance mode is set in the school profile',
+    steps: 'School setup, Profile.',
+    expected: 'Attendance is taken: Session-wise or Period-wise',
+  },
+  async () => {
+    await go('/setup?tab=profile')
+    await page.getByText('Attendance is taken', { exact: true }).first().waitFor({ timeout: 10000 })
+    await see(/Session-wise \(morning and afternoon\)|Period-wise \(every period\)/)
   }
 )
 await test(

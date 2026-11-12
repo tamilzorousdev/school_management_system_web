@@ -113,8 +113,7 @@ export function ParentPreviewPage() {
   )
   const selected = useStudent(isParentOnly ? null : (search.student ?? null))
 
-  const activeStudentId =
-    search.student ?? (isParentOnly ? myChildren.data?.[0]?.id : undefined)
+  const activeStudentId = search.student ?? (isParentOnly ? myChildren.data?.[0]?.id : undefined)
   const home = usePreviewHome(activeStudentId ?? 0)
   const tab = search.tab ?? 'home'
 
@@ -154,8 +153,8 @@ export function ParentPreviewPage() {
             title={isParentOnly ? 'My child' : 'Parent app preview'}
             description={
               isParentOnly
-                ? 'View your child’s attendance, bus location, results, diary, messages and announcements.'
-                : 'See what a parent sees in the mobile app for their child: home, attendance, bus, results, fees, awards, diary, meetings, chat and announcements.'
+                ? 'View your child’s attendance, bus location, results, homework, messages and announcements.'
+                : 'See what a parent sees in the mobile app for their child: home, attendance, bus, results, fees, awards, homework, meetings, chat and announcements.'
             }
           />
           <Card className='grid gap-4 p-5'>
@@ -187,7 +186,7 @@ export function ParentPreviewPage() {
                       ? '…'
                       : parent
                         ? `${parent.name} (${parent.relation})`
-                        : me?.name ?? '—'}
+                        : (me?.name ?? '—')}
                   </span>
                 </div>
                 <div className='flex justify-between gap-3'>

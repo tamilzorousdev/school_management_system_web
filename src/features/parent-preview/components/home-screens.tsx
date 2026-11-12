@@ -147,7 +147,7 @@ function ParentConnect({
           {
             id: 'diary',
             icon: BookOpenCheck,
-            label: 'Diary',
+            label: 'Homework',
             count: unseen,
             hint: diary.data ? `${diary.data.total} this year` : 'Homework and remarks',
           },

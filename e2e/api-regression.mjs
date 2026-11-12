@@ -2928,6 +2928,151 @@ await TA('API-TLM-02', 'Teacher weekly limit', 'PATCH', '/admin/staff/{id}', 'Lo
   return expectStatus(await admin('PATCH', `/admin/staff/${staff.id}`, { max_periods_per_week: 1 }), 409, 'LIMIT_BELOW_LOAD')
 })
 
+const perf = (await admin('GET', '/admin/performance/classes')).body.data
+const perfSection = perf?.sections.find((row) => row.below_average > 0)
+await TA('API-CP-01', 'Class performance', 'GET', '/admin/performance/classes', 'Class-wise report for every section', '200; average, pass, fail and attendance % per section with school totals', async () => {
+  const result = await admin('GET', '/admin/performance/classes')
+  expectStatus(result, 200)
+  const { totals, sections } = result.body.data
+  if (!sections.length) throw new Error('No sections')
+  for (const row of sections) {
+    if (row.pass_percent !== null && Math.abs(row.pass_percent + row.fail_percent - 100) > 0.2)
+      throw new Error(`${row.name}: pass + fail is not 100`)
+  }
+  return `200, ${sections.length} sections; school average ${totals.average_percent}%, pass ${totals.pass_percent}%, fail ${totals.fail_percent}%, attendance ${totals.attendance_percent}%`
+})
+await TA('API-CP-02', 'Class performance', 'GET', '/admin/performance/sections/{id}/below-average', 'Students below the class average', '200; each student below the line, lowest first, with weak subjects', async () => {
+  if (!perfSection) return 'Skipped: no section with students below average'
+  const result = await admin('GET', `/admin/performance/sections/${perfSection.section_id}/below-average`)
+  expectStatus(result, 200)
+  const { line, students } = result.body.data
+  if (students.some((row) => row.percent >= line)) throw new Error('A student is not below the line')
+  if (students.some((row, index) => index && row.percent < students[index - 1].percent)) throw new Error('Not lowest first')
+  if (students.length !== perfSection.below_average) throw new Error(`Report says ${perfSection.below_average}, list has ${students.length}`)
+  return `200, ${students.length} students below ${line}% in ${perfSection.name}`
+})
+await TA('API-CP-03', 'Class performance', 'GET', '/admin/performance/sections/{id}/below-average?below=40', 'Own line instead of the class average', '200; line is 40', async () => {
+  if (!perfSection) return 'Skipped: no section'
+  const result = await admin('GET', `/admin/performance/sections/${perfSection.section_id}/below-average?below=40`)
+  expectStatus(result, 200)
+  if (result.body.data.line !== 40) throw new Error(`line is ${result.body.data.line}`)
+  return `200, ${result.body.data.students.length} students below 40%`
+})
+
+const specialPeriods = ((await admin('GET', '/admin/timetable/periods')).body.data ?? []).filter((row) => !row.is_break && row.period_no)
+const specialMatrix = (await admin('GET', '/admin/teacher-assignments')).body.data
+const specialRoster = perfSection ? (await admin('GET', `/admin/performance/sections/${perfSection.section_id}/below-average`)).body.data.students : []
+let specialId = null
+let specialSlot = null
+await TA('API-SC-01', 'Special classes', 'POST', '/admin/special-classes', 'Student from another section', '400 STUDENT_NOT_IN_SECTION; nothing saved', async () => {
+  if (!perfSection || !specialPeriods.length) return 'Skipped: no section or bell schedule'
+  const result = await admin('POST', '/admin/special-classes', {
+    section_id: perfSection.section_id,
+    teacher_user_id: specialMatrix.teachers[0].user_id,
+    day_of_week: 6,
+    period_no: specialPeriods[specialPeriods.length - 1].period_no,
+    title: 'Regression check',
+    student_ids: [999999],
+  })
+  return expectStatus(result, 400, 'STUDENT_NOT_IN_SECTION')
+})
+await TA('API-SC-02', 'Special classes', 'POST', '/admin/special-classes', 'Special class for below-average students in a free period', '200; day, period, time, teacher and students back', async () => {
+  if (!perfSection || !specialRoster.length) return 'Skipped: no below-average students'
+  const tried = []
+  for (const period of [...specialPeriods].reverse()) {
+    for (const teacherRow of specialMatrix.teachers.filter((row) => row.load_periods < row.max_periods_per_week)) {
+      const body = {
+        section_id: perfSection.section_id,
+        teacher_user_id: teacherRow.user_id,
+        day_of_week: 6,
+        period_no: period.period_no,
+        title: 'Regression support class',
+        notes: 'Created by the regression run and removed after',
+        student_ids: specialRoster.slice(0, 2).map((row) => row.student_id),
+      }
+      const result = await admin('POST', '/admin/special-classes', body)
+      if (result.status === 200 || result.status === 201) {
+        specialId = result.body.data.id
+        specialSlot = body
+        if (result.body.data.students.length !== body.student_ids.length) throw new Error('Students not saved')
+        return `${result.status}, ${result.body.data.title} on ${result.body.data.day} period ${result.body.data.period_no} with ${result.body.data.teacher.name}`
+      }
+      tried.push(result.body.error)
+      if (tried.length > 12) break
+    }
+    if (tried.length > 12) break
+  }
+  throw new Error(`Could not place it: ${[...new Set(tried)].join(', ')}`)
+})
+await TA('API-SC-03', 'Special classes', 'POST', '/admin/special-classes', 'Second special class in the same section and period', '409 SPECIAL_CLASS_CLASH', async () => {
+  if (!specialSlot) return 'Skipped: no special class created'
+  const other = specialMatrix.teachers.find((row) => row.user_id !== specialSlot.teacher_user_id)
+  return expectStatus(await admin('POST', '/admin/special-classes', { ...specialSlot, teacher_user_id: other.user_id }), 409, 'SPECIAL_CLASS_CLASH')
+})
+await TA('API-SC-04', 'Special classes', 'PATCH', '/admin/special-classes/{id}', 'Keep only one student', '200; one student left', async () => {
+  if (!specialId) return 'Skipped: no special class created'
+  const result = await admin('PATCH', `/admin/special-classes/${specialId}`, { student_ids: specialSlot.student_ids.slice(0, 1) })
+  expectStatus(result, 200)
+  if (result.body.data.students.length !== 1) throw new Error('Students not updated')
+  return '200, 1 student'
+})
+await TA('API-SC-05', 'Special classes', 'GET', '/admin/performance/sections/{id}/below-average', 'Below-average list shows the special class', '200; the student is marked as attending', async () => {
+  if (!specialId) return 'Skipped: no special class created'
+  const result = await admin('GET', `/admin/performance/sections/${specialSlot.section_id}/below-average`)
+  const row = result.body.data.students.find((item) => item.student_id === specialSlot.student_ids[0])
+  if (!row?.special_classes.some((item) => item.id === specialId)) throw new Error('Special class not shown')
+  return '200, shown on the student'
+})
+await TA('API-SC-06', 'Special classes', 'DELETE', '/admin/special-classes/{id}', 'Stop the special class', '200; gone from the list', async () => {
+  if (!specialId) return 'Skipped: no special class created'
+  expectStatus(await admin('DELETE', `/admin/special-classes/${specialId}`), 200)
+  const left = (await admin('GET', `/admin/special-classes?section_id=${specialSlot.section_id}`)).body.data
+  if (left.some((row) => row.id === specialId)) throw new Error('Still listed')
+  return '200, removed'
+})
+await TA('API-SC-07', 'Special classes', 'GET', '/mobile/teacher/special-classes', 'Staff app list of my special classes', '200 list', async () => {
+  const result = await teacher('GET', '/mobile/teacher/special-classes')
+  expectStatus(result, 200)
+  return `200, ${result.body.data.length} special classes`
+})
+
+const schoolBefore = (await admin('GET', '/admin/school')).body.data
+await TA('API-AM-01', 'Attendance mode', 'GET', '/admin/attendance/board?period=3', 'Period-wise attendance: board and roster of the 3rd period', '200; mode period, period 3', async () => {
+  try {
+    expectStatus(await admin('PATCH', '/admin/school', { attendance_mode: 'period' }), 200)
+    const board = await admin('GET', `/admin/attendance/board?date=${lastWorkingDay}&period=3`)
+    expectStatus(board, 200)
+    if (board.body.data.mode !== 'period' || board.body.data.period !== 3) throw new Error(`Got ${board.body.data.mode} ${board.body.data.period}`)
+    const sectionId = board.body.data.sections[0]?.section_id
+    const roster = await admin('GET', `/admin/attendance/sections/${sectionId}?date=${lastWorkingDay}&period=3`)
+    expectStatus(roster, 200)
+    if (roster.body.data.period !== 3) throw new Error('Roster is not for period 3')
+    return `200, board and roster for the 3rd period (${board.body.data.sections.length} sections)`
+  } finally {
+    await admin('PATCH', '/admin/school', { attendance_mode: schoolBefore?.attendance_mode ?? 'session' })
+  }
+})
+await TA('API-AM-02', 'Attendance mode', 'GET', '/admin/attendance/board?period=3', 'Session-wise school asked for the 3rd period', '400 PERIOD_NOT_ALLOWED', async () =>
+  expectStatus(await admin('GET', `/admin/attendance/board?date=${lastWorkingDay}&period=3`), 400, 'PERIOD_NOT_ALLOWED')
+)
+await TA('API-AM-03', 'Attendance mode', 'PATCH', '/admin/school', 'Wrong attendance mode', '400 on attendance_mode', async () =>
+  expectFields(await admin('PATCH', '/admin/school', { attendance_mode: 'hourly' }), ['attendance_mode'])
+)
+
+await TA('API-HW-01', 'Homework', 'PATCH', '/admin/school', 'Try to turn on office review of homework posts', '400; review can no longer be set', async () => {
+  const result = await admin('PATCH', '/admin/school', { diary_review_mode: 'all' })
+  expectStatus(result, 400)
+  const school = (await admin('GET', '/admin/school')).body.data
+  if (school.diary_review_mode !== 'none') throw new Error(`Mode is ${school.diary_review_mode}`)
+  return `400, mode stays ${school.diary_review_mode}`
+})
+await TA('API-HW-02', 'Homework', 'GET', '/admin/diary/insights', 'Nothing waits for office review', '200; pending_review is 0', async () => {
+  const result = await admin('GET', '/admin/diary/insights')
+  expectStatus(result, 200)
+  if (result.body.data.pending_review !== 0) throw new Error(`${result.body.data.pending_review} posts still waiting`)
+  return '200, 0 waiting'
+})
+
 await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>
   expectStatus(await parent('GET', '/mobile/parent/children/999999/attendance/summary'), 404, 'CHILD_NOT_FOUND')
 )

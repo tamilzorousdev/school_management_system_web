@@ -34,7 +34,7 @@ const FEATURES = [
   },
   {
     icon: CalendarCheck2,
-    title: 'Attendance and digital diary',
+    title: 'Attendance and homework',
     text: 'Teachers mark the roll in seconds and parents know within a minute.',
   },
   {

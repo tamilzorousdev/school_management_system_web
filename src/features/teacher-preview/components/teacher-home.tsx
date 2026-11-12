@@ -119,11 +119,7 @@ export function TeacherHomeScreen({
             <div className='grid grid-cols-3 gap-2'>
               <Metric label='Periods' value={today.my_periods} />
               <Metric label='Classes' value={classes.length} />
-              <Metric
-                label='Diary waiting'
-                value={counts.diary_pending}
-                tone={counts.diary_pending ? 'warning' : undefined}
-              />
+              <Metric label='Homework' value={counts.diary_pending} />
             </div>
           </AppCard>
 
@@ -134,9 +130,9 @@ export function TeacherHomeScreen({
               {
                 id: 'diary',
                 icon: BookOpenCheck,
-                label: 'Diary',
+                label: 'Homework',
                 count: counts.diary_pending,
-                hint: counts.diary_pending ? 'Waiting for review' : 'Homework and remarks',
+                hint: 'Homework and remarks',
               },
               {
                 id: 'meetings',

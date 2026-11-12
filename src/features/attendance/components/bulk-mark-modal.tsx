@@ -10,6 +10,7 @@ import { fieldErrorsOf } from '@/features/setup/form-actions'
 import {
   attendanceApi,
   useAttendanceMutation,
+  type AttendanceSlot,
   type AttendanceStatus,
   type BulkSectionInput,
   type BulkSkip,
@@ -164,14 +165,16 @@ export function BulkStaffModal({
 
 export function BulkSectionsModal({
   date,
-  session,
+  slot,
+  slotLabel,
   sectionIds,
   markedCount,
   onClose,
   onDone,
 }: {
   date: string
-  session: 'morning' | 'afternoon'
+  slot: AttendanceSlot
+  slotLabel: string
   sectionIds: number[] | 'not_marked'
   markedCount: number
   onClose: () => void
@@ -188,8 +191,8 @@ export function BulkSectionsModal({
     <AppModal
       open
       onOpenChange={(open) => !open && onClose()}
-      title={`Mark ${who} · ${session === 'morning' ? 'morning' : 'afternoon'}`}
-      description={`${formatDate(date)} · ${session === 'morning' ? '1st' : '5th'} period. Every student gets the same status; students on approved leave stay on leave.`}
+      title={`Mark ${who} · ${slotLabel}`}
+      description={`${formatDate(date)} · ${slotLabel}. Every student gets the same status; students on approved leave stay on leave.`}
       formId='bulk-sections-form'
       submitText='Mark attendance'
       loading={save.isPending}
@@ -203,7 +206,8 @@ export function BulkSectionsModal({
           try {
             const result = await save.mutateAsync({
               date,
-              session,
+              session: slot.session,
+              ...(slot.period ? { period: slot.period } : {}),
               ...(everyone ? {} : { section_ids: sectionIds }),
               status,
               remarks: remarks.trim() || null,

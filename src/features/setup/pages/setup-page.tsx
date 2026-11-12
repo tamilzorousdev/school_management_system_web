@@ -80,7 +80,7 @@ export function SetupPage() {
       <PageHeader
         eyebrow='Settings'
         title='School setup'
-        description='The basics every other module uses: school profile, academic year, classes, sections, subjects, holidays, and diary and chat rules.'
+        description='The basics every other module uses: school profile, academic year, classes, sections, subjects, holidays, and chat hours.'
       />
       <InsightCards items={cards} loading={summary.isPending} />
       <PageTabs
@@ -99,7 +99,7 @@ export function SetupPage() {
           },
           { value: 'subjects', label: 'Subjects', icon: BookOpen, count: data?.subjects },
           { value: 'holidays', label: 'Holidays', icon: CalendarDays },
-          { value: 'communication', label: 'Diary and chat', icon: MessagesSquare },
+          { value: 'communication', label: 'Chat', icon: MessagesSquare },
           { value: 'id-cards', label: 'Student ID card', icon: IdCard },
         ]}
       />

@@ -25,7 +25,8 @@ import {
   useAttendanceMutation,
   useRoster,
   useSectionReport,
-  type AttendanceSessionName,
+  slotKey,
+  type AttendanceSlot,
   type AttendanceStatus,
   type MarkInput,
   type Roster,
@@ -62,30 +63,31 @@ const STATUS_OPTIONS = ATTENDANCE_STATUSES.map((value) => ({
   label: ATTENDANCE_STATUS[value].short,
 }))
 
-const SESSION_TEXT: Record<AttendanceSessionName, string> = {
-  morning: 'Morning attendance (1st period)',
-  afternoon: 'Afternoon attendance (5th period)',
-}
-
 export function SectionSheet({
   sectionId,
   sectionName,
   date,
-  session,
+  slot,
+  slotLabel,
   canManage,
   onClose,
 }: {
   sectionId: number | null
   sectionName: string
   date: string
-  session: AttendanceSessionName
+  slot: AttendanceSlot
+  slotLabel: string
   canManage: boolean
   onClose: () => void
 }) {
   const [view, setView] = useState<View>('mark')
-  const roster = useRoster(sectionId, date, session)
+  const roster = useRoster(sectionId, date, slot)
   const data =
-    roster.data?.date === date && roster.data.session === session ? roster.data : undefined
+    roster.data?.date === date &&
+    roster.data.session === slot.session &&
+    (!slot.period || roster.data.period === slot.period)
+      ? roster.data
+      : undefined
 
   return (
     <Sheet open={Boolean(sectionId)} onOpenChange={(open) => !open && onClose()}>
@@ -94,7 +96,7 @@ export function SectionSheet({
           <SheetTitle>Class {data?.section.name ?? sectionName}</SheetTitle>
           <SheetDescription>
             {view === 'mark'
-              ? `${SESSION_TEXT[session]} for ${formatDate(date)}`
+              ? `${slotLabel} attendance for ${formatDate(date)}`
               : 'Monthly attendance, both sessions together'}
           </SheetDescription>
           <div className='mt-2 flex flex-wrap items-center gap-2'>
@@ -132,7 +134,7 @@ export function SectionSheet({
           </SheetBody>
         ) : (
           <RosterEditor
-            key={`${sectionId}-${date}-${session}`}
+            key={`${sectionId}-${date}-${slotKey(slot)}`}
             roster={data}
             canManage={canManage}
             sectionId={sectionId!}
@@ -190,6 +192,7 @@ function RosterEditor({
       const result = await save.mutateAsync({
         date: roster.date,
         session: roster.session,
+        period: roster.period,
         items: roster.students.map((student) => ({
           student_id: student.student_id,
           status: marks[student.student_id].status,

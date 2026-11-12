@@ -171,7 +171,7 @@ function ParentDiary({ base }: { base: string }) {
   })
   return (
     <div className='grid gap-3'>
-      <Chips label='Diary type' value={type} options={TYPE_FILTERS} onChange={setType} />
+      <Chips label='Homework type' value={type} options={TYPE_FILTERS} onChange={setType} />
       <QueryView query={query}>
         {(page) =>
           page.items.length ? (
@@ -213,7 +213,7 @@ function ParentDiary({ base }: { base: string }) {
           ) : (
             <ScreenEmpty
               icon={BookOpenCheck}
-              title='Nothing in the diary'
+              title='No homework yet'
               description='Homework, remarks and notes from teachers show here.'
             />
           )
@@ -274,7 +274,7 @@ function TeacherDiary({ base }: { base: string }) {
           ) : (
             <ScreenEmpty
               icon={BookOpenCheck}
-              title='No diary posts'
+              title='No homework posts'
               description='Homework and remarks this teacher writes show here.'
             />
           )

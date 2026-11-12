@@ -120,7 +120,7 @@ export function TeacherPreviewPage() {
           <PageHeader
             eyebrow='Teacher app'
             title='Teacher app preview'
-            description='See what a teacher sees in the mobile app: today’s periods, classes, diary posts, parent meetings, chat and announcements.'
+            description='See what a teacher sees in the mobile app: today’s periods, classes, homework posts, parent meetings, chat and announcements.'
           />
           <Card className='grid gap-4 p-5'>
             <div className='grid gap-1.5'>

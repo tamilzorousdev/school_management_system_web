@@ -44,6 +44,7 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
     longitude: school.longitude?.toString() ?? '',
     geofence_radius_m: String(school.geofence_radius_m),
     attendance_grace_minutes: String(school.attendance_grace_minutes ?? 15),
+    attendance_mode: school.attendance_mode ?? 'session',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useSetupMutation((input: Partial<SchoolProfile>) => setupApi.updateSchool(input))
@@ -74,6 +75,7 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
           draft.attendance_grace_minutes.trim() === ''
             ? 15
             : Number(draft.attendance_grace_minutes),
+        attendance_mode: draft.attendance_mode === 'period' ? 'period' : 'session',
       })
       alerts.success('School profile saved')
       setErrors({})
@@ -166,8 +168,30 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
           'attendance_grace_minutes',
           'Attendance grace (minutes)',
           { inputMode: 'numeric' },
-          '0 to 30. Extra time after the 1st and 5th period; after that the session shows as missed'
+          '0 to 30. Extra time after the period ends; after that the attendance shows as missed'
         )}
+        <FormField
+          id='school-attendance_mode'
+          label='Attendance is taken'
+          error={errors.attendance_mode}
+          hint={
+            draft.attendance_mode === 'period'
+              ? 'In every teaching period of the bell schedule, by the teacher of that period'
+              : 'Twice a day: morning (1st period) and afternoon (5th period), by the class teacher'
+          }
+        >
+          <Combobox
+            id='school-attendance_mode'
+            label='Attendance is taken'
+            value={draft.attendance_mode}
+            placeholder='Choose how attendance is taken'
+            options={[
+              { value: 'session', label: 'Session-wise (morning and afternoon)' },
+              { value: 'period', label: 'Period-wise (every period)' },
+            ]}
+            onChange={(value) => canManage && value && set('attendance_mode', value)}
+          />
+        </FormField>
         {canManage && (
           <div className='flex justify-end sm:col-span-2'>
             <Button type='submit' loading={save.isPending}>

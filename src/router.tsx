@@ -12,6 +12,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { queryClient } from '@/lib/api/query-client'
 import { session } from '@/lib/auth/session'
 import { attendanceSearchSchema } from '@/features/attendance/search'
+import { performanceSearchSchema } from '@/features/performance/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
@@ -275,6 +276,16 @@ const attendanceRoute = createRoute({
   ),
 })
 
+const performanceRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/class-performance',
+  validateSearch: performanceSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/performance/pages/performance-page'),
+    'PerformancePage'
+  ),
+})
+
 const timetableRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/timetable',
@@ -400,6 +411,7 @@ const routeTree = rootRoute.addChildren([
     staffAssignmentsRoute,
     staffProfileRoute,
     attendanceRoute,
+    performanceRoute,
     timetableRoute,
     substitutesRoute,
     payrollRoute,
