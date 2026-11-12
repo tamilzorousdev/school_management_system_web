@@ -22,7 +22,7 @@ export function LoadBar({
       {label && (
         <span className={cn('tabular text-xs font-semibold', TEXT[tone])}>
           {load}
-          <span className='font-normal text-muted-foreground'> / {max} periods</span>
+          <span className='font-normal text-muted-foreground'> / {max} periods a week</span>
         </span>
       )}
       <div

@@ -19,15 +19,15 @@ export function WorkloadTab({ onOpenTeacher }: { onOpenTeacher: (teacherId: numb
       key: 'week',
       label: 'Periods in a week',
       value: data?.periods_in_week ?? 0,
-      hint: 'Teaching periods, Monday to Saturday',
+      hint: 'Teaching periods a week, Monday to Saturday',
       icon: CalendarClock,
       tone: 'primary',
     },
     {
       key: 'average',
-      label: 'Average scheduled',
+      label: 'Average a week',
       value: data?.average_scheduled ?? 0,
-      hint: 'Periods a week per teacher',
+      hint: 'Periods a week per teacher in the timetable',
       icon: Gauge,
       tone: 'info',
     },
@@ -43,7 +43,7 @@ export function WorkloadTab({ onOpenTeacher }: { onOpenTeacher: (teacherId: numb
       key: 'unscheduled',
       label: 'Unscheduled',
       value: data?.unscheduled ?? 0,
-      hint: 'Subject periods still to place',
+      hint: 'Subject periods a week still to place',
       icon: ListTodo,
       tone: data?.unscheduled ? 'warning' : 'success',
     },
@@ -69,12 +69,9 @@ export function WorkloadTab({ onOpenTeacher }: { onOpenTeacher: (teacherId: numb
     },
     {
       key: 'load',
-      header: 'Scheduled',
+      header: 'Periods a week',
       cell: (row) => (
-        <div className='grid gap-0.5'>
-          <LoadBar load={row.scheduled} max={row.max_periods_per_week} className='max-w-40' />
-          <span className='text-[11px] text-muted-foreground'>{row.assigned} assigned</span>
-        </div>
+        <LoadBar load={row.scheduled} max={row.max_periods_per_week} className='max-w-44' />
       ),
     },
     ...DAYS.map((day, index) => ({
@@ -99,7 +96,10 @@ export function WorkloadTab({ onOpenTeacher }: { onOpenTeacher: (teacherId: numb
       <Card className='overflow-hidden'>
         <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
           <h2 className='font-bold'>Teacher workload</h2>
-          <span className='text-xs text-muted-foreground'>Click a teacher to see their week</span>
+          <span className='text-xs text-muted-foreground'>
+            Periods in the timetable each week against each teacher's weekly limit. Click a teacher
+            to see their week.
+          </span>
         </div>
         <DataTable
           rows={data?.teachers ?? []}

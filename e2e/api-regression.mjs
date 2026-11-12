@@ -2903,6 +2903,31 @@ await TA('API-YP-03', 'Year performance', 'GET', '/admin/dashboard/year-performa
   expectStatus(await guest('GET', '/admin/dashboard/year-performance'), 401)
 )
 
+const loadMatrix = (await admin('GET', '/admin/teacher-assignments')).body.data
+const loadCells = (loadMatrix?.rows ?? []).flatMap((row) => row.cells.map((cell) => ({ ...cell, section_id: row.section_id })))
+const loadTeacher = [...(loadMatrix?.teachers ?? [])]
+  .filter((teacher) => teacher.load_periods > 0)
+  .sort((a, b) => a.max_periods_per_week - a.load_periods - (b.max_periods_per_week - b.load_periods))[0]
+await TA('API-TLM-01', 'Teacher weekly limit', 'PUT', '/admin/teacher-assignments', 'Give a teacher more periods a week than their limit', '409 TEACHER_OVER_LIMIT; nothing saved', async () => {
+  const room = loadTeacher ? loadTeacher.max_periods_per_week - loadTeacher.load_periods : 99
+  const cell = loadCells.find((item) => item.teacher_user_id !== loadTeacher?.user_id)
+  if (!loadTeacher || !cell || room + 1 > 15) return 'Skipped: no teacher close to the limit'
+  const result = await admin('PUT', '/admin/teacher-assignments', {
+    items: [{ section_id: cell.section_id, subject_id: cell.subject_id, teacher_user_id: loadTeacher.user_id, periods_per_week: Math.max(1, room + 1) }],
+  })
+  const message = expectStatus(result, 409, 'TEACHER_OVER_LIMIT')
+  const after = (await admin('GET', '/admin/teacher-assignments')).body.data
+  if (after.teachers.find((teacher) => teacher.user_id === loadTeacher.user_id).load_periods !== loadTeacher.load_periods)
+    throw new Error('Load changed although the save was refused')
+  return message
+})
+await TA('API-TLM-02', 'Teacher weekly limit', 'PATCH', '/admin/staff/{id}', 'Lower a teacher weekly limit below the periods they already have', '409 LIMIT_BELOW_LOAD', async () => {
+  if (!loadTeacher || loadTeacher.load_periods < 2) return 'Skipped: no teacher with periods'
+  const staff = (await admin('GET', `/admin/staff?search=${encodeURIComponent(loadTeacher.name)}&limit=20`)).body.data.items.find((item) => item.user_id === loadTeacher.user_id)
+  if (!staff) return 'Skipped: teacher not in the staff list'
+  return expectStatus(await admin('PATCH', `/admin/staff/${staff.id}`, { max_periods_per_week: 1 }), 409, 'LIMIT_BELOW_LOAD')
+})
+
 await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>
   expectStatus(await parent('GET', '/mobile/parent/children/999999/attendance/summary'), 404, 'CHILD_NOT_FOUND')
 )
