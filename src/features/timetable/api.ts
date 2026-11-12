@@ -12,6 +12,7 @@ export interface SubjectRef extends Ref {
 
 export interface BellPeriod {
   id: number
+  class_id?: number | null
   period_no: number | null
   name: string
   start_time: string
@@ -88,16 +89,19 @@ export interface SlotInput {
 
 export const timetableKeys = {
   all: ['timetable'] as const,
-  periods: () => [...timetableKeys.all, 'periods'] as const,
+  periods: (classId?: number) => [...timetableKeys.all, 'periods', classId ?? 'default'] as const,
   section: (id: number) => [...timetableKeys.all, 'section', id] as const,
   teacher: (id: number) => [...timetableKeys.all, 'teacher', id] as const,
   workload: () => [...timetableKeys.all, 'workload'] as const,
 }
 
 export const timetableApi = {
-  periods: () => api.get<BellPeriod[]>('/admin/timetable/periods'),
-  savePeriods: (items: BellPeriodInput[]) =>
-    api.put<BellPeriod[]>('/admin/timetable/periods', { items }),
+  periods: (classId?: number) =>
+    api.get<BellPeriod[]>('/admin/timetable/periods', { class_id: classId }),
+  savePeriods: (items: BellPeriodInput[], classId?: number | null) =>
+    api.put<BellPeriod[]>('/admin/timetable/periods', { items, class_id: classId }),
+  resetClassPeriods: (classId: number) =>
+    api.delete<BellPeriod[]>(`/admin/timetable/classes/${classId}/periods`),
   section: (id: number) => api.get<SectionTimetable>(`/admin/timetable/sections/${id}`),
   setSlot: (sectionId: number, input: SlotInput) =>
     api.put<SectionTimetable>(`/admin/timetable/sections/${sectionId}/slots`, input),
@@ -110,8 +114,11 @@ export const timetableApi = {
   workload: () => api.get<Workload>('/admin/timetable/workload'),
 }
 
-export function useBellSchedule() {
-  return useQuery({ queryKey: timetableKeys.periods(), queryFn: timetableApi.periods })
+export function useBellSchedule(classId?: number) {
+  return useQuery({
+    queryKey: timetableKeys.periods(classId),
+    queryFn: () => timetableApi.periods(classId),
+  })
 }
 
 export function useSectionTimetable(id: number | undefined) {

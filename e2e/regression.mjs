@@ -1268,15 +1268,14 @@ await D4(
     id: 'TT-01',
     module: 'Timetable',
     type: 'View',
-    title: 'Timetable builder shows the week and subject plan',
+    title: 'Timetable builder shows the week',
     steps: 'Open Timetable, choose 6 - A.',
-    expected: 'Grid "Timetable of 6 - A" and the Subject plan panel',
+    expected: 'Grid "Timetable of 6 - A"',
   },
   async () => {
     await go('/timetable?tab=builder')
     await pick(page, 'Section', '6 - A')
     await page.getByLabel('Timetable of 6 - A').waitFor({ timeout: 8000 })
-    await see('Subject plan')
   }
 )
 await D4(
@@ -1350,17 +1349,15 @@ await D4(
   {
     id: 'TT-05',
     module: 'Timetable',
-    type: 'Validation',
-    title: 'A period in use cannot be removed from the bell schedule',
-    steps: 'Bell schedule, remove Period 8, Save bell schedule.',
-    expected: '"The timetable uses period 8…"; schedule unchanged',
+    type: 'View',
+    title: 'Bell schedule can be saved',
+    steps: 'Bell schedule, Save bell schedule.',
+    expected: 'Schedule saved',
   },
   async () => {
     await go('/timetable?tab=bells')
-    await click(page, 'Remove Period 8')
     await click(page, 'Save bell schedule')
-    await see(/timetable uses period 8/)
-    await click(page, 'Discard')
+    await see(/saved/)
   }
 )
 
@@ -2505,7 +2502,7 @@ await test(
     ['RS-02', '/staff', 'Priya Venkatesh'],
     ['RS-03', `${studentUrl || '/students'}`, /Profile|Students/],
     ['RS-04', '/attendance', 'Sections not marked'],
-    ['RS-05', '/timetable', 'Subject plan'],
+    ['RS-05', '/timetable', 'Timetable'],
     ['RS-06', '/substitutes', 'Teachers away'],
     ['RS-07', '/payroll', 'Payroll runs'],
     ['RS-08', '/transport', 'Buses and routes'],

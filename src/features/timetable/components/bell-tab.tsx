@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, BellRing, Coffee, Plus, Save, Trash2, Undo2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, BellRing, Coffee, Plus, RotateCcw, Save, Trash2, Undo2 } from 'lucide-react'
+import { Combobox } from '@/components/common/combobox'
 import { ErrorState } from '@/components/common/display'
 import { FormField } from '@/components/common/form-field'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { cn } from '@/lib/utils'
+import { useClasses, type SchoolClass } from '@/features/setup/api'
 import {
   timetableApi,
   useBellSchedule,
@@ -43,24 +45,114 @@ const addMinutes = (time: string, minutes: number) => {
 }
 
 export function BellTab({ canManage }: { canManage: boolean }) {
-  const periods = useBellSchedule()
+  const classes = useClasses()
+  const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined)
+  const periods = useBellSchedule(selectedClassId)
 
-  if (periods.isError && !periods.data)
-    return (
-      <Card>
-        <ErrorState message={periods.error.message} onRetry={() => periods.refetch()} />
-      </Card>
-    )
-  if (!periods.data) return <Skeleton className='h-96 w-full rounded-xl' />
-  return <BellEditor periods={periods.data} canManage={canManage} />
+  const classOptions = [
+    { value: 'all', label: 'All classes (Default timing)' },
+    ...(classes.data ?? []).map((c) => ({
+      value: String(c.id),
+      label: `Class ${c.name}`,
+    })),
+  ]
+
+  const chosenClass = classes.data?.find((c) => c.id === selectedClassId)
+
+  return (
+    <div className='grid gap-4'>
+      <div className='flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 shadow-2xs'>
+        <div className='flex flex-wrap items-center gap-2.5'>
+          <label htmlFor='bell-class-select' className='text-xs font-semibold text-muted-foreground'>
+            Schedule for:
+          </label>
+          <Combobox
+            id='bell-class-select'
+            label='Schedule for'
+            options={classOptions}
+            value={selectedClassId ? String(selectedClassId) : 'all'}
+            onChange={(val) => setSelectedClassId(val === 'all' ? undefined : Number(val))}
+            placeholder='Choose class'
+            searchPlaceholder='Search classes...'
+            className='w-64'
+          />
+        </div>
+        <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+          {chosenClass ? (
+            <span>
+              Configuring timings specifically for <strong>Class {chosenClass.name}</strong>
+            </span>
+          ) : (
+            <span>Configuring <strong>school-wide default</strong> timings</span>
+          )}
+        </div>
+      </div>
+
+      {periods.isError && !periods.data ? (
+        <Card>
+          <ErrorState message={periods.error.message} onRetry={() => periods.refetch()} />
+        </Card>
+      ) : !periods.data ? (
+        <Skeleton className='h-96 w-full rounded-xl' />
+      ) : (
+        <BellEditor
+          key={selectedClassId ?? 'default'}
+          periods={periods.data}
+          classId={selectedClassId}
+          className={chosenClass?.name}
+          classes={classes.data ?? []}
+          canManage={canManage}
+        />
+      )}
+    </div>
+  )
 }
 
-function BellEditor({ periods, canManage }: { periods: BellPeriod[]; canManage: boolean }) {
+function BellEditor({
+  periods,
+  classId,
+  className,
+  classes,
+  canManage,
+}: {
+  periods: BellPeriod[]
+  classId?: number
+  className?: string
+  classes: SchoolClass[]
+  canManage: boolean
+}) {
   const [rows, setRows] = useState<Row[]>(() => toRows(periods))
   const [baseline, setBaseline] = useState(() => JSON.stringify(toRows(periods).map(strip)))
   const [errors, setErrors] = useState<RowErrors>({})
-  const save = useTimetableMutation((items: BellPeriodInput[]) => timetableApi.savePeriods(items))
+  const save = useTimetableMutation((items: BellPeriodInput[]) =>
+    timetableApi.savePeriods(items, classId)
+  )
+  const resetMutation = useTimetableMutation((id: number) => timetableApi.resetClassPeriods(id))
   const dirty = JSON.stringify(rows.map(strip)) !== baseline
+
+  const isCustom = classId !== undefined && periods.length > 0 && periods[0].class_id === classId
+
+  const copyFromOptions = [
+    ...(classId !== undefined ? [{ value: 'default', label: 'Default schedule' }] : []),
+    ...classes
+      .filter((c) => c.id !== classId)
+      .map((c) => ({ value: String(c.id), label: `Class ${c.name}` })),
+  ]
+
+  const handleCopyFrom = async (sourceValue: string) => {
+    const srcId = sourceValue === 'default' ? undefined : Number(sourceValue)
+    try {
+      const fetched = await timetableApi.periods(srcId)
+      if (fetched && fetched.length > 0) {
+        setRows(toRows(fetched))
+        alerts.success(
+          `Timings copied from ${sourceValue === 'default' ? 'Default schedule' : 'selected class'}. Review and click Save.`
+        )
+      }
+    } catch {
+      alerts.error('Could not copy timings')
+    }
+  }
 
   const update = (key: number, patch: Partial<Row>) =>
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)))
@@ -112,7 +204,11 @@ function BellEditor({ periods, canManage }: { periods: BellPeriod[]; canManage: 
       const fresh = toRows(saved)
       setRows(fresh)
       setBaseline(JSON.stringify(fresh.map(strip)))
-      alerts.success('Bell schedule saved')
+      alerts.success(
+        classId
+          ? `Bell schedule saved for Class ${className}`
+          : 'Default bell schedule saved'
+      )
     } catch (error) {
       const apiError = toApiError(error)
       const fieldErrors: RowErrors = {}
@@ -134,17 +230,52 @@ function BellEditor({ periods, canManage }: { periods: BellPeriod[]; canManage: 
     <Card className='overflow-hidden'>
       <div className='flex flex-wrap items-start justify-between gap-3 border-b px-4 py-3 sm:px-5'>
         <div className='grid gap-0.5'>
-          <h2 className='flex items-center gap-2 font-bold'>
-            <BellRing className='size-4 text-primary' />
-            Bell schedule
-          </h2>
+          <div className='flex items-center gap-2'>
+            <h2 className='flex items-center gap-2 font-bold'>
+              <BellRing className='size-4 text-primary' />
+              {classId ? `Class ${className} Timing` : 'Default Bell Schedule'}
+            </h2>
+            {classId &&
+              (isCustom ? (
+                <Badge tone='success'>Custom timing active</Badge>
+              ) : (
+                <Badge tone='neutral'>Inheriting default timing</Badge>
+              ))}
+          </div>
           <p className='text-xs text-muted-foreground'>
-            The periods of a school day. Teaching periods are numbered in order; breaks have no
-            number.
+            {classId
+              ? `Period timings for Class ${className}. All sections of Class ${className} follow this schedule.`
+              : 'Default school-wide period timings. Classes without custom timings follow this schedule.'}
           </p>
         </div>
         {canManage && (
-          <div className='flex flex-wrap gap-2'>
+          <div className='flex flex-wrap items-center gap-2'>
+            {copyFromOptions.length > 0 && (
+              <Combobox
+                id='copy-from-select'
+                label='Copy from'
+                options={copyFromOptions}
+                placeholder='Copy timings from...'
+                searchPlaceholder='Search source...'
+                onChange={(val) => val && void handleCopyFrom(val)}
+                className='w-48'
+              />
+            )}
+            {isCustom && (
+              <Button
+                variant='outline'
+                size='sm'
+                loading={resetMutation.isPending}
+                onClick={async () => {
+                  if (!classId) return
+                  await resetMutation.mutateAsync(classId)
+                  alerts.success(`Class ${className} reset to default timing`)
+                }}
+              >
+                <RotateCcw className='size-3.5' />
+                Reset to default
+              </Button>
+            )}
             <Button variant='outline' size='sm' onClick={() => add(false)}>
               <Plus />
               Add period
@@ -270,7 +401,7 @@ function BellEditor({ periods, canManage }: { periods: BellPeriod[]; canManage: 
             </Button>
             <Button onClick={() => void submit()} loading={save.isPending} disabled={!dirty}>
               <Save />
-              Save bell schedule
+              {classId ? `Save timing for Class ${className}` : 'Save bell schedule'}
             </Button>
           </div>
         </div>
