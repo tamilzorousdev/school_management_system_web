@@ -13,15 +13,23 @@ export function PageTabs<T extends string>({
   value,
   onChange,
   label,
+  wrap = false,
 }: {
   tabs: PageTab<T>[]
   value: T
   onChange: (value: T) => void
   label: string
+  wrap?: boolean
 }) {
   return (
-    <div className='-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0'>
-      <div role='tablist' aria-label={label} className='flex min-w-max gap-1 border-b'>
+    <div
+      className={wrap ? '-mx-4 px-4 sm:mx-0 sm:px-0' : '-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0'}
+    >
+      <div
+        role='tablist'
+        aria-label={label}
+        className={wrap ? 'flex flex-wrap gap-1 border-b' : 'flex min-w-max gap-1 border-b'}
+      >
         {tabs.map((tab) => {
           const active = tab.value === value
           return (

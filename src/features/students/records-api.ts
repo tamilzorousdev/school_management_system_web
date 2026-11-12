@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { NewDocument, VerifiableDoc } from '@/components/common/document-list'
 import { api } from '@/lib/api/client'
 import type { UploadedFile } from '@/lib/files'
+import type { IdCardDesign } from '@/lib/id-card-design'
 import type { Ref } from './api'
 import { studentKeys } from './api'
 
@@ -276,7 +277,8 @@ export const recordsApi = {
 }
 
 export const studentFiles = {
-  idCard: (id: number) => `${base(id)}/id-card`,
+  idCard: (id: number, design?: IdCardDesign) =>
+    `${base(id)}/id-card${design ? `?design=${design}` : ''}`,
   idCards: '/admin/id-cards',
   tc: (id: number) => `${base(id)}/tc/pdf`,
   template: '/admin/student-import/template',
