@@ -35,7 +35,14 @@ const AUDIT_ACTION: Record<string, string> = {
   hid_message: 'hid a message',
   unhid_message: 'showed a message again',
   dismissed_flag: 'closed a report',
+  deleted_for_everyone: 'deleted a message for everyone',
+  undid_delete: 'undid a delete',
+  deleted_for_me: 'deleted a message for themselves',
+  cleared_chat: 'cleared the chat for themselves',
 }
+
+const length = (seconds: number | null) =>
+  seconds ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : ''
 
 export function ChatThreadSheet({
   threadId,
@@ -148,13 +155,34 @@ export function ChatThreadSheet({
                           <span
                             className={cn(
                               'break-words whitespace-pre-line',
-                              message.hidden && 'line-through'
+                              (message.hidden || message.deleted) && 'line-through'
                             )}
                           >
                             {message.original_body}
                           </span>
                         )}
-                        {message.file && (
+                        {message.file && message.kind === 'voice' && (
+                          <span className='grid gap-0.5'>
+                            <audio
+                              controls
+                              preload='none'
+                              src={message.file.url}
+                              className='h-9 w-64 max-w-full'
+                            />
+                            <span className='text-[11px] text-muted-foreground'>
+                              Voice message {length(message.duration_seconds)}
+                            </span>
+                          </span>
+                        )}
+                        {message.file && message.kind === 'video' && (
+                          <video
+                            controls
+                            preload='none'
+                            src={message.file.url}
+                            className='max-h-56 w-72 max-w-full rounded-md bg-black'
+                          />
+                        )}
+                        {message.file && message.kind !== 'voice' && message.kind !== 'video' && (
                           <a
                             href={message.file.url}
                             target='_blank'
@@ -169,6 +197,19 @@ export function ChatThreadSheet({
                           <span className='rounded-md bg-destructive/10 px-2 py-1 text-xs text-destructive'>
                             <Flag className='mr-1 inline size-3' />
                             Reported by {message.flagged_by?.name}: {message.flag_reason}
+                          </span>
+                        )}
+                        {message.deleted && (
+                          <span className='rounded-md bg-warning/10 px-2 py-1 text-xs text-warning'>
+                            Deleted for everyone by {message.deleted_by?.name ?? 'the sender'}
+                            {message.deleted_at ? ` · ${formatDateTime(message.deleted_at)}` : ''}.
+                            The other person sees "This message was deleted".
+                          </span>
+                        )}
+                        {message.deleted_for_me_by.length > 0 && (
+                          <span className='rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground'>
+                            Deleted for themselves by{' '}
+                            {message.deleted_for_me_by.map((person) => person.name).join(', ')}
                           </span>
                         )}
                         {message.hidden && (

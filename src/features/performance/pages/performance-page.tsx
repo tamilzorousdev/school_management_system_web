@@ -6,7 +6,10 @@ import {
   CalendarClock,
   ChartColumnBig,
   CircleX,
+  ClipboardCheck,
   Pencil,
+  Plus,
+  Settings2,
   Trash2,
   TrendingDown,
   UsersRound,
@@ -17,6 +20,7 @@ import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
+import { SegmentedControl } from '@/components/common/segmented-control'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -34,11 +38,14 @@ import {
   useClassPerformance,
   usePerformanceMutation,
   useSpecialClasses,
+  type BandFilter,
   type BelowAverageStudent,
   type SectionPerformance,
   type SpecialClass,
 } from '../api'
+import { SpecialAttendanceModal } from '../components/special-attendance-modal'
 import { SpecialClassModal } from '../components/special-class-modal'
+import { SpecialSettingsModal } from '../components/special-settings-modal'
 import type { PerformanceSearch, PerformanceTab } from '../search'
 
 const route = getRouteApi('/_app/class-performance')
@@ -121,11 +128,19 @@ export function PerformancePage() {
           sections={report.data?.sections ?? []}
           sectionId={search.section_id}
           examId={search.exam_id}
-          below={search.below}
+          filter={{ band: search.band, below: search.below, from: search.from, to: search.to }}
           examFilter={examFilter}
           canManage={canManage}
           onSection={(sectionId) => setSearch({ section_id: sectionId })}
-          onBelow={(below) => setSearch({ below })}
+          onFilter={(next) =>
+            setSearch({
+              band: undefined,
+              below: undefined,
+              from: undefined,
+              to: undefined,
+              ...next,
+            })
+          }
           onScheduled={() => setSearch({ tab: 'special' })}
         />
       )}
@@ -329,29 +344,36 @@ function BelowAverageView({
   sections,
   sectionId,
   examId,
-  below,
+  filter,
   examFilter,
   canManage,
   onSection,
-  onBelow,
+  onFilter,
   onScheduled,
 }: {
   sections: SectionPerformance[]
   sectionId?: number
   examId?: number
-  below?: number
+  filter: BandFilter
   examFilter: React.ReactNode
   canManage: boolean
   onSection: (sectionId: number | undefined) => void
-  onBelow: (below: number | undefined) => void
+  onFilter: (filter: BandFilter) => void
   onScheduled: () => void
 }) {
-  const list = useBelowAverage(sectionId, examId, below)
+  const band = filter.band ?? 'below'
+  const list = useBelowAverage(sectionId, examId, filter)
   const [chosen, setChosen] = useState<Set<number>>(new Set())
-  const [chosenFor, setChosenFor] = useState(`${sectionId}-${examId}-${below}`)
-  const [line, setLine] = useState(below ? String(below) : '')
+  const key = `${sectionId}-${examId}-${JSON.stringify(filter)}`
+  const [chosenFor, setChosenFor] = useState(key)
+  const [line, setLine] = useState(filter.below ? String(filter.below) : '')
+  const [from, setFrom] = useState(filter.from !== undefined ? String(filter.from) : '35')
+  const [to, setTo] = useState(filter.to !== undefined ? String(filter.to) : '60')
   const [scheduling, setScheduling] = useState(false)
-  const key = `${sectionId}-${examId}-${below}`
+  const percentOf = (text: string) => {
+    const value = Number(text)
+    return text.trim() && value >= 0 && value <= 100 ? value : undefined
+  }
   if (chosenFor !== key) {
     setChosenFor(key)
     setChosen(new Set())
@@ -463,26 +485,69 @@ function BelowAverageView({
           onChange={(value) => onSection(value ? Number(value) : undefined)}
         />
         {examFilter}
-        <form
-          className='flex items-center gap-2'
-          onSubmit={(event) => {
-            event.preventDefault()
-            const value = Number(line)
-            onBelow(line.trim() && value >= 1 && value <= 100 ? value : undefined)
-          }}
-        >
-          <Input
-            aria-label='Show students below this %'
-            inputMode='decimal'
-            className='h-9 w-36'
-            placeholder='Below class avg'
-            value={line}
-            onChange={(event) => setLine(event.target.value)}
-          />
-          <Button type='submit' variant='outline' size='sm'>
-            Apply
-          </Button>
-        </form>
+        <SegmentedControl
+          label='Which students'
+          value={band}
+          onChange={(value: string) =>
+            onFilter(
+              value === 'range'
+                ? { band: 'range', from: percentOf(from) ?? 0, to: percentOf(to) ?? 100 }
+                : value === 'average'
+                  ? { band: 'average' }
+                  : {}
+            )
+          }
+          options={[
+            { value: 'below', label: 'Below average' },
+            { value: 'average', label: 'Average' },
+            { value: 'range', label: 'Range' },
+          ]}
+        />
+        {band !== 'average' && (
+          <form
+            className='flex items-center gap-2'
+            onSubmit={(event) => {
+              event.preventDefault()
+              onFilter(
+                band === 'range'
+                  ? { band: 'range', from: percentOf(from) ?? 0, to: percentOf(to) ?? 100 }
+                  : { below: percentOf(line) || undefined }
+              )
+            }}
+          >
+            {band === 'range' ? (
+              <>
+                <Input
+                  aria-label='From %'
+                  inputMode='decimal'
+                  className='h-9 w-20'
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
+                />
+                <span className='text-sm text-muted-foreground'>to</span>
+                <Input
+                  aria-label='To %'
+                  inputMode='decimal'
+                  className='h-9 w-20'
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
+                />
+              </>
+            ) : (
+              <Input
+                aria-label='Show students below this %'
+                inputMode='decimal'
+                className='h-9 w-36'
+                placeholder='Below class avg'
+                value={line}
+                onChange={(event) => setLine(event.target.value)}
+              />
+            )}
+            <Button type='submit' variant='outline' size='sm'>
+              Apply
+            </Button>
+          </form>
+        )}
       </ListToolbar>
       {!sectionId ? (
         <Card className='p-6 text-center text-sm text-muted-foreground'>
@@ -495,15 +560,19 @@ function BelowAverageView({
               <h2 className='font-bold'>{data?.section.name ?? section?.name ?? 'Class'}</h2>
               <span className='text-xs text-muted-foreground'>
                 Class average {pct(data?.section_average)}
-                {data?.line !== null && data?.line !== data?.section_average
-                  ? ` · showing below ${pct(data?.line)}`
+                {data
+                  ? data.band === 'below'
+                    ? data.line !== data.section_average
+                      ? ` · showing below ${pct(data.line)}`
+                      : ''
+                    : ` · showing ${pct(data.from)} to ${pct(data.to)}`
                   : ''}
               </span>
             </div>
             {canManage && (
               <Button size='sm' disabled={!chosen.size} onClick={() => setScheduling(true)}>
                 <CalendarClock />
-                Schedule special class{chosen.size ? ` (${chosen.size})` : ''}
+                Schedule extra class{chosen.size ? ` (${chosen.size})` : ''}
               </Button>
             )}
           </div>
@@ -516,7 +585,7 @@ function BelowAverageView({
             onRetry={() => list.refetch()}
             empty={{
               icon: UsersRound,
-              title: 'No student below the line',
+              title: 'No student in this group',
               description:
                 'Every assessed student is at or above it, or no results are published yet.',
             }}
@@ -577,19 +646,27 @@ function SpecialClassesView({
   canManage: boolean
   onSection: (sectionId: number | undefined) => void
 }) {
-  const specials = useSpecialClasses(sectionId)
+  const specials = useSpecialClasses({ section_id: sectionId })
   const [editing, setEditing] = useState<SpecialClass | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [settings, setSettings] = useState(false)
+  const [attendance, setAttendance] = useState<SpecialClass | null>(null)
   const [removing, setRemoving] = useState<SpecialClass | null>(null)
   const remove = usePerformanceMutation((id: number) => performanceApi.removeSpecial(id))
-  const section = (id: number) => sections.find((item) => item.section_id === id)
+  const chosenSection = sections.find((item) => item.section_id === sectionId)
 
   const columns: Column<SpecialClass>[] = [
     {
       key: 'title',
-      header: 'Special class',
+      header: 'Class',
       cell: (row) => (
-        <div className='grid min-w-0'>
-          <span className='font-bold'>{row.title}</span>
+        <div className='grid min-w-0 gap-0.5'>
+          <span className='flex flex-wrap items-center gap-1.5'>
+            <Badge tone={row.kind === 'special' ? 'info' : 'warning'}>
+              {row.kind === 'special' ? 'Special' : 'Extra'}
+            </Badge>
+            <span className='font-bold'>{row.title}</span>
+          </span>
           <span className='truncate text-xs text-muted-foreground'>
             {row.section.name}
             {row.subject ? ` · ${row.subject.name}` : ''}
@@ -602,10 +679,9 @@ function SpecialClassesView({
       header: 'When',
       cell: (row) => (
         <div className='grid'>
-          <span className='font-semibold'>{row.day}</span>
+          <span className='font-semibold'>{row.when}</span>
           <span className='text-xs text-muted-foreground'>
-            Period {row.period_no}
-            {row.start_time ? ` · ${row.start_time} – ${row.end_time}` : ''}
+            {row.timing === 'period' ? 'During a period' : 'Extra time'}
           </span>
         </div>
       ),
@@ -616,39 +692,47 @@ function SpecialClassesView({
       header: 'Students',
       cell: (row) => (
         <span title={row.students.map((student) => student.name).join(', ')}>
-          {row.students.length} students
+          {row.students.length} {row.students.length === 1 ? 'student' : 'students'}
         </span>
       ),
     },
-    ...(canManage
-      ? [
-          {
-            key: 'actions',
-            header: '',
-            align: 'right' as const,
-            cell: (row: SpecialClass) => (
-              <div className='flex justify-end gap-1'>
-                <Button
-                  variant='ghost'
-                  size='icon-sm'
-                  aria-label={`Edit ${row.title}`}
-                  onClick={() => setEditing(row)}
-                >
-                  <Pencil />
-                </Button>
-                <Button
-                  variant='ghost'
-                  size='icon-sm'
-                  aria-label={`Stop ${row.title}`}
-                  onClick={() => setRemoving(row)}
-                >
-                  <Trash2 />
-                </Button>
-              </div>
-            ),
-          },
-        ]
-      : []),
+    {
+      key: 'actions',
+      header: '',
+      align: 'right' as const,
+      cell: (row: SpecialClass) => (
+        <div className='flex justify-end gap-1'>
+          <Button
+            variant='ghost'
+            size='icon-sm'
+            aria-label={`Attendance of ${row.title}`}
+            onClick={() => setAttendance(row)}
+          >
+            <ClipboardCheck />
+          </Button>
+          {canManage && (
+            <>
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label={`Edit ${row.title}`}
+                onClick={() => setEditing(row)}
+              >
+                <Pencil />
+              </Button>
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label={`Stop ${row.title}`}
+                onClick={() => setRemoving(row)}
+              >
+                <Trash2 />
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    },
   ]
 
   return (
@@ -662,12 +746,29 @@ function SpecialClassesView({
           options={sections.map((item) => ({ value: String(item.section_id), label: item.name }))}
           onChange={(value) => onSection(value ? Number(value) : undefined)}
         />
+        {canManage && (
+          <>
+            <Button
+              size='sm'
+              disabled={!chosenSection}
+              title={chosenSection ? undefined : 'Choose a class first'}
+              onClick={() => setCreating(true)}
+            >
+              <Plus />
+              New special class
+            </Button>
+            <Button size='sm' variant='outline' onClick={() => setSettings(true)}>
+              <Settings2 />
+              Classes allowed
+            </Button>
+          </>
+        )}
       </ListToolbar>
       <Card className='overflow-hidden'>
         <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-          <h2 className='font-bold'>Special classes</h2>
+          <h2 className='font-bold'>Special and extra classes</h2>
           <span className='text-xs text-muted-foreground'>
-            One dedicated period a week. To add one, choose students in Below average.
+            Special: the whole class. Extra: chosen students, picked in Below average.
           </span>
         </div>
         <DataTable
@@ -679,45 +780,65 @@ function SpecialClassesView({
           onRetry={() => specials.refetch()}
           empty={{
             icon: CalendarClock,
-            title: 'No special classes yet',
+            title: 'No special or extra classes yet',
             description:
-              'Open Below average, choose the students and schedule a special class for them.',
+              'Choose a class and click New special class, or pick students in Below average for an extra class.',
           }}
           card={(row) => (
             <div className='grid gap-1'>
-              <span className='font-bold'>{row.title}</span>
+              <span className='flex items-center gap-1.5 font-bold'>
+                <Badge tone={row.kind === 'special' ? 'info' : 'warning'}>
+                  {row.kind === 'special' ? 'Special' : 'Extra'}
+                </Badge>
+                {row.title}
+              </span>
               <span className='text-xs text-muted-foreground'>
-                {row.section.name} · {row.day}, period {row.period_no} · {row.teacher.name} ·{' '}
-                {row.students.length} students
+                {row.section.name} · {row.when} · {row.teacher.name} · {row.students.length}{' '}
+                students
               </span>
             </div>
           )}
         />
       </Card>
+      {creating && chosenSection && (
+        <SpecialClassModal
+          section={{
+            id: chosenSection.section_id,
+            name: chosenSection.name,
+            class_id: chosenSection.class_id,
+          }}
+          kind='special'
+          onClose={() => setCreating(false)}
+        />
+      )}
       {editing && (
         <SpecialClassModal
           section={{
             id: editing.section.id,
             name: editing.section.name,
-            class_id: section(editing.section.id)?.class_id,
+            class_id: editing.class_id,
           }}
           special={editing}
           onClose={() => setEditing(null)}
         />
       )}
+      {attendance && (
+        <SpecialAttendanceModal special={attendance} onClose={() => setAttendance(null)} />
+      )}
+      {settings && <SpecialSettingsModal onClose={() => setSettings(false)} />}
       <ConfirmDialog
         open={Boolean(removing)}
         onOpenChange={(open) => !open && setRemoving(null)}
-        title={`Stop ${removing?.title ?? 'this special class'}?`}
-        description='The period is freed and the class no longer shows for the teacher or the parents.'
-        confirmText='Stop special class'
+        title={`Stop ${removing?.title ?? 'this class'}?`}
+        description='The teacher and the parents are told it is cancelled.'
+        confirmText='Stop class'
         destructive
         loading={remove.isPending}
         onConfirm={async () => {
           if (!removing) return
           try {
             await remove.mutateAsync(removing.id)
-            alerts.success('Special class stopped')
+            alerts.success(`${removing.title} stopped`)
             setRemoving(null)
           } catch (error) {
             alerts.error(toApiError(error).message)

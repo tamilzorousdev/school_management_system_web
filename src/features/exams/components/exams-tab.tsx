@@ -85,7 +85,7 @@ export function ExamsTab({
       header: 'Dates',
       cell: (exam) => (
         <div className='grid min-w-0'>
-          <span className='tabular text-sm whitespace-nowrap font-medium'>
+          <span className='tabular text-sm font-medium whitespace-nowrap'>
             {formatDate(exam.start_date)} – {formatDate(exam.end_date)}
           </span>
           {canManage && (

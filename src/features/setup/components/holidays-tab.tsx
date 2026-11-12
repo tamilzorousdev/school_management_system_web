@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
 import { setupApi, useHolidays, useSetupMutation, type Holiday, type HolidayType } from '../api'
 import { fieldErrorsOf, run } from '../form-actions'
 import { RootError, Section } from './setup-shared'
+import { SegmentedControl } from '@/components/common/segmented-control'
+import { ClassPicker } from './class-picker'
 
 const TYPES: Record<HolidayType, { label: string; tone: BadgeTone }> = {
   holiday: { label: 'Holiday', tone: 'success' },
@@ -83,6 +85,11 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                     {holiday.days} {holiday.days === 1 ? 'day' : 'days'}
                   </span>
                 </span>
+                {!holiday.whole_school && (
+                  <Badge tone='info' className='max-w-48 truncate'>
+                    {holiday.classes.map((item) => `Class ${item.name}`).join(', ')}
+                  </Badge>
+                )}
                 <Badge tone={TYPES[holiday.type].tone}>{TYPES[holiday.type].label}</Badge>
                 {canManage && (
                   <span className='flex'>
@@ -138,9 +145,17 @@ function HolidayModal({ holiday, onClose }: { holiday?: Holiday; onClose: () => 
   const [date, setDate] = useState(holiday?.date ?? '')
   const [endDate, setEndDate] = useState(holiday?.end_date ?? '')
   const [type, setType] = useState<HolidayType>(holiday?.type ?? 'holiday')
+  const [onlyClasses, setOnlyClasses] = useState(holiday ? !holiday.whole_school : false)
+  const [classIds, setClassIds] = useState<number[]>(holiday?.classes.map((item) => item.id) ?? [])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useSetupMutation(() => {
-    const input = { name: name.trim(), date, end_date: endDate || null, type }
+    const input = {
+      name: name.trim(),
+      date,
+      end_date: endDate || null,
+      type,
+      class_ids: onlyClasses ? classIds : null,
+    }
     return holiday ? setupApi.updateHoliday(holiday.id, input) : setupApi.createHoliday(input)
   })
   return (
@@ -162,6 +177,7 @@ function HolidayModal({ holiday, onClose }: { holiday?: Holiday; onClose: () => 
           if (name.trim().length < 2) next.name = 'Enter a name'
           if (!date) next.date = 'Choose the date'
           if (endDate && date && endDate < date) next.end_date = 'Must be on or after the first day'
+          if (onlyClasses && !classIds.length) next.class_ids = 'Choose at least one class'
           setErrors(next)
           if (Object.keys(next).length) return
           try {
@@ -224,6 +240,32 @@ function HolidayModal({ holiday, onClose }: { holiday?: Holiday; onClose: () => 
             highlightSelected={false}
             className='sm:w-full'
           />
+        </FormField>
+        <FormField
+          id='holiday-scope'
+          label='Applies to'
+          error={errors.class_ids}
+          hint={
+            onlyClasses
+              ? 'Only these classes are off; attendance is not expected from them. Teachers and parents of these classes see it.'
+              : 'Every class is off'
+          }
+          className='sm:col-span-2'
+        >
+          <div className='grid gap-2.5'>
+            <SegmentedControl
+              label='Applies to'
+              value={onlyClasses ? 'classes' : 'school'}
+              onChange={(value: string) => setOnlyClasses(value === 'classes')}
+              options={[
+                { value: 'school', label: 'Whole school' },
+                { value: 'classes', label: 'Only some classes' },
+              ]}
+            />
+            {onlyClasses && (
+              <ClassPicker id='holiday-scope' value={classIds} onChange={setClassIds} />
+            )}
+          </div>
         </FormField>
       </form>
     </AppModal>

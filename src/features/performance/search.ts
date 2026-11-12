@@ -11,6 +11,9 @@ export const performanceSearchSchema = z.object({
   class_id: id,
   section_id: id,
   below: z.coerce.number().min(1).max(100).optional().catch(undefined),
+  band: z.enum(['below', 'average', 'range']).optional().catch(undefined),
+  from: z.coerce.number().min(0).max(100).optional().catch(undefined),
+  to: z.coerce.number().min(0).max(100).optional().catch(undefined),
 })
 
 export type PerformanceSearch = z.infer<typeof performanceSearchSchema>

@@ -59,6 +59,7 @@ export interface BoardSection extends AttendanceSummary {
   class_teacher_id: number | null
   marked: boolean
   missed: boolean
+  holiday: string | null
   morning_marked: boolean
   afternoon_marked: boolean
   taken_by: string | null

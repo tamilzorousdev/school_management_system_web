@@ -162,7 +162,16 @@ export function SlotModal({
             value={subjectId ? String(subjectId) : undefined}
             placeholder='Choose subject'
             searchPlaceholder='Search subjects'
-            options={subjectOptions(timetable, allSubjects.data?.items ?? [])}
+            options={withCurrent(
+              subjectOptions(timetable, allSubjects.data?.items ?? []),
+              target.slot
+                ? {
+                    value: String(target.slot.subject.id),
+                    label: `${target.slot.subject.name} (${target.slot.subject.code})`,
+                    hint: 'Current',
+                  }
+                : null
+            )}
             emptyText='No subjects yet. Add them in School setup → Subjects.'
             onChange={(value) => setSubjectId(value ? Number(value) : undefined)}
             invalid={Boolean(errors.subject_id)}
@@ -188,10 +197,15 @@ export function SlotModal({
                 label: assigned ? `Assigned teacher (${assigned.name})` : 'Assigned teacher',
               },
               { value: NONE, label: 'No teacher' },
-              ...(teachers.data ?? []).map((item) => ({
-                value: String(item.id),
-                label: item.name,
-              })),
+              ...withCurrent(
+                (teachers.data ?? []).map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                })),
+                target.slot?.teacher
+                  ? { value: String(target.slot.teacher.id), label: target.slot.teacher.name }
+                  : null
+              ),
             ]}
             onChange={(value) => setTeacher(value ?? ASSIGNED)}
             invalid={Boolean(errors.teacher_user_id)}
@@ -238,4 +252,9 @@ function subjectOptions(
         hint: 'Not in class plan',
       })),
   ]
+}
+
+function withCurrent<T extends { value: string }>(options: T[], current: T | null): T[] {
+  if (!current || options.some((option) => option.value === current.value)) return options
+  return [current, ...options]
 }

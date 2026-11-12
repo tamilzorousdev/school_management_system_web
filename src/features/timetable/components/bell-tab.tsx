@@ -1,5 +1,16 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, BellRing, Coffee, Plus, RotateCcw, Save, Trash2, Undo2 } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  BellRing,
+  CalendarClock,
+  Coffee,
+  Plus,
+  RotateCcw,
+  Save,
+  Trash2,
+  Undo2,
+} from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { ErrorState } from '@/components/common/display'
 import { FormField } from '@/components/common/form-field'
@@ -12,7 +23,17 @@ import { Switch } from '@/components/ui/switch'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { cn } from '@/lib/utils'
-import { useClasses, type SchoolClass } from '@/features/setup/api'
+import {
+  addSpecial,
+  breakGaps,
+  insideDay,
+  insertBreak,
+  specialName,
+  type BreakGap,
+  type SlotSide,
+} from '../special-slots'
+import { SpecialBreakModal, SpecialSlotModal } from './special-slot-modals'
+import { useClasses, useSections, type SchoolClass } from '@/features/setup/api'
 import {
   timetableApi,
   useBellSchedule,
@@ -36,6 +57,8 @@ const toRows = (periods: BellPeriod[]): Row[] =>
     start_time: period.start_time,
     end_time: period.end_time,
     is_break: period.is_break,
+    is_special: period.is_special ?? false,
+    section_ids: period.section_ids ?? null,
   }))
 
 const addMinutes = (time: string, minutes: number) => {
@@ -47,6 +70,10 @@ const addMinutes = (time: string, minutes: number) => {
 export function BellTab({ canManage }: { canManage: boolean }) {
   const classes = useClasses()
   const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined)
+  const [selectedSectionId, setSelectedSectionId] = useState<number | undefined>(undefined)
+  const classSections = (useSections().data ?? []).filter(
+    (item) => item.class_id === selectedClassId
+  )
   const periods = useBellSchedule(selectedClassId)
 
   const classOptions = [
@@ -59,11 +86,16 @@ export function BellTab({ canManage }: { canManage: boolean }) {
 
   const chosenClass = classes.data?.find((c) => c.id === selectedClassId)
 
+  const chosenSection = classSections.find((item) => item.id === selectedSectionId)
+
   return (
     <div className='grid gap-4'>
       <div className='flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 shadow-2xs'>
         <div className='flex flex-wrap items-center gap-2.5'>
-          <label htmlFor='bell-class-select' className='text-xs font-semibold text-muted-foreground'>
+          <label
+            htmlFor='bell-class-select'
+            className='text-xs font-semibold text-muted-foreground'
+          >
             Schedule for:
           </label>
           <Combobox
@@ -71,19 +103,50 @@ export function BellTab({ canManage }: { canManage: boolean }) {
             label='Schedule for'
             options={classOptions}
             value={selectedClassId ? String(selectedClassId) : 'all'}
-            onChange={(val) => setSelectedClassId(val === 'all' ? undefined : Number(val))}
+            onChange={(val) => {
+              setSelectedClassId(val === 'all' ? undefined : Number(val))
+              setSelectedSectionId(undefined)
+            }}
             placeholder='Choose class'
             searchPlaceholder='Search classes...'
             className='w-64'
           />
+          {selectedClassId && classSections.length > 0 && (
+            <Combobox
+              id='bell-section-select'
+              label='Section'
+              options={[
+                { value: 'all', label: 'All sections' },
+                ...classSections.map((item) => ({
+                  value: String(item.id),
+                  label: `Section ${item.name}`,
+                })),
+              ]}
+              value={selectedSectionId ? String(selectedSectionId) : 'all'}
+              onChange={(val) =>
+                setSelectedSectionId(!val || val === 'all' ? undefined : Number(val))
+              }
+              placeholder='All sections'
+              searchPlaceholder='Search sections...'
+              className='w-48'
+            />
+          )}
         </div>
         <div className='flex items-center gap-2 text-xs text-muted-foreground'>
           {chosenClass ? (
             <span>
               Configuring timings specifically for <strong>Class {chosenClass.name}</strong>
+              {chosenSection && (
+                <>
+                  {' '}
+                  · showing <strong>Section {chosenSection.name}</strong>
+                </>
+              )}
             </span>
           ) : (
-            <span>Configuring <strong>school-wide default</strong> timings</span>
+            <span>
+              Configuring <strong>school-wide default</strong> timings
+            </span>
           )}
         </div>
       </div>
@@ -100,6 +163,7 @@ export function BellTab({ canManage }: { canManage: boolean }) {
           periods={periods.data}
           classId={selectedClassId}
           className={chosenClass?.name}
+          sectionId={selectedSectionId}
           classes={classes.data ?? []}
           canManage={canManage}
         />
@@ -112,12 +176,14 @@ function BellEditor({
   periods,
   classId,
   className,
+  sectionId,
   classes,
   canManage,
 }: {
   periods: BellPeriod[]
   classId?: number
   className?: string
+  sectionId?: number
   classes: SchoolClass[]
   canManage: boolean
 }) {
@@ -165,10 +231,11 @@ function BellEditor({
       return next
     })
 
-  const add = (isBreak: boolean) =>
+  const add = (kind: 'period' | 'break') =>
     setRows((current) => {
       const start = current.at(-1)?.end_time ?? '08:50'
-      const teaching = current.filter((row) => !row.is_break).length
+      const teaching = current.filter((row) => !row.is_break && !row.is_special).length
+      const isBreak = kind === 'break'
       return [
         ...current,
         {
@@ -177,9 +244,58 @@ function BellEditor({
           start_time: start,
           end_time: addMinutes(start, isBreak ? 15 : 45),
           is_break: isBreak,
+          is_special: false,
+          section_ids: null,
         },
       ]
     })
+
+  const sectionList = useSections().data ?? []
+  const [slotModal, setSlotModal] = useState(false)
+  const [gapChoices, setGapChoices] = useState<BreakGap[] | null>(null)
+
+  const addSpecialSlot = (
+    side: SlotSide,
+    name: string,
+    minutes: number,
+    sectionIds: number[] | null,
+    breakMinutes: number
+  ) =>
+    setRows((current) => {
+      const key = nextKey++
+      const breakKey = nextKey++
+      return addSpecial(
+        current,
+        side,
+        name,
+        minutes,
+        key,
+        sectionIds,
+        breakMinutes,
+        breakKey
+      ) as Row[]
+    })
+
+  const addSpecialBreak = (gap: BreakGap, minutes: number) => {
+    setRows(
+      (current) => insertBreak(current, gap, minutes, 'Special class break', nextKey++) as Row[]
+    )
+    alerts.success(`Break added: ${gap.label}`)
+  }
+
+  const askSpecialBreak = () => {
+    if (!rows.some((row) => row.is_special)) {
+      alerts.error('Add a special class first. The special class break goes next to it.')
+      return
+    }
+    const gaps = breakGaps(rows)
+    if (!gaps.length) {
+      alerts.error('Every special class already has a break next to it.')
+      return
+    }
+    if (gaps.length === 1) addSpecialBreak(gaps[0], 10)
+    else setGapChoices(gaps)
+  }
 
   const reset = () => {
     setRows(toRows(periods))
@@ -187,6 +303,11 @@ function BellEditor({
   }
 
   const submit = async () => {
+    const misplaced = insideDay(rows)
+    if (misplaced) {
+      alerts.error(`${misplaced.name} must be before the first period or after the last one`)
+      return
+    }
     const next: RowErrors = {}
     rows.forEach((row, index) => {
       const rowErrors: RowErrors[number] = {}
@@ -205,9 +326,7 @@ function BellEditor({
       setRows(fresh)
       setBaseline(JSON.stringify(fresh.map(strip)))
       alerts.success(
-        classId
-          ? `Bell schedule saved for Class ${className}`
-          : 'Default bell schedule saved'
+        classId ? `Bell schedule saved for Class ${className}` : 'Default bell schedule saved'
       )
     } catch (error) {
       const apiError = toApiError(error)
@@ -224,7 +343,7 @@ function BellEditor({
   }
 
   const numbers = periodNumbers(rows)
-  const teaching = rows.filter((row) => !row.is_break).length
+  const teaching = rows.filter((row) => !row.is_break && !row.is_special).length
 
   return (
     <Card className='overflow-hidden'>
@@ -276,19 +395,54 @@ function BellEditor({
                 Reset to default
               </Button>
             )}
-            <Button variant='outline' size='sm' onClick={() => add(false)}>
+            <Button variant='outline' size='sm' onClick={() => add('period')}>
               <Plus />
               Add period
             </Button>
-            <Button variant='outline' size='sm' onClick={() => add(true)}>
+            <Button variant='outline' size='sm' onClick={() => add('break')}>
               <Coffee />
               Add break
+            </Button>
+            <Button variant='outline' size='sm' onClick={() => setSlotModal(true)}>
+              <CalendarClock />
+              Special class
+            </Button>
+            <Button variant='outline' size='sm' onClick={askSpecialBreak}>
+              <Coffee />
+              Special class break
             </Button>
           </div>
         )}
       </div>
+      {slotModal && (
+        <SpecialSlotModal
+          defaultName={specialName(rows)}
+          firstPeriod={rows.find((row) => !row.is_break && !row.is_special)?.name ?? 'Period 1'}
+          lastPeriod={
+            rows.filter((row) => !row.is_break && !row.is_special).at(-1)?.name ?? 'the last period'
+          }
+          classId={classId}
+          sectionId={sectionId}
+          onAdd={addSpecialSlot}
+          onClose={() => setSlotModal(false)}
+        />
+      )}
+      {gapChoices && (
+        <SpecialBreakModal
+          gaps={gapChoices}
+          onAdd={addSpecialBreak}
+          onClose={() => setGapChoices(null)}
+        />
+      )}
       <ol className='grid divide-y'>
         {rows.map((row, index) => {
+          if (
+            row.is_special &&
+            sectionId &&
+            row.section_ids?.length &&
+            !row.section_ids.includes(sectionId)
+          )
+            return null
           const number = numbers[index]
           const rowErrors = errors[index] ?? {}
           return (
@@ -296,11 +450,16 @@ function BellEditor({
               key={row.key}
               className={cn(
                 'grid items-start gap-3 px-4 py-3 sm:px-5 md:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_auto_auto]',
-                row.is_break && 'bg-muted/50'
+                row.is_break && 'bg-muted/50',
+                row.is_special && 'bg-warning/5'
               )}
             >
               <span className='flex h-9 items-center'>
-                {number ? (
+                {row.is_special ? (
+                  <Badge tone='warning'>
+                    <CalendarClock className='size-3' />
+                  </Badge>
+                ) : number ? (
                   <Badge tone='info'>P{number}</Badge>
                 ) : (
                   <Badge tone='neutral'>
@@ -340,22 +499,38 @@ function BellEditor({
                   />
                 </FormField>
               </div>
-              <label className='flex h-9 items-center gap-2 text-xs font-semibold md:mt-5'>
-                <Switch
-                  checked={row.is_break}
-                  disabled={!canManage}
-                  aria-label={`Break: ${row.name}`}
-                  onCheckedChange={(is_break) => update(row.key, { is_break })}
-                />
-                Break
-              </label>
+              {row.is_special ? (
+                <span className='grid h-9 content-center text-xs font-semibold text-warning md:mt-5'>
+                  Special class
+                  <span className='max-w-40 truncate font-normal text-muted-foreground'>
+                    {row.section_ids?.length
+                      ? `For ${row.section_ids
+                          .map((id) => {
+                            const item = sectionList.find((section) => section.id === id)
+                            return item ? `${item.class_name}-${item.name}` : id
+                          })
+                          .join(', ')}`
+                      : 'All sections'}
+                  </span>
+                </span>
+              ) : (
+                <label className='flex h-9 items-center gap-2 text-xs font-semibold md:mt-5'>
+                  <Switch
+                    checked={row.is_break}
+                    disabled={!canManage}
+                    aria-label={`Break: ${row.name}`}
+                    onCheckedChange={(is_break) => update(row.key, { is_break })}
+                  />
+                  Break
+                </label>
+              )}
               {canManage ? (
                 <span className='flex items-center gap-0.5 md:mt-5'>
                   <Button
                     variant='ghost'
                     size='icon-sm'
                     aria-label={`Move ${row.name} up`}
-                    disabled={index === 0}
+                    disabled={index === 0 || row.is_special}
                     onClick={() => move(index, -1)}
                   >
                     <ArrowUp />
@@ -364,7 +539,7 @@ function BellEditor({
                     variant='ghost'
                     size='icon-sm'
                     aria-label={`Move ${row.name} down`}
-                    disabled={index === rows.length - 1}
+                    disabled={index === rows.length - 1 || row.is_special}
                     onClick={() => move(index, 1)}
                   >
                     <ArrowDown />
@@ -416,10 +591,12 @@ function strip(row: Row): Required<BellPeriodInput> {
     start_time: row.start_time,
     end_time: row.end_time,
     is_break: row.is_break,
+    is_special: row.is_special,
+    section_ids: row.is_special ? row.section_ids : null,
   }
 }
 
 function periodNumbers(rows: Row[]) {
   let count = 0
-  return rows.map((row) => (row.is_break ? null : ++count))
+  return rows.map((row) => (row.is_break || row.is_special ? null : ++count))
 }

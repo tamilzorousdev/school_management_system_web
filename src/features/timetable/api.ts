@@ -18,6 +18,8 @@ export interface BellPeriod {
   start_time: string
   end_time: string
   is_break: boolean
+  is_special?: boolean
+  section_ids?: number[] | null
 }
 
 export interface BellPeriodInput {
@@ -25,6 +27,8 @@ export interface BellPeriodInput {
   start_time: string
   end_time: string
   is_break?: boolean
+  is_special?: boolean
+  section_ids?: number[] | null
 }
 
 export interface Slot {

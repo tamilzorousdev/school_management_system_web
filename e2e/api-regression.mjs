@@ -1009,7 +1009,7 @@ await D4(
     expectStatus(saved, 200)
     const mark = saved.body.data.students.find((student) => student.student_id === child.id)
     if (mark?.status !== 'absent') throw new Error(`Child saved as ${mark?.status}`)
-    const inbox = (await parent('GET', '/me/notifications?limit=50')).body?.data?.items ?? []
+    const inbox = (await parent('GET', '/me/notifications?limit=50&category=attendance')).body?.data?.items ?? []
     const alert = inbox.find(
       (item) => item.template_code === 'STUDENT_ABSENT' && String(item.created_at ?? '').slice(0, 10) === today
     )
@@ -3036,6 +3036,219 @@ await TA('API-SC-07', 'Special classes', 'GET', '/mobile/teacher/special-classes
   return `200, ${result.body.data.length} special classes`
 })
 
+const todayIso = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10)
+const extraBell = specialPeriods.length ? specialPeriods[specialPeriods.length - 1] : null
+const extraIds = []
+const extraBody = (patch) => ({
+  timing: 'extra_time',
+  kind: 'extra',
+  section_id: perfSection?.section_id,
+  teacher_user_id: specialMatrix.teachers[0]?.user_id,
+  days: [1, 3],
+  start_time: '20:00',
+  end_time: '20:45',
+  start_date: '2027-01-04',
+  end_date: '2027-01-29',
+  title: 'Regression extra class',
+  student_ids: specialRoster.slice(0, 2).map((row) => row.student_id),
+  ...patch,
+})
+await TA('API-EX-01', 'Extra classes', 'POST', '/admin/special-classes', 'Extra class after school on Mon and Wed for chosen students', '201; when reads every Mon, Wed with the time and dates', async () => {
+  if (!perfSection || !specialRoster.length) return 'Skipped: no below-average students'
+  const result = await admin('POST', '/admin/special-classes', extraBody({}))
+  expectStatus(result, 201)
+  extraIds.push(result.body.data.id)
+  if (!result.body.data.when.startsWith('every Mon, Wed')) throw new Error(result.body.data.when)
+  return `201, ${result.body.data.when}`
+})
+await TA('API-EX-02', 'Extra classes', 'POST', '/admin/special-classes', 'Extra class during a teaching period', '409 DURING_CLASS_TIME', async () => {
+  if (!extraBell) return 'Skipped: no bell schedule'
+  return expectStatus(
+    await admin('POST', '/admin/special-classes', extraBody({ start_time: extraBell.start_time, end_time: extraBell.end_time, teacher_user_id: specialMatrix.teachers[1].user_id })),
+    409,
+    'DURING_CLASS_TIME',
+  )
+})
+await TA('API-EX-03', 'Extra classes', 'POST', '/admin/special-classes', 'Same teacher at an overlapping time', '409 TEACHER_CLASH', async () => {
+  if (!extraIds.length) return 'Skipped: no extra class'
+  return expectStatus(
+    await admin('POST', '/admin/special-classes', extraBody({ start_time: '20:30', end_time: '21:00', days: [3], student_ids: specialRoster.slice(2, 3).map((row) => row.student_id) })),
+    409,
+    'TEACHER_CLASH',
+  )
+})
+await TA('API-EX-04', 'Extra classes', 'POST', '/admin/special-classes', 'Same student at an overlapping time with another teacher', '409 STUDENT_CLASH', async () => {
+  if (!extraIds.length) return 'Skipped: no extra class'
+  return expectStatus(
+    await admin('POST', '/admin/special-classes', extraBody({ teacher_user_id: specialMatrix.teachers[1].user_id, start_time: '20:30', end_time: '21:15' })),
+    409,
+    'STUDENT_CLASH',
+  )
+})
+await TA('API-EX-05', 'Extra classes', 'POST', '/admin/special-classes', 'Whole-class special class on a Sunday, full day', '201; every student of the section is in it', async () => {
+  if (!perfSection) return 'Skipped: no section'
+  const result = await admin('POST', '/admin/special-classes', extraBody({
+    kind: 'special',
+    days: [],
+    start_date: '2027-01-10',
+    end_date: '2027-01-10',
+    start_time: '09:00',
+    end_time: '16:00',
+    day_part: 'full',
+    teacher_user_id: specialMatrix.teachers[2].user_id,
+    title: 'Regression revision day',
+    student_ids: undefined,
+  }))
+  expectStatus(result, 201)
+  extraIds.push(result.body.data.id)
+  if (result.body.data.students.length !== perfSection.students) throw new Error(`${result.body.data.students.length} of ${perfSection.students} students`)
+  return `201, ${result.body.data.students.length} students, ${result.body.data.when}`
+})
+await TA('API-EX-06', 'Extra classes', 'PUT', '/admin/special-classes/settings', 'Whole-class special class for a class that is not turned on', '400 CLASS_NOT_ALLOWED', async () => {
+  if (!perfSection) return 'Skipped: no section'
+  const other = perf.sections.find((row) => row.class_id !== perfSection.class_id)
+  try {
+    expectStatus(await admin('PUT', '/admin/special-classes/settings', { class_ids: [other.class_id] }), 200)
+    return expectStatus(
+      await admin('POST', '/admin/special-classes', extraBody({ kind: 'special', start_date: '2027-02-01', end_date: '2027-02-26', title: 'Not allowed', student_ids: undefined })),
+      400,
+      'CLASS_NOT_ALLOWED',
+    )
+  } finally {
+    await admin('PUT', '/admin/special-classes/settings', { class_ids: null })
+  }
+})
+await TA('API-EX-07', 'Extra classes', 'PUT', '/admin/special-classes/{id}/attendance', 'Take attendance of an extra class held today', '200; the absent student stays absent, the rest present', async () => {
+  if (!perfSection || !specialRoster.length) return 'Skipped: no students'
+  const created = await admin('POST', '/admin/special-classes', extraBody({
+    days: [],
+    start_date: todayIso,
+    end_date: todayIso,
+    start_time: '21:00',
+    end_time: '21:30',
+    teacher_user_id: specialMatrix.teachers[3].user_id,
+    title: 'Regression attendance check',
+  }))
+  expectStatus(created, 201)
+  extraIds.push(created.body.data.id)
+  const absent = specialRoster[0].student_id
+  const result = await admin('PUT', `/admin/special-classes/${created.body.data.id}/attendance`, { date: todayIso, items: [{ student_id: absent, status: 'absent' }] })
+  expectStatus(result, 200)
+  const rows = result.body.data.students
+  if (rows.find((row) => row.student_id === absent).status !== 'absent') throw new Error('Absent not saved')
+  if (rows.some((row) => row.student_id !== absent && row.status !== 'present')) throw new Error('Others not present')
+  return `200, ${rows.length} students, 1 absent`
+})
+await TA('API-EX-08', 'Extra classes', 'PUT', '/mobile/teacher/special-classes/{id}/attendance', 'Another teacher tries to take the attendance', '403 NOT_YOUR_SPECIAL_CLASS', async () => {
+  const mine = (await teacher('GET', '/mobile/teacher/special-classes')).body.data.map((row) => row.id)
+  const other = extraIds.find((id) => !mine.includes(id))
+  if (!other) return 'Skipped: teacher takes every class'
+  return expectStatus(await teacher('PUT', `/mobile/teacher/special-classes/${other}/attendance`, { date: todayIso, items: [{ student_id: specialRoster[0].student_id, status: 'present' }] }), 403, 'NOT_YOUR_SPECIAL_CLASS')
+})
+await TA('API-EX-09', 'Extra classes', 'GET', '/admin/special-classes?teacher_user_id=', 'Teacher profile list of special and extra classes', '200; only that teacher', async () => {
+  const teacherId = specialMatrix.teachers[0].user_id
+  const result = await admin('GET', `/admin/special-classes?teacher_user_id=${teacherId}`)
+  expectStatus(result, 200)
+  if (result.body.data.some((row) => row.teacher.id !== teacherId)) throw new Error('Other teachers listed')
+  return `200, ${result.body.data.length} classes`
+})
+await TA('API-EX-11', 'Extra classes', 'POST', '/admin/special-classes', 'Same special class for two sections with one teacher at the same time (combined class)', '201 for both sections', async () => {
+  const pair = perf.sections.filter((row) => row.students > 0).slice(0, 2)
+  if (pair.length < 2) return 'Skipped: need two sections'
+  const body = (sectionId) => extraBody({ kind: 'special', section_id: sectionId, teacher_user_id: specialMatrix.teachers[4].user_id, days: [2], start_time: '19:00', end_time: '19:45', title: 'Regression combined class', student_ids: undefined })
+  for (const row of pair) {
+    const result = await admin('POST', '/admin/special-classes', body(row.section_id))
+    expectStatus(result, 201)
+    extraIds.push(result.body.data.id)
+  }
+  return `201 for ${pair.map((row) => row.name).join(' and ')}`
+})
+await TA('API-EX-10', 'Extra classes', 'DELETE', '/admin/special-classes/{id}', 'Stop the test classes', '200 each', async () => {
+  for (const id of extraIds) expectStatus(await admin('DELETE', `/admin/special-classes/${id}`), 200)
+  return `200, ${extraIds.length} removed`
+})
+await TA('API-BAND-01', 'Class performance', 'GET', '/admin/performance/sections/{id}/below-average?band=average', 'Average students', '200; everyone within 10 points of the class average', async () => {
+  if (!perfSection) return 'Skipped: no section'
+  const result = await admin('GET', `/admin/performance/sections/${perfSection.section_id}/below-average?band=average`)
+  expectStatus(result, 200)
+  const { from, to, students } = result.body.data
+  if (students.some((row) => row.percent < from || row.percent > to)) throw new Error('A student is outside the band')
+  return `200, ${students.length} students between ${from}% and ${to}%`
+})
+await TA('API-BAND-02', 'Class performance', 'GET', '/admin/performance/sections/{id}/below-average?band=range&from=35&to=60', 'Custom range', '200; everyone between 35 and 60%', async () => {
+  if (!perfSection) return 'Skipped: no section'
+  const result = await admin('GET', `/admin/performance/sections/${perfSection.section_id}/below-average?band=range&from=35&to=60`)
+  expectStatus(result, 200)
+  if (result.body.data.students.some((row) => row.percent < 35 || row.percent > 60)) throw new Error('Outside the range')
+  return `200, ${result.body.data.students.length} students`
+})
+
+const holidayKid = ((await parent('GET', '/mobile/parent/children')).body.data ?? [])[0]
+const holidayClasses = (await admin('GET', '/admin/classes')).body.data ?? []
+const kidClass = holidayClasses.find((row) => row.name === holidayKid?.class_name)
+const otherClass = holidayClasses.find((row) => row.id !== kidClass?.id)
+let classHolidayId = null
+await TA('API-CH-01', 'Class holidays', 'POST', '/admin/holidays', 'Holiday only for one class', '201; whole_school false with the class named', async () => {
+  if (!kidClass) return 'Skipped: no child class'
+  const result = await admin('POST', '/admin/holidays', { date: '2027-01-12', name: 'Regression study leave', class_ids: [kidClass.id] })
+  expectStatus(result, 201)
+  classHolidayId = result.body.data.id
+  if (result.body.data.whole_school || result.body.data.classes[0]?.id !== kidClass.id) throw new Error('Classes not saved')
+  return `201, ${result.body.data.classes.map((row) => row.name).join(', ')}`
+})
+await TA('API-CH-02', 'Class holidays', 'GET', '/mobile/parent/children/{id}/holidays', 'Parent of a child in that class sees it', '200; the class holiday is listed', async () => {
+  if (!classHolidayId) return 'Skipped: no class holiday'
+  const result = await parent('GET', `/mobile/parent/children/${holidayKid.id}/holidays`)
+  expectStatus(result, 200)
+  if (!result.body.data.all.some((row) => row.id === classHolidayId)) throw new Error('Not listed for the child')
+  return '200, listed'
+})
+await TA('API-CH-03', 'Class holidays', 'GET', '/admin/attendance/board?date=', 'Attendance board on that day', '200; that class shows the holiday and is not counted as missed', async () => {
+  if (!classHolidayId) return 'Skipped: no class holiday'
+  const result = await admin('GET', '/admin/attendance/board?date=2027-01-12')
+  expectStatus(result, 200)
+  const off = result.body.data.sections.filter((row) => row.holiday === 'Regression study leave')
+  if (!off.length) throw new Error('No section shows the holiday')
+  if (off.some((row) => row.missed)) throw new Error('Holiday section counted as missed')
+  return `200, ${off.length} sections on holiday`
+})
+await TA('API-CH-04', 'Class holidays', 'POST', '/admin/holidays', 'Class that is not in the school', '400 on class_ids', async () =>
+  expectFields(await admin('POST', '/admin/holidays', { date: '2027-01-13', name: 'Wrong class', class_ids: [999999] }), ['class_ids'])
+)
+await TA('API-CH-05', 'Class holidays', 'DELETE', '/admin/holidays/{id}', 'Remove the test holiday', '200', async () => {
+  if (!classHolidayId) return 'Skipped: no class holiday'
+  return expectStatus(await admin('DELETE', `/admin/holidays/${classHolidayId}`), 200)
+})
+
+await TA('API-BELL-SP1', 'Timetable', 'PUT', '/admin/timetable/periods', 'Add a special class slot and its break after the last period', '200; the special slot has no period number and teaching periods stay the same', async () => {
+  const before = (await admin('GET', '/admin/timetable/periods')).body.data
+  const items = before.map(({ name, start_time, end_time, is_break, is_special }) => ({ name, start_time, end_time, is_break, is_special }))
+  const teaching = before.filter((row) => row.period_no !== null).length
+  try {
+    const last = items.at(-1).end_time
+    const result = await admin('PUT', '/admin/timetable/periods', {
+      items: [...items, { name: 'Special class break', start_time: last, end_time: '23:00', is_break: true }, { name: 'Special class', start_time: '23:00', end_time: '23:45', is_special: true, section_ids: [perfSection?.section_id ?? 1] }],
+    })
+    expectStatus(result, 200)
+    const special = result.body.data.at(-1)
+    if (!special.is_special || special.period_no !== null) throw new Error('Special slot got a period number')
+    if (!special.section_ids?.length) throw new Error('Sections not saved on the special slot')
+    if (result.body.data.filter((row) => row.period_no !== null).length !== teaching) throw new Error('Teaching periods changed')
+    return `200, ${teaching} teaching periods, special slot ${special.start_time}–${special.end_time}`
+  } finally {
+    await admin('PUT', '/admin/timetable/periods', { items })
+  }
+})
+
+await TA('API-BELL-SP2', 'Timetable', 'PUT', '/admin/timetable/periods', 'Special class slot placed between two periods', '400 BELL_INVALID; nothing saved', async () => {
+  const before = (await admin('GET', '/admin/timetable/periods')).body.data
+  const items = before.map(({ name, start_time, end_time, is_break, is_special }) => ({ name, start_time, end_time, is_break, is_special }))
+  const firstEnd = items[0].end_time
+  const bad = [items[0], { name: 'Special class', start_time: firstEnd, end_time: firstEnd, is_special: true }, ...items.slice(1)]
+  bad[1].end_time = items[1].start_time
+  return expectStatus(await admin('PUT', '/admin/timetable/periods', { items: bad }), 400, 'BELL_INVALID')
+})
+
 const schoolBefore = (await admin('GET', '/admin/school')).body.data
 await TA('API-AM-01', 'Attendance mode', 'GET', '/admin/attendance/board?period=3', 'Period-wise attendance: board and roster of the 3rd period', '200; mode period, period 3', async () => {
   try {
@@ -3071,6 +3284,83 @@ await TA('API-HW-02', 'Homework', 'GET', '/admin/diary/insights', 'Nothing waits
   expectStatus(result, 200)
   if (result.body.data.pending_review !== 0) throw new Error(`${result.body.data.pending_review} posts still waiting`)
   return '200, 0 waiting'
+})
+
+const chatKid = ((await parent('GET', '/mobile/parent/children')).body.data ?? [])[0]
+const chatTeacher = chatKid
+  ? ((await parent('GET', `/mobile/parent/children/${chatKid.id}/teachers-overview`)).body.data ?? {})
+  : {}
+const chatTeacherId = chatTeacher.class_teacher?.id ?? chatTeacher.subject_teachers?.[0]?.id
+let chatThreadId = null
+const uploadAs = async (token, name, type, size) => {
+  const form = new FormData()
+  form.append('file', new Blob([new Uint8Array(size).fill(7)], { type }), name)
+  form.append('purpose', 'chat_media')
+  const response = await fetch(`${API}/files`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form })
+  return { status: response.status, body: await response.json() }
+}
+await TA('API-CHD-01', 'Chat delete', 'POST', '/mobile/parent/chat/threads/{id}/messages/{messageId}/delete', 'Parent deletes own message for everyone', '200; deleted, body null, undo available for 10 seconds', async () => {
+  if (!chatKid || !chatTeacherId) return 'Skipped: no child teacher'
+  const thread = await parent('POST', `/mobile/parent/children/${chatKid.id}/chat/threads`, { teacher_user_id: chatTeacherId })
+  expectStatus(thread, 200)
+  chatThreadId = thread.body.data.id
+  const sent = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages`, { body: 'Regression message to delete' })
+  expectStatus(sent, 201)
+  if (!sent.body.data.can_delete_for_everyone) throw new Error('Own new message cannot be deleted for everyone')
+  const result = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages/${sent.body.data.id}/delete`, { for: 'everyone' })
+  expectStatus(result, 200)
+  const message = result.body.data.message
+  if (!message.deleted || message.body !== null || !result.body.data.undo_until) throw new Error('Not deleted for everyone')
+  const undone = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages/${sent.body.data.id}/undo-delete`)
+  expectStatus(undone, 200)
+  if (undone.body.data.deleted || undone.body.data.body !== 'Regression message to delete') throw new Error('Undo did not restore')
+  const again = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages/${sent.body.data.id}/delete`, { for: 'everyone' })
+  expectStatus(again, 200)
+  const audit = (await admin('GET', `/admin/chat/threads/${chatThreadId}`)).body.data
+  const seen = audit.messages.find((row) => row.id === sent.body.data.id)
+  if (!seen?.deleted || seen.original_body !== 'Regression message to delete' || !seen.deleted_by) throw new Error('Office cannot see the deleted message')
+  return '200; deleted, undone, deleted again; the office still reads the original'
+})
+await TA('API-CHD-02', 'Chat delete', 'POST', '/mobile/parent/chat/threads/{id}/messages/{messageId}/delete', 'Delete for me', '200; gone from my history, the office sees who deleted it', async () => {
+  if (!chatThreadId) return 'Skipped: no thread'
+  const sent = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages`, { body: 'Regression delete for me' })
+  const result = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages/${sent.body.data.id}/delete`, { for: 'me' })
+  expectStatus(result, 200)
+  const history = (await parent('GET', `/mobile/parent/chat/threads/${chatThreadId}/messages`)).body.data.items
+  if (history.some((row) => row.id === sent.body.data.id)) throw new Error('Still in my history')
+  const audit = (await admin('GET', `/admin/chat/threads/${chatThreadId}`)).body.data
+  if (!audit.messages.find((row) => row.id === sent.body.data.id)?.deleted_for_me_by.length) throw new Error('Office not told')
+  return '200; hidden for me only'
+})
+await TA('API-CHD-03', 'Chat delete', 'POST', '/mobile/parent/chat/threads/{id}/messages/{messageId}/undo-delete', 'Undo with nothing deleted', '409 NOTHING_TO_UNDO', async () => {
+  if (!chatThreadId) return 'Skipped: no thread'
+  const sent = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages`, { body: 'Regression nothing to undo' })
+  return expectStatus(await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages/${sent.body.data.id}/undo-delete`), 409, 'NOTHING_TO_UNDO')
+})
+await TA('API-CHD-04', 'Chat media', 'POST', '/mobile/parent/chat/threads/{id}/messages', 'Send a voice message', '201; kind voice with its length', async () => {
+  if (!chatThreadId) return 'Skipped: no thread'
+  const file = await uploadAs(parentToken, 'note.m4a', 'audio/mp4', 2048)
+  expectStatus(file, 201)
+  const sent = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages`, { file_id: file.body.data.id, duration_seconds: 42 })
+  expectStatus(sent, 201)
+  if (sent.body.data.kind !== 'voice' || sent.body.data.duration_seconds !== 42) throw new Error(`Got ${sent.body.data.kind}`)
+  return '201, voice 42 s'
+})
+await TA('API-CHD-05', 'Chat media', 'POST', '/mobile/parent/chat/threads/{id}/messages', 'Video longer than 2 minutes', '400 VIDEO_TOO_LONG', async () => {
+  if (!chatThreadId) return 'Skipped: no thread'
+  const file = await uploadAs(parentToken, 'clip.mp4', 'video/mp4', 4096)
+  expectStatus(file, 201)
+  return expectStatus(await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages`, { file_id: file.body.data.id, duration_seconds: 200 }), 400, 'VIDEO_TOO_LONG')
+})
+await TA('API-CHD-06', 'Chat delete', 'POST', '/mobile/parent/chat/threads/{id}/clear', 'Clear the chat for me', '200; my history is empty, the office still sees every message', async () => {
+  if (!chatThreadId) return 'Skipped: no thread'
+  const result = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/clear`)
+  expectStatus(result, 200)
+  const history = (await parent('GET', `/mobile/parent/chat/threads/${chatThreadId}/messages`)).body.data.items
+  if (history.length) throw new Error(`${history.length} messages still shown`)
+  const audit = (await admin('GET', `/admin/chat/threads/${chatThreadId}`)).body.data
+  if (!audit.messages.length || !audit.audit.some((row) => row.action === 'cleared_chat')) throw new Error('Office lost the history')
+  return `200; office still has ${audit.messages.length} messages`
 })
 
 await TA('API-REP-06', 'Attendance reports', 'GET', '/mobile/parent/children/{id}/attendance/summary', 'Parent asks for a child that is not theirs', '404 CHILD_NOT_FOUND', async () =>

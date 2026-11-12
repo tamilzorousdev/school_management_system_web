@@ -50,6 +50,12 @@ export interface AuditMessage {
   flag_resolved_at: string | null
   hidden_by: Ref | null
   hidden_reason: string | null
+  kind: 'text' | 'image' | 'file' | 'voice' | 'video'
+  duration_seconds: number | null
+  deleted: boolean
+  deleted_at: string | null
+  deleted_by: Ref | null
+  deleted_for_me_by: Ref[]
 }
 
 export interface ChatAuditEntry {

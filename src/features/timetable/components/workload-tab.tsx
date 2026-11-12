@@ -5,12 +5,17 @@ import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { LoadBar } from '@/features/staff/components/load-bar'
+import { useSpecialClasses } from '@/features/performance/api'
+import { hoursText, weeklySpecialLoad } from '@/features/performance/special-week'
 import { useWorkload, type WorkloadRow } from '../api'
 import { DAYS } from '../labels'
 
 export function WorkloadTab({ onOpenTeacher }: { onOpenTeacher: (teacherId: number) => void }) {
   const workload = useWorkload()
   const data = workload.data
+  const specials = useSpecialClasses()
+  const extraOf = (teacherId: number) =>
+    weeklySpecialLoad((specials.data ?? []).filter((row) => row.teacher.id === teacherId))
 
   useShortcut('app.refresh', () => void workload.refetch())
 
@@ -74,6 +79,21 @@ export function WorkloadTab({ onOpenTeacher }: { onOpenTeacher: (teacherId: numb
         <LoadBar load={row.scheduled} max={row.max_periods_per_week} className='max-w-44' />
       ),
     },
+    {
+      key: 'special',
+      header: 'Special classes',
+      cell: (row) => {
+        const extra = extraOf(row.teacher.id)
+        return extra.sessions ? (
+          <span className='grid'>
+            <span className='font-semibold text-warning'>{extra.sessions} a week</span>
+            <span className='text-[11px] text-muted-foreground'>{hoursText(extra.minutes)}</span>
+          </span>
+        ) : (
+          <span className='text-muted-foreground'>—</span>
+        )
+      },
+    },
     ...DAYS.map((day, index) => ({
       key: `day-${day.value}`,
       header: day.short,
@@ -126,6 +146,11 @@ export function WorkloadTab({ onOpenTeacher }: { onOpenTeacher: (teacherId: numb
                 {status(row)}
               </div>
               <LoadBar load={row.scheduled} max={row.max_periods_per_week} />
+              {extraOf(row.teacher.id).sessions > 0 && (
+                <span className='text-xs font-semibold text-warning'>
+                  + {extraOf(row.teacher.id).sessions} special classes a week
+                </span>
+              )}
               <span className='tabular text-xs text-muted-foreground'>
                 {DAYS.map((day, index) => `${day.short} ${row.by_day[index] ?? 0}`).join(' · ')}
               </span>

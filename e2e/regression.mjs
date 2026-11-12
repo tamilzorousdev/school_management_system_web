@@ -1269,12 +1269,13 @@ await D4(
     module: 'Timetable',
     type: 'View',
     title: 'Timetable builder shows the week',
-    steps: 'Open Timetable, choose 6 - A.',
+    steps: 'Open Timetable, choose Class 6, then Section A.',
     expected: 'Grid "Timetable of 6 - A"',
   },
   async () => {
     await go('/timetable?tab=builder')
-    await pick(page, 'Section', '6 - A')
+    await pick(page, 'Class', /^Class 6$/)
+    await pick(page, 'Section', /^Section A$/)
     await page.getByLabel('Timetable of 6 - A').waitFor({ timeout: 8000 })
   }
 )
@@ -1304,7 +1305,8 @@ await D4(
   },
   async () => {
     await go('/timetable?tab=builder')
-    await pick(page, 'Section', '6 - B')
+    await pick(page, 'Class', /^Class 6$/)
+    await pick(page, 'Section', /^Section B$/)
     await page.getByRole('button', { name: /^Monday Period 1/ }).first().click()
     await dialog().getByRole('combobox', { name: 'Subject' }).click()
     await page.getByRole('option').first().click()
@@ -1324,7 +1326,8 @@ await D4(
   },
   async () => {
     await go('/timetable?tab=builder')
-    await pick(page, 'Section', '12 - A')
+    await pick(page, 'Class', /^Class 12$/)
+    await pick(page, 'Section', /^Section A$/)
     await page.getByRole('button', { name: /^Monday Period 1/ }).first().click()
     await dialog().getByRole('combobox', { name: 'Subject' }).click()
     await page.getByRole('option', { name: /Mathematics/ }).first().waitFor({ timeout: 8000 })
@@ -2468,7 +2471,7 @@ await test(
     module: 'Class performance',
     type: 'Flow',
     title: 'Below-average students can be picked for a special class',
-    steps: 'Class report, click a class with students below average, tick students, Schedule special class.',
+    steps: 'Class report, click a class with students below average, tick students, Schedule extra class.',
     expected: 'Below average list with weak subjects; the special class form opens with the students ticked',
   },
   async () => {
@@ -2478,11 +2481,79 @@ await test(
     await below.click()
     await page.getByText('Class average', { exact: false }).first().waitFor({ timeout: 8000 })
     await page.getByRole('checkbox', { name: 'Choose every student' }).check()
-    await page.getByRole('button', { name: /Schedule special class/ }).click()
+    await page.getByRole('button', { name: /Schedule extra class/ }).click()
     await page.getByRole('dialog').getByText(/chosen\)/).waitFor({ timeout: 8000 })
     await page.screenshot({ path: path.join(SHOTS, 'CP-02.png') })
-    await page.getByRole('dialog').getByRole('button', { name: 'Create special class' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Create extra class' }).click()
     await page.getByText('Choose the teacher').waitFor({ timeout: 8000 })
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
+    id: 'SPX-01',
+    module: 'Class performance',
+    type: 'View',
+    title: 'Whole-class special class form offers extra time with days, dates and hours',
+    steps: 'Class performance, Special classes, choose a class, New special class.',
+    expected: 'Form with Whole class chosen, Extra time, Repeats on, First and Last day, Full day / Half day / Custom hours',
+  },
+  async () => {
+    await go('/class-performance?tab=special')
+    await page.locator('#special-section').click()
+    await page.getByRole('option').nth(1).click()
+    await page.getByRole('button', { name: 'New special class' }).click()
+    const dialog = page.getByRole('dialog')
+    for (const text of ['Whole class (special class)', 'Also create for', 'Extra time', 'Repeats on', 'Hours', 'Full day'])
+      await dialog.getByText(text, { exact: true }).first().waitFor({ timeout: 8000 })
+    await dialog.getByRole('radio', { name: 'Full day' }).click()
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: path.join(SHOTS, 'SPX-01.png') })
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
+    id: 'TT-SP1',
+    module: 'Timetable',
+    type: 'View',
+    title: 'Special classes can be added from the timetable and the bell schedule',
+    steps: 'Timetable, Bell schedule; Builder.',
+    expected: 'Special class break without a special class shows an error; Special class asks morning or evening and which sections; break chips have no special class button',
+  },
+  async () => {
+    await go('/timetable?tab=bells')
+    const breakButton = page.getByRole('button', { name: 'Special class break', exact: true })
+    await breakButton.waitFor({ timeout: 10000 })
+    await breakButton.click()
+    await see('Add a special class first')
+    await page.getByRole('button', { name: 'Special class', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    for (const text of ['Add a special class slot', 'All sections', 'Only these sections'])
+      await dialog.getByText(text, { exact: true }).first().waitFor({ timeout: 8000 })
+    await dialog.getByRole('radio', { name: /^Morning, before/ }).waitFor({ timeout: 8000 })
+    await page.keyboard.press('Escape')
+    await go('/timetable?tab=builder')
+    await page.getByText('Breaks & Lunch:').waitFor({ timeout: 10000 })
+    if (await page.getByRole('button', { name: /^Special class in / }).count())
+      throw new Error('Break chips still offer special classes')
+  }
+)
+await test(
+  {
+    id: 'CH-01',
+    module: 'School setup',
+    type: 'View',
+    title: 'Holiday can be for some classes only',
+    steps: 'School setup, Holidays, Add holiday, Applies to: Only some classes.',
+    expected: 'Class chips appear to choose the classes',
+  },
+  async () => {
+    await go('/setup?tab=holidays')
+    await page.getByRole('button', { name: /Add holiday/ }).first().click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('radio', { name: 'Only some classes' }).click()
+    await dialog.getByRole('checkbox').first().waitFor({ timeout: 8000 })
     await page.keyboard.press('Escape')
   }
 )

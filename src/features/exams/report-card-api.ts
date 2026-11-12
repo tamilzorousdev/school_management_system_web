@@ -62,6 +62,7 @@ export interface ReportCard {
     logo_url: string | null
     principal_name?: string | null
     signature_url?: string | null
+    seal_url?: string | null
   }
   student: {
     id: number

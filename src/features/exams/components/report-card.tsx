@@ -209,7 +209,7 @@ function Sheet({ data, fetching }: { data: ReportCardData; fetching: boolean }) 
                   className='max-h-16 max-w-full object-contain'
                 />
               ) : (
-                <span className='text-center text-[9px] font-medium leading-tight text-slate-400'>
+                <span className='text-center text-[9px] leading-tight font-medium text-slate-400'>
                   School
                   <br />
                   Logo
@@ -219,7 +219,7 @@ function Sheet({ data, fetching }: { data: ReportCardData; fetching: boolean }) 
 
             <div className='flex flex-col justify-between bg-white'>
               <div className='border-b border-black px-3 py-2 text-center'>
-                <h1 className='text-[12px] font-bold uppercase tracking-wide text-[#E53E3E] sm:text-sm'>
+                <h1 className='text-[12px] font-bold tracking-wide text-[#E53E3E] uppercase sm:text-sm'>
                   {school.name}
                 </h1>
               </div>
@@ -235,7 +235,7 @@ function Sheet({ data, fetching }: { data: ReportCardData; fetching: boolean }) 
 
           <div className='flex justify-center px-2 py-3'>
             <div className='min-w-[200px] px-3 py-1.5 text-center'>
-              <p className='text-[10px] font-bold uppercase text-[#111827] sm:text-[11px]'>
+              <p className='text-[10px] font-bold text-[#111827] uppercase sm:text-[11px]'>
                 {scope.term?.name
                   ? `${scope.term.name} Report Card`
                   : scope.exam?.name
@@ -331,12 +331,17 @@ function Sheet({ data, fetching }: { data: ReportCardData; fetching: boolean }) 
 
                   return (
                     <tr key={subj.subject_id}>
-                      <td className='border border-black py-1 text-center font-medium'>{idx + 1}</td>
+                      <td className='border border-black py-1 text-center font-medium'>
+                        {idx + 1}
+                      </td>
                       <td className='border border-black px-2 py-1 font-medium'>{subj.name}</td>
                       {isMultiExam ? (
                         <>
                           {subj.cells.map((cell, cIdx) => (
-                            <td key={cIdx} className='border border-black px-1 py-1 text-center font-medium'>
+                            <td
+                              key={cIdx}
+                              className='border border-black px-1 py-1 text-center font-medium'
+                            >
                               {cell?.is_absent
                                 ? 'AB'
                                 : cell?.marks != null
@@ -450,35 +455,54 @@ function Sheet({ data, fetching }: { data: ReportCardData; fetching: boolean }) 
             </table>
           </div>
 
-          <div className='grid grid-cols-3 gap-3 px-2 pb-2 pt-1 text-center text-[9px] sm:gap-6 sm:text-[10px]'>
+          <div className='grid grid-cols-4 gap-2 px-2 pt-1 pb-2 text-center text-[9px] sm:gap-4 sm:text-[10px]'>
             <div>
               <p className='h-4 truncate font-medium text-[#111827]'>
                 {student.class_teacher || ''}
               </p>
-              <div className='mx-auto my-1 h-9 w-24 border border-black bg-white sm:h-10 sm:w-28' />
+              <div className='my-1 flex h-14 items-center justify-center sm:h-16'>
+                <div className='h-9 w-full max-w-28 border border-black bg-white sm:h-10' />
+              </div>
               <p className='font-bold text-[#111827]'>Class Teacher</p>
+            </div>
+            <div>
+              <p className='h-4 truncate font-medium text-[#111827]'>{student.parent_name || ''}</p>
+              <div className='my-1 flex h-14 items-center justify-center sm:h-16'>
+                <div className='h-9 w-full max-w-28 border border-black bg-white sm:h-10' />
+              </div>
+              <p className='font-bold text-[#111827]'>Parents</p>
+            </div>
+            <div>
+              <p className='h-4' />
+              <div className='mx-auto my-1 flex size-14 items-center justify-center sm:size-16'>
+                {school.seal_url ? (
+                  <img
+                    src={school.seal_url}
+                    alt='School seal'
+                    className='size-full object-contain mix-blend-multiply'
+                  />
+                ) : (
+                  <span className='size-full rounded-full border border-dashed border-black/40' />
+                )}
+              </div>
+              <p className='font-bold text-[#111827]'>School Seal</p>
             </div>
             <div>
               <p className='h-4 truncate font-medium text-[#111827]'>
                 {school.principal_name || 'Meenakshi Sundaram'}
               </p>
-              <div className='mx-auto my-1 flex h-9 w-24 items-center justify-center border border-black bg-white p-0.5 sm:h-10 sm:w-28'>
-                {school.signature_url && (
-                  <img
-                    src={school.signature_url}
-                    alt='Principal Signature'
-                    className='size-full object-contain mix-blend-multiply'
-                  />
-                )}
+              <div className='my-1 flex h-14 items-center justify-center sm:h-16'>
+                <div className='flex h-9 w-full max-w-28 items-center justify-center border border-black bg-white p-0.5 sm:h-10'>
+                  {school.signature_url && (
+                    <img
+                      src={school.signature_url}
+                      alt='Principal Signature'
+                      className='size-full object-contain mix-blend-multiply'
+                    />
+                  )}
+                </div>
               </div>
               <p className='font-bold text-[#111827]'>Principal</p>
-            </div>
-            <div>
-              <p className='h-4 truncate font-medium text-[#111827]'>
-                {student.parent_name || ''}
-              </p>
-              <div className='mx-auto my-1 h-9 w-24 border border-black bg-white sm:h-10 sm:w-28' />
-              <p className='font-bold text-[#111827]'>Parents</p>
             </div>
           </div>
 

@@ -23,6 +23,7 @@ import { Section } from '@/features/setup/components/setup-shared'
 import { formatDate } from '@/lib/format'
 import { staffApi, useStaffBank, useStaffMutation, type StaffDetail } from '../api'
 import { GENDER_LABELS, LANGUAGE_OPTIONS, STAFF_DOCUMENT_TYPES, STAFF_TYPE_LABELS } from '../labels'
+import { TeacherSpecialClasses } from '@/features/performance/components/teacher-special-classes'
 import { LoadBar } from './load-bar'
 import { BankModal, QualificationsModal } from './staff-profile-modals'
 
@@ -173,6 +174,11 @@ export function ClassesTab({ staff }: { staff: StaffDetail }) {
                   : `${staff.max_periods_per_week - staff.load_periods} periods free across ${staff.sections_count} ${staff.sections_count === 1 ? 'section' : 'sections'}.`}
               </p>
             </div>
+          </Section>
+        )}
+        {teaching && (
+          <Section title='Special and extra classes'>
+            <TeacherSpecialClasses userId={staff.user_id} />
           </Section>
         )}
         <Section title='Class teacher of'>

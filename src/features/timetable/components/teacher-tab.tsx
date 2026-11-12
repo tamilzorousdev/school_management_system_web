@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTeachers } from '@/features/setup/api'
 import { cn } from '@/lib/utils'
+import { useSpecialClasses } from '@/features/performance/api'
+import { hoursText, weeklySpecialLoad } from '@/features/performance/special-week'
 import { useTeacherTimetable } from '../api'
 import { SlotContent, WeekGrid } from './week-grid'
 
@@ -20,6 +22,8 @@ export function TeacherTab({
   const teachers = useTeachers()
   const timetable = useTeacherTimetable(teacherId)
   const data = timetable.data?.teacher.id === teacherId ? timetable.data : undefined
+  const specials = useSpecialClasses({ teacher_user_id: teacherId })
+  const extra = weeklySpecialLoad(teacherId ? (specials.data ?? []) : [])
 
   useShortcut('app.refresh', () => void timetable.refetch())
 
@@ -40,7 +44,14 @@ export function TeacherTab({
           highlightSelected={false}
           className='sm:w-64'
         />
-        {data && <Badge tone='info'>{data.periods_per_week} periods a week</Badge>}
+        {data && <Badge tone='info'>{data.periods_per_week} regular periods a week</Badge>}
+        {data && (
+          <Badge tone={extra.sessions ? 'warning' : 'neutral'}>
+            {extra.sessions
+              ? `${extra.sessions} special ${extra.sessions === 1 ? 'class' : 'classes'} a week · ${hoursText(extra.minutes)}`
+              : 'No special classes'}
+          </Badge>
+        )}
       </div>
       {!teacherId ? (
         <Card>
@@ -73,6 +84,8 @@ export function TeacherTab({
                 lines={[`Class ${slot.section.name}`, slot.room]}
               />
             )}
+            specials={specials.data ?? []}
+            showSection
           />
         </Card>
       )}

@@ -89,7 +89,11 @@ export function StudentsTab({
   const summary = data?.summary
   const allRows = data?.sections ?? []
   const rows = allRows.filter((row) =>
-    filter === 'missed' ? row.missed : filter === 'not_marked' ? !row.marked && row.total > 0 : true
+    filter === 'missed'
+      ? row.missed
+      : filter === 'not_marked'
+        ? !row.marked && !row.holiday && row.total > 0
+        : true
   )
   const open = allRows.find((row) => row.section_id === sectionId)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -202,12 +206,17 @@ export function StudentsTab({
     {
       key: 'status',
       header: 'Status',
-      cell: (row) => (
-        <div className='grid gap-1'>
-          <MarkedBadge row={row} />
-          <SessionDots row={row} />
-        </div>
-      ),
+      cell: (row) =>
+        row.holiday ? (
+          <Badge tone='info' className='max-w-48 truncate'>
+            Holiday · {row.holiday}
+          </Badge>
+        ) : (
+          <div className='grid gap-1'>
+            <MarkedBadge row={row} />
+            <SessionDots row={row} />
+          </div>
+        ),
     },
     {
       key: 'counts',

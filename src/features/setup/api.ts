@@ -72,6 +72,8 @@ export interface Holiday {
   name: string
   type: HolidayType
   days: number
+  whole_school: boolean
+  classes: { id: number; name: string }[]
 }
 
 export interface SetupSummary {
@@ -205,6 +207,7 @@ export interface HolidayInput {
   end_date?: string | null
   name: string
   type: HolidayType
+  class_ids?: number[] | null
 }
 
 export function useSetupSummary() {

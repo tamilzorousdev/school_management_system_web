@@ -391,7 +391,8 @@ function ExamForm({
             <h4 className='text-sm font-bold'>Subject exam dates</h4>
           </div>
           <p className='text-xs text-muted-foreground'>
-            Assign specific exam dates for each subject below (must be between {start || 'first day'} and {end || 'last day'}).
+            Assign specific exam dates for each subject below (must be between{' '}
+            {start || 'first day'} and {end || 'last day'}).
           </p>
 
           <div className='grid gap-3'>
