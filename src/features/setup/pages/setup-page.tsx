@@ -3,6 +3,7 @@ import {
   BookOpen,
   CalendarDays,
   CalendarRange,
+  IdCard,
   LayoutGrid,
   MessagesSquare,
   School,
@@ -17,6 +18,7 @@ import { useSetupSummary } from '../api'
 import { ClassesTab } from '../components/classes-tab'
 import { CommunicationTab } from '../components/communication-settings'
 import { HolidaysTab } from '../components/holidays-tab'
+import { IdCardDesignTab } from '../components/id-card-design-tab'
 import { ProfileTab } from '../components/profile-tab'
 import { SubjectsTab } from '../components/subjects-tab'
 import { YearsTab } from '../components/years-tab'
@@ -85,6 +87,7 @@ export function SetupPage() {
         label='School setup sections'
         value={tab}
         onChange={go}
+        wrap
         tabs={[
           { value: 'profile', label: 'School profile', icon: School },
           { value: 'years', label: 'Academic years', icon: CalendarRange },
@@ -97,6 +100,7 @@ export function SetupPage() {
           { value: 'subjects', label: 'Subjects', icon: BookOpen, count: data?.subjects },
           { value: 'holidays', label: 'Holidays', icon: CalendarDays },
           { value: 'communication', label: 'Diary and chat', icon: MessagesSquare },
+          { value: 'id-cards', label: 'Student ID card', icon: IdCard },
         ]}
       />
       {tab === 'profile' && <ProfileTab canManage={canManage} />}
@@ -105,6 +109,7 @@ export function SetupPage() {
       {tab === 'subjects' && <SubjectsTab canManage={canManage} />}
       {tab === 'holidays' && <HolidaysTab canManage={canManage} />}
       {tab === 'communication' && <CommunicationTab canManage={canManage} />}
+      {tab === 'id-cards' && <IdCardDesignTab canManage={canManage} />}
     </Page>
   )
 }

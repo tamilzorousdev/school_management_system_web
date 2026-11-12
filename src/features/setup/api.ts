@@ -1,5 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginated } from '@/lib/api/client'
+import type { IdCardDesign } from '@/lib/id-card-design'
+import type { IdCardLayout } from '@/lib/id-card-layout'
 
 export interface Term {
   id: number
@@ -109,6 +111,12 @@ export interface SchoolProfile {
   signature_url: string | null
   seal_file_id: number | null
   seal_url: string | null
+  id_card_design?: IdCardDesign | null
+  id_card_front_file_id?: number | null
+  id_card_front_url?: string | null
+  id_card_back_file_id?: number | null
+  id_card_back_url?: string | null
+  id_card_layout?: IdCardLayout | null
   timezone: string
   is_active: boolean
   student_count: number

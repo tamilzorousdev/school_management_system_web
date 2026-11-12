@@ -41,6 +41,7 @@ type Modal =
   | { kind: 'create' }
   | { kind: 'edit'; exam: Exam }
   | { kind: 'papers'; exam: Exam }
+  | { kind: 'papers'; exam: Exam }
   | { kind: 'publish'; exam: Exam }
   | { kind: 'delete'; exam: Exam }
 

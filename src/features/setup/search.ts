@@ -7,6 +7,7 @@ export const SETUP_TABS = [
   'subjects',
   'holidays',
   'communication',
+  'id-cards',
 ] as const
 export type SetupTab = (typeof SETUP_TABS)[number]
 
