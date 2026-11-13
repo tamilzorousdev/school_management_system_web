@@ -75,6 +75,8 @@ export interface ReportCard {
     parent_name: string | null
     class_teacher: string | null
     photo_url: string | null
+    class_teacher_signature_url?: string | null
+    parent_signature_url?: string | null
   }
   scope: {
     kind: 'year' | 'term' | 'exam'

@@ -461,14 +461,30 @@ function Sheet({ data, fetching }: { data: ReportCardData; fetching: boolean }) 
                 {student.class_teacher || ''}
               </p>
               <div className='my-1 flex h-14 items-center justify-center sm:h-16'>
-                <div className='h-9 w-full max-w-28 border border-black bg-white sm:h-10' />
+                <div className='flex h-9 w-full max-w-28 items-center justify-center border border-black bg-white p-0.5 sm:h-10'>
+                  {student.class_teacher_signature_url && (
+                    <img
+                      src={student.class_teacher_signature_url}
+                      alt='Class Teacher Signature'
+                      className='size-full object-contain mix-blend-multiply'
+                    />
+                  )}
+                </div>
               </div>
               <p className='font-bold text-[#111827]'>Class Teacher</p>
             </div>
             <div>
               <p className='h-4 truncate font-medium text-[#111827]'>{student.parent_name || ''}</p>
               <div className='my-1 flex h-14 items-center justify-center sm:h-16'>
-                <div className='h-9 w-full max-w-28 border border-black bg-white sm:h-10' />
+                <div className='flex h-9 w-full max-w-28 items-center justify-center border border-black bg-white p-0.5 sm:h-10'>
+                  {student.parent_signature_url && (
+                    <img
+                      src={student.parent_signature_url}
+                      alt='Parent Signature'
+                      className='size-full object-contain mix-blend-multiply'
+                    />
+                  )}
+                </div>
               </div>
               <p className='font-bold text-[#111827]'>Parents</p>
             </div>

@@ -3960,6 +3960,22 @@ await TA(
 )
 
 await TA(
+  'API-GRC-08',
+  'Attendance restriction',
+  'GET',
+  '/mobile/teacher/sections/{id}/attendance/current',
+  'Teacher opens current attendance for a section they do not teach in active period',
+  '403 NOT_PERIOD_TEACHER',
+  async () => {
+    const result = await teacher('GET', '/mobile/teacher/sections/9/attendance/current')
+    expectStatus(result, 403)
+    if (result.body.error !== 'NOT_PERIOD_TEACHER')
+      throw new Error(`Expected NOT_PERIOD_TEACHER but got ${result.body.error}`)
+    return `403 ${result.body.error}`
+  }
+)
+
+await TA(
   'API-PPR-01',
   'Parent profile',
   'GET',
@@ -5482,6 +5498,128 @@ await TA(
     if (!found || !found.is_group || found.title !== 'Class 6A Parents Group')
       throw new Error('Group chat missing from chat audit')
     return `200; found in audit with ${found.member_count} members`
+  }
+)
+
+let testTeacherSigFileId = null
+let testParentSigFileId = null
+
+await TA(
+  'API-SIG-01',
+  'Teacher signature',
+  'PUT',
+  '/mobile/teacher/signature',
+  'Teacher uploads official signature image',
+  '200; returns updated signature_file_id and signed signature_url',
+  async () => {
+    const png1x1 = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    )
+    const form = new FormData()
+    form.append('file', new Blob([png1x1], { type: 'image/png' }), 'teacher_sig.png')
+    form.append('purpose', 'school_logo')
+    const up = await fetch(`${API}/files`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${teacherToken}` },
+      body: form,
+    }).then((r) => r.json())
+    testTeacherSigFileId = up.data.id
+    const res = await teacher('PUT', '/mobile/teacher/signature', {
+      signature_file_id: testTeacherSigFileId,
+    })
+    expectStatus(res, 200)
+    if (res.body.data.signature_file_id !== testTeacherSigFileId || !res.body.data.signature_url) {
+      throw new Error('Teacher signature not updated')
+    }
+    return `200; file ${testTeacherSigFileId} mapped`
+  }
+)
+
+await TA(
+  'API-SIG-02',
+  'Parent signature',
+  'PUT',
+  '/mobile/parent/signature',
+  'Parent uploads official signature image',
+  '200; returns updated signature_file_id and signed signature_url',
+  async () => {
+    const png1x1 = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    )
+    const form = new FormData()
+    form.append('file', new Blob([png1x1], { type: 'image/png' }), 'parent_sig.png')
+    form.append('purpose', 'school_logo')
+    const up = await fetch(`${API}/files`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${parentToken}` },
+      body: form,
+    }).then((r) => r.json())
+    testParentSigFileId = up.data.id
+    const res = await parent('PUT', '/mobile/parent/signature', {
+      signature_file_id: testParentSigFileId,
+    })
+    expectStatus(res, 200)
+    if (res.body.data.signature_file_id !== testParentSigFileId || !res.body.data.signature_url) {
+      throw new Error('Parent signature not updated')
+    }
+    return `200; file ${testParentSigFileId} mapped`
+  }
+)
+
+await TA(
+  'API-SIG-03',
+  'Section signatures status',
+  'GET',
+  '/mobile/teacher/sections/{id}/report-cards/signatures',
+  'Class teacher retrieves signature status summary and students list',
+  '200; returns summary counts (total, teacher_signed, parent_signed, parent_pending) and student roster',
+  async () => {
+    if (!teacherSection) return 'Skipped: no teacher section'
+    const res = await teacher('GET', `/mobile/teacher/sections/${teacherSection}/report-cards/signatures`)
+    expectStatus(res, 200)
+    const { summary, students } = res.body.data
+    if (typeof summary.total !== 'number' || !Array.isArray(students)) {
+      throw new Error('Invalid section signatures response')
+    }
+    return `200; ${summary.total} students, ${summary.parent_pending} pending parent sign`
+  }
+)
+
+await TA(
+  'API-SIG-04',
+  'Teacher sign section report cards',
+  'POST',
+  '/mobile/teacher/sections/{id}/report-cards/sign',
+  'Class teacher batch signs all students report cards for current scope',
+  '201; returns updated section signatures status',
+  async () => {
+    if (!teacherSection) return 'Skipped: no teacher section'
+    const res = await teacher('POST', `/mobile/teacher/sections/${teacherSection}/report-cards/sign`, {})
+    expectStatus(res, 201)
+    const { summary } = res.body.data
+    if (summary.teacher_signed === 0) throw new Error('Teacher signature not recorded')
+    return `201; ${summary.teacher_signed}/${summary.total} signed by teacher`
+  }
+)
+
+await TA(
+  'API-SIG-05',
+  'Parent sign child report card',
+  'POST',
+  '/mobile/parent/children/{id}/report-card/sign',
+  'Parent acknowledges and signs child report card',
+  '201; returns full report card with parent signature and signed flag',
+  async () => {
+    if (!chatKid) return 'Skipped: no child'
+    const res = await parent('POST', `/mobile/parent/children/${chatKid.id}/report-card/sign`, {})
+    expectStatus(res, 201)
+    const { student } = res.body.data
+    if (!student.parent_signed || !student.parent_signature_url) {
+      throw new Error('Parent signature not present in returned card')
+    }
+    return `201; signed at ${student.parent_signed_at}`
   }
 )
 
