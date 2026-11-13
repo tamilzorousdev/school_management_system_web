@@ -1,5 +1,12 @@
 import * as React from 'react'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X } from 'lucide-react'
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  X,
+} from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
@@ -8,7 +15,10 @@ export interface DatePickerProps {
   name?: string
   value?: string // 'YYYY-MM-DD'
   defaultValue?: string
-  onChange?: ((value: string) => void) | ((value: string, e: React.ChangeEvent<HTMLInputElement>) => void) | ((e: React.ChangeEvent<HTMLInputElement>) => void)
+  onChange?:
+    | ((value: string) => void)
+    | ((value: string, e: React.ChangeEvent<HTMLInputElement>) => void)
+    | ((e: React.ChangeEvent<HTMLInputElement>) => void)
   min?: string // 'YYYY-MM-DD'
   max?: string // 'YYYY-MM-DD'
   placeholder?: string
@@ -22,13 +32,33 @@ export interface DatePickerProps {
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 
 const MONTH_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ]
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -84,12 +114,17 @@ export function DatePicker({
   const [open, setOpen] = React.useState(false)
 
   // Controlled or uncontrolled value
-  const selectedIso = value !== undefined ? (value || '') : (defaultValue || '')
+  const selectedIso = value !== undefined ? value || '' : defaultValue || ''
   const selectedParsed = React.useMemo(() => parseDate(selectedIso), [selectedIso])
 
   const today = React.useMemo(() => {
     const d = new Date()
-    return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate(), iso: toIso(d.getFullYear(), d.getMonth(), d.getDate()) }
+    return {
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      day: d.getDate(),
+      iso: toIso(d.getFullYear(), d.getMonth(), d.getDate()),
+    }
   }, [])
 
   // Explicit user navigation state (when browsing away from selected date)
@@ -113,10 +148,16 @@ export function DatePicker({
   }
 
   const isMonthDisabled = (monthIdx: number) => {
-    if (minParsed && (viewYear < minParsed.year || (viewYear === minParsed.year && monthIdx < minParsed.month))) {
+    if (
+      minParsed &&
+      (viewYear < minParsed.year || (viewYear === minParsed.year && monthIdx < minParsed.month))
+    ) {
       return true
     }
-    if (maxParsed && (viewYear > maxParsed.year || (viewYear === maxParsed.year && monthIdx > maxParsed.month))) {
+    if (
+      maxParsed &&
+      (viewYear > maxParsed.year || (viewYear === maxParsed.year && monthIdx > maxParsed.month))
+    ) {
       return true
     }
     return false
@@ -153,11 +194,11 @@ export function DatePicker({
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (onChange as any)(newIso, eventLike)
+      ;(onChange as any)(newIso, eventLike)
     } catch (err) {
       if (err instanceof TypeError) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (onChange as any)(eventLike)
+        ;(onChange as any)(eventLike)
       } else {
         throw err
       }
@@ -270,14 +311,15 @@ export function DatePicker({
             'group relative flex w-full min-w-0 items-center justify-between rounded-md border border-input bg-card px-3 text-left text-sm shadow-xs transition-all outline-none select-none',
             'hover:bg-muted/30 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30',
             disabled && 'cursor-not-allowed opacity-50',
-            invalid && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20',
+            invalid &&
+              'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20',
             size === 'sm' ? 'h-8 text-xs' : 'h-9',
             className
           )}
           aria-required={required}
           aria-invalid={invalid}
         >
-          <div className='flex items-center gap-2 overflow-hidden truncate'>
+          <div className='flex items-center gap-2 truncate overflow-hidden'>
             <CalendarIcon
               className={cn(
                 'shrink-0 text-muted-foreground/80 transition-colors group-hover:text-primary',
@@ -286,7 +328,7 @@ export function DatePicker({
               )}
             />
             {selectedIso ? (
-              <span className='font-medium text-foreground tracking-tight'>
+              <span className='font-medium tracking-tight text-foreground'>
                 {formatDisplay(selectedIso)}
               </span>
             ) : (
@@ -294,7 +336,7 @@ export function DatePicker({
             )}
           </div>
 
-          <div className='flex items-center gap-1 shrink-0 ml-1.5'>
+          <div className='ml-1.5 flex shrink-0 items-center gap-1'>
             {clearable && selectedIso && !disabled && (
               <span
                 role='button'
@@ -307,7 +349,7 @@ export function DatePicker({
                     handleClear()
                   }
                 }}
-                className='rounded-sm p-0.5 text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors'
+                className='rounded-sm p-0.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground'
               >
                 <X className='h-3.5 w-3.5' />
               </span>
@@ -319,24 +361,24 @@ export function DatePicker({
       <PopoverContent
         align={align}
         sideOffset={6}
-        className='z-50 w-[310px] rounded-2xl border border-border/80 bg-card p-3.5 shadow-xl text-card-foreground outline-none select-none'
+        className='z-50 w-[310px] rounded-2xl border border-border/80 bg-card p-3.5 text-card-foreground shadow-xl outline-none select-none'
       >
         {/* Top Header */}
-        <div className='flex items-center justify-between pb-3 border-b border-border/60 mb-3'>
+        <div className='mb-3 flex items-center justify-between border-b border-border/60 pb-3'>
           {viewMode === 'days' && (
             <>
               <div className='flex items-center gap-1'>
                 <button
                   type='button'
                   onClick={() => setViewMode('months')}
-                  className='rounded-lg px-2 py-1 text-sm font-bold text-foreground hover:bg-muted/70 hover:text-primary transition-colors flex items-center gap-1'
+                  className='flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold text-foreground transition-colors hover:bg-muted/70 hover:text-primary'
                 >
                   {MONTH_NAMES[viewMonth]}
                 </button>
                 <button
                   type='button'
                   onClick={() => setViewMode('years')}
-                  className='rounded-lg px-2 py-1 text-sm font-bold text-foreground hover:bg-muted/70 hover:text-primary transition-colors flex items-center gap-1'
+                  className='flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold text-foreground transition-colors hover:bg-muted/70 hover:text-primary'
                 >
                   {viewYear}
                 </button>
@@ -347,7 +389,7 @@ export function DatePicker({
                   type='button'
                   onClick={() => setNavYear(viewYear - 1)}
                   title='Previous year'
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronsLeft className='h-3.5 w-3.5' />
                 </button>
@@ -355,7 +397,7 @@ export function DatePicker({
                   type='button'
                   onClick={prevMonth}
                   title='Previous month'
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronLeft className='h-4 w-4' />
                 </button>
@@ -363,7 +405,7 @@ export function DatePicker({
                   type='button'
                   onClick={nextMonth}
                   title='Next month'
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronRight className='h-4 w-4' />
                 </button>
@@ -371,7 +413,7 @@ export function DatePicker({
                   type='button'
                   onClick={() => setNavYear(viewYear + 1)}
                   title='Next year'
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronsRight className='h-3.5 w-3.5' />
                 </button>
@@ -384,7 +426,7 @@ export function DatePicker({
               <button
                 type='button'
                 onClick={() => setViewMode('years')}
-                className='rounded-lg px-2 py-1 text-sm font-bold text-foreground hover:bg-muted/70 hover:text-primary transition-colors'
+                className='rounded-lg px-2 py-1 text-sm font-bold text-foreground transition-colors hover:bg-muted/70 hover:text-primary'
               >
                 {viewYear}
               </button>
@@ -393,14 +435,14 @@ export function DatePicker({
                 <button
                   type='button'
                   onClick={() => setNavYear(viewYear - 1)}
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronLeft className='h-4 w-4' />
                 </button>
                 <button
                   type='button'
                   onClick={() => setNavYear(viewYear + 1)}
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronRight className='h-4 w-4' />
                 </button>
@@ -418,14 +460,14 @@ export function DatePicker({
                 <button
                   type='button'
                   onClick={() => setNavYear(viewYear - 12)}
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronsLeft className='h-4 w-4' />
                 </button>
                 <button
                   type='button'
                   onClick={() => setNavYear(viewYear + 12)}
-                  className='h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors'
+                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
                 >
                   <ChevronsRight className='h-4 w-4' />
                 </button>
@@ -438,12 +480,12 @@ export function DatePicker({
         {viewMode === 'days' && (
           <div>
             {/* Weekday labels */}
-            <div className='grid grid-cols-7 gap-1 text-center mb-1.5'>
+            <div className='mb-1.5 grid grid-cols-7 gap-1 text-center'>
               {WEEKDAYS.map((day, idx) => (
                 <span
                   key={day}
                   className={cn(
-                    'text-[11px] font-semibold tracking-wider text-muted-foreground/80 py-0.5',
+                    'py-0.5 text-[11px] font-semibold tracking-wider text-muted-foreground/80',
                     (idx === 0 || idx === 6) && 'text-muted-foreground/60'
                   )}
                 >
@@ -467,12 +509,15 @@ export function DatePicker({
                     disabled={disabledCell}
                     onClick={() => handleSelectDay(cell.year, cell.month, cell.day)}
                     className={cn(
-                      'relative h-8 w-8 mx-auto flex items-center justify-center text-xs rounded-xl font-medium transition-all',
+                      'relative mx-auto flex h-8 w-8 items-center justify-center rounded-xl text-xs font-medium transition-all',
                       cell.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/35',
-                      !isSelected && !disabledCell && 'hover:bg-accent hover:text-accent-foreground',
-                      isSelected && 'bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90',
-                      isToday && !isSelected && 'ring-1.5 ring-primary/60 text-primary font-bold',
-                      disabledCell && 'cursor-not-allowed opacity-20 pointer-events-none'
+                      !isSelected &&
+                        !disabledCell &&
+                        'hover:bg-accent hover:text-accent-foreground',
+                      isSelected &&
+                        'bg-primary font-semibold text-primary-foreground shadow-xs hover:bg-primary/90',
+                      isToday && !isSelected && 'ring-1.5 font-bold text-primary ring-primary/60',
+                      disabledCell && 'pointer-events-none cursor-not-allowed opacity-20'
                     )}
                   >
                     {cell.day}
@@ -504,12 +549,12 @@ export function DatePicker({
                     setViewMode('days')
                   }}
                   className={cn(
-                    'h-11 rounded-xl text-xs font-semibold transition-all flex items-center justify-center',
+                    'flex h-11 items-center justify-center rounded-xl text-xs font-semibold transition-all',
                     isSelected
                       ? 'bg-primary text-primary-foreground shadow-xs'
-                      : 'hover:bg-muted text-foreground',
-                    isCurrent && !isSelected && 'border border-primary/50 text-primary font-bold',
-                    disabledMonth && 'cursor-not-allowed opacity-25 pointer-events-none'
+                      : 'text-foreground hover:bg-muted',
+                    isCurrent && !isSelected && 'border border-primary/50 font-bold text-primary',
+                    disabledMonth && 'pointer-events-none cursor-not-allowed opacity-25'
                   )}
                 >
                   {name}
@@ -537,12 +582,12 @@ export function DatePicker({
                     setViewMode('months')
                   }}
                   className={cn(
-                    'h-11 rounded-xl text-xs font-semibold transition-all flex items-center justify-center',
+                    'flex h-11 items-center justify-center rounded-xl text-xs font-semibold transition-all',
                     isSelected
                       ? 'bg-primary text-primary-foreground shadow-xs'
-                      : 'hover:bg-muted text-foreground',
-                    isCurrent && !isSelected && 'border border-primary/50 text-primary font-bold',
-                    disabledYear && 'cursor-not-allowed opacity-25 pointer-events-none'
+                      : 'text-foreground hover:bg-muted',
+                    isCurrent && !isSelected && 'border border-primary/50 font-bold text-primary',
+                    disabledYear && 'pointer-events-none cursor-not-allowed opacity-25'
                   )}
                 >
                   {yr}
@@ -553,11 +598,11 @@ export function DatePicker({
         )}
 
         {/* Bottom Quick Bar */}
-        <div className='flex items-center justify-between pt-2.5 mt-2.5 border-t border-border/60 text-xs'>
+        <div className='mt-2.5 flex items-center justify-between border-t border-border/60 pt-2.5 text-xs'>
           <button
             type='button'
             onClick={() => handleClear()}
-            className='text-muted-foreground/70 hover:text-destructive px-2 py-1 rounded-md hover:bg-destructive/10 transition-colors font-medium'
+            className='rounded-md px-2 py-1 font-medium text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive'
           >
             Clear
           </button>
@@ -565,7 +610,7 @@ export function DatePicker({
           <button
             type='button'
             onClick={handleToday}
-            className='text-primary hover:text-primary/80 font-bold px-2 py-1 rounded-md hover:bg-primary/10 transition-colors'
+            className='rounded-md px-2 py-1 font-bold text-primary transition-colors hover:bg-primary/10 hover:text-primary/80'
           >
             Today
           </button>

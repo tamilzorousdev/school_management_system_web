@@ -151,7 +151,9 @@ export function GuardianFields({
       <label className='flex items-center justify-between gap-3 text-sm'>
         <span className='grid'>
           <span className='font-semibold'>Authorized for campus pickup</span>
-          <span className='text-xs text-muted-foreground'>Permitted to collect student from school</span>
+          <span className='text-xs text-muted-foreground'>
+            Permitted to collect student from school
+          </span>
         </span>
         <Switch
           checked={value.can_pickup ?? true}

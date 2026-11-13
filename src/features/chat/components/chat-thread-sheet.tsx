@@ -7,7 +7,9 @@ import {
   Flag,
   MessagesSquare,
   Paperclip,
+  Plus,
   ShieldCheck,
+  Users,
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { ErrorState } from '@/components/common/display'
@@ -29,6 +31,7 @@ import { toApiError } from '@/lib/api/errors'
 import { formatDateTime, formatTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { chatApi, useChatAction, useChatThread, type AuditMessage } from '../api'
+import { AddGroupMembersModal } from './chat-group-modal'
 
 const AUDIT_ACTION: Record<string, string> = {
   viewed_thread: 'opened the conversation',
@@ -39,6 +42,7 @@ const AUDIT_ACTION: Record<string, string> = {
   undid_delete: 'undid a delete',
   deleted_for_me: 'deleted a message for themselves',
   cleared_chat: 'cleared the chat for themselves',
+  edited_message: 'edited a message',
 }
 
 const length = (seconds: number | null) =>
@@ -56,6 +60,7 @@ export function ChatThreadSheet({
   const thread = useChatThread(shownId)
   const data = thread.data
   const [hiding, setHiding] = useState<AuditMessage | null>(null)
+  const [addingMembers, setAddingMembers] = useState(false)
   const unhide = useChatAction((id: number) => chatApi.unhide(id))
   const dismiss = useChatAction((id: number) => chatApi.dismiss(id))
 
@@ -83,26 +88,32 @@ export function ChatThreadSheet({
             <SheetHeader>
               <div className='flex items-center gap-3'>
                 <span className='grid size-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary'>
-                  <MessagesSquare className='size-5' />
+                  {data.is_group ? <Users className='size-5' /> : <MessagesSquare className='size-5' />}
                 </span>
                 <div className='grid min-w-0 gap-0.5'>
                   <SheetTitle className='break-words'>
-                    {data.teacher.name} ↔ {data.parent.name}
+                    {data.is_group
+                      ? data.title || 'Group chat'
+                      : `${data.teacher?.name ?? '—'} ↔ ${data.parent?.name ?? '—'}`}
                   </SheetTitle>
                   <SheetDescription>
-                    About {data.student.name}
-                    {data.class_section ? ` · ${data.class_section}` : ''} · {data.parent.label}
+                    {data.is_group
+                      ? `${data.member_count ?? data.members?.length ?? 0} members · Group chat`
+                      : `About ${data.student?.name ?? '—'}${data.class_section ? ` · ${data.class_section}` : ''} · ${data.parent?.label ?? 'Parent'}`}
                   </SheetDescription>
                   <div className='mt-1 flex flex-wrap gap-1.5'>
+                    {data.is_group && <Badge tone='info'>Group</Badge>}
                     <Badge tone='neutral'>{data.message_count} messages</Badge>
                     {data.open_flags > 0 && (
                       <Badge tone='danger' dot>
                         {data.open_flags} reported
                       </Badge>
                     )}
-                    <Badge tone='info'>
-                      Office hours {data.office_hours.start}–{data.office_hours.end}
-                    </Badge>
+                    {data.office_hours && (
+                      <Badge tone='info'>
+                        Office hours {data.office_hours.start}–{data.office_hours.end}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -113,6 +124,29 @@ export function ChatThreadSheet({
                 Opening this conversation is recorded. Hidden text is shown here for the office
                 only.
               </p>
+
+              {data.is_group && (
+                <Block
+                  title={`Members (${data.members?.length ?? data.member_count ?? 0})`}
+                  actions={
+                    <Button variant='outline' size='sm' onClick={() => setAddingMembers(true)}>
+                      <Plus className='size-3 mr-1' /> Add member
+                    </Button>
+                  }
+                >
+                  <div className='flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 rounded-md border bg-muted/20'>
+                    {data.members && data.members.length > 0 ? (
+                      data.members.map((m) => (
+                        <Badge key={m.id} tone='neutral' className='text-xs'>
+                          {m.name} {m.is_creator ? '★' : ''} ({m.role})
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className='text-xs text-muted-foreground p-1'>No members listed</span>
+                    )}
+                  </div>
+                </Block>
+              )}
 
               <Block title='Conversation'>
                 <ol className='grid gap-2'>
@@ -134,7 +168,22 @@ export function ChatThreadSheet({
                           <span className='font-semibold text-foreground'>
                             {message.sender.name}
                           </span>
+                          <Badge tone='neutral' className='text-[10px] py-0 px-1 capitalize'>
+                            {message.sender_party}
+                          </Badge>
                           <span className='tabular'>{formatDateTime(message.sent_at)}</span>
+                          {message.edited && (
+                            <span
+                              className='text-muted-foreground italic'
+                              title={
+                                message.edited_at
+                                  ? `Edited ${formatDateTime(message.edited_at)}`
+                                  : 'Edited'
+                              }
+                            >
+                              (edited)
+                            </span>
+                          )}
                           {message.read_at && (
                             <span
                               className='inline-flex items-center gap-0.5 text-success'
@@ -285,6 +334,17 @@ export function ChatThreadSheet({
             {hiding && (
               <HideModal message={hiding} onOpenChange={(open) => !open && setHiding(null)} />
             )}
+            {data && (
+              <AddGroupMembersModal
+                open={addingMembers}
+                threadId={data.id}
+                existingMemberUserIds={data.members?.map((m) => m.user_id) ?? []}
+                onClose={() => {
+                  setAddingMembers(false)
+                  void thread.refetch()
+                }}
+              />
+            )}
           </>
         )}
       </SheetContent>
@@ -346,10 +406,21 @@ function HideModal({
   )
 }
 
-function Block({ title, children }: { title: string; children: ReactNode }) {
+function Block({
+  title,
+  actions,
+  children,
+}: {
+  title: string
+  actions?: ReactNode
+  children: ReactNode
+}) {
   return (
     <section className='grid gap-3'>
-      <h3 className='text-xs font-bold tracking-wider text-muted-foreground uppercase'>{title}</h3>
+      <div className='flex items-center justify-between'>
+        <h3 className='text-xs font-bold tracking-wider text-muted-foreground uppercase'>{title}</h3>
+        {actions}
+      </div>
       {children}
     </section>
   )

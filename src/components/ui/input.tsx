@@ -12,8 +12,20 @@ export function Input({ className, type = 'text', ...props }: React.ComponentPro
       <DatePicker
         id={props.id}
         name={props.name}
-        value={typeof props.value === 'string' ? props.value : (props.value !== undefined ? String(props.value) : undefined)}
-        defaultValue={typeof props.defaultValue === 'string' ? props.defaultValue : (props.defaultValue !== undefined ? String(props.defaultValue) : undefined)}
+        value={
+          typeof props.value === 'string'
+            ? props.value
+            : props.value !== undefined
+              ? String(props.value)
+              : undefined
+        }
+        defaultValue={
+          typeof props.defaultValue === 'string'
+            ? props.defaultValue
+            : props.defaultValue !== undefined
+              ? String(props.defaultValue)
+              : undefined
+        }
         min={typeof props.min === 'string' ? props.min : undefined}
         max={typeof props.max === 'string' ? props.max : undefined}
         placeholder={props.placeholder || 'dd-mm-yyyy'}

@@ -434,18 +434,20 @@ export function ChatScreen({ base, party }: { base: string; party: AppParty }) {
                 onClick={() => setOpen(thread)}
                 className='flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-3 text-left shadow-xs hover:bg-muted/50'
               >
-                <Avatar name={thread.other.name} className='size-11 shrink-0' />
+                <Avatar name={thread.is_group ? (thread.title || 'Group') : (thread.other?.name ?? '')} className='size-11 shrink-0' />
                 <span className='grid min-w-0 flex-1 gap-0.5'>
                   <span className='flex items-center justify-between gap-2'>
-                    <span className='truncate text-sm font-bold'>{thread.other.name}</span>
+                    <span className='truncate text-sm font-bold'>{thread.is_group ? (thread.title || 'Group chat') : (thread.other?.name ?? '—')}</span>
                     <span className='shrink-0 text-[11px] text-muted-foreground'>
                       {thread.last_message_at ? timeAgo(thread.last_message_at) : ''}
                     </span>
                   </span>
                   <span className='truncate text-[11px] text-muted-foreground'>
-                    {party === 'parent'
-                      ? (thread.other.label ?? 'Teacher')
-                      : `${thread.student.name}${thread.class_section ? ` · ${thread.class_section}` : ''}`}
+                    {thread.is_group
+                      ? `${thread.member_count ?? 0} members`
+                      : party === 'parent'
+                        ? (thread.other?.label ?? 'Teacher')
+                        : `${thread.student?.name ?? '—'}${thread.class_section ? ` · ${thread.class_section}` : ''}`}
                   </span>
                   <span className='flex items-center justify-between gap-2'>
                     <span className='truncate text-xs'>
@@ -544,12 +546,13 @@ function ThreadView({
         onClick={onBack}
         className='flex items-center gap-3 rounded-2xl border bg-card p-3 text-left shadow-xs hover:bg-muted/50'
       >
-        <Avatar name={thread.other.name} className='size-10 shrink-0' />
+        <Avatar name={thread.is_group ? (thread.title || 'Group') : (thread.other?.name ?? '')} className='size-10 shrink-0' />
         <span className='grid min-w-0 flex-1'>
-          <span className='truncate text-sm font-bold'>{thread.other.name}</span>
+          <span className='truncate text-sm font-bold'>{thread.is_group ? (thread.title || 'Group chat') : (thread.other?.name ?? '—')}</span>
           <span className='truncate text-[11px] text-muted-foreground'>
-            About {thread.student.name}
-            {thread.class_section ? ` · ${thread.class_section}` : ''}
+            {thread.is_group
+              ? `${thread.member_count ?? 0} members`
+              : `About ${thread.student?.name ?? '—'}${thread.class_section ? ` · ${thread.class_section}` : ''}`}
           </span>
         </span>
         <span className='text-xs font-semibold text-primary'>All chats</span>

@@ -14,19 +14,39 @@ export interface ChatPerson extends Ref {
   label: string | null
 }
 
+export interface ChatMember {
+  id: number
+  user_id: number
+  name: string
+  role: string
+  is_creator: boolean
+  joined_at: string
+}
+
+export interface ChatDirectoryUser {
+  id: number
+  name: string
+  role: string
+  label?: string
+}
+
 export interface ChatThread {
   id: number
-  teacher: ChatPerson
-  parent: ChatPerson
-  other: ChatPerson
-  student: Ref
+  is_group?: boolean
+  title?: string | null
+  member_count?: number
+  members?: ChatMember[]
+  teacher: ChatPerson | null
+  parent: ChatPerson | null
+  other: ChatPerson | null
+  student: Ref | null
   class_section: string | null
   last_message_at: string | null
   last_message_preview: string | null
   unread: number
   message_count: number
   open_flags: number
-  office_hours: { start: string; end: string; open_now: boolean; next_open_at: string | null }
+  office_hours?: { start: string; end: string; open_now: boolean; next_open_at: string | null }
   academic_year: Ref
   archived: boolean
 }
@@ -52,6 +72,8 @@ export interface AuditMessage {
   hidden_reason: string | null
   kind: 'text' | 'image' | 'file' | 'voice' | 'video'
   duration_seconds: number | null
+  edited: boolean
+  edited_at: string | null
   deleted: boolean
   deleted_at: string | null
   deleted_by: Ref | null
@@ -106,6 +128,13 @@ export const chatApi = {
     api.post<AuditMessage>(`/admin/chat/messages/${id}/hide`, { reason }),
   unhide: (id: number) => api.post<AuditMessage>(`/admin/chat/messages/${id}/unhide`),
   dismiss: (id: number) => api.post<AuditMessage>(`/admin/chat/messages/${id}/dismiss-flag`),
+  createGroup: (dto: { name: string; member_user_ids: number[] }) =>
+    api.post<ChatThread>('/admin/chat/groups', dto),
+  addMembers: (id: number, dto: { user_ids: number[] }) =>
+    api.post<ChatMember[]>(`/admin/chat/groups/${id}/members`, dto),
+  members: (id: number) => api.get<ChatMember[]>(`/admin/chat/groups/${id}/members`),
+  directory: (search?: string) =>
+    api.get<ChatDirectoryUser[]>('/admin/chat/directory', { search }),
 }
 
 export function useChatThreads(params: ChatThreadParams) {
@@ -139,6 +168,31 @@ export function useChatAction<TInput>(fn: (input: TInput) => Promise<AuditMessag
   return useMutation({
     mutationFn: fn,
     meta: { silent: true },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
+  })
+}
+
+export function useChatDirectory(search?: string) {
+  return useQuery({
+    queryKey: ['chat-directory', search],
+    queryFn: () => chatApi.directory(search),
+    staleTime: 60_000,
+  })
+}
+
+export function useCreateGroup() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: chatApi.createGroup,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
+  })
+}
+
+export function useAddGroupMembers() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ threadId, userIds }: { threadId: number; userIds: number[] }) =>
+      chatApi.addMembers(threadId, { user_ids: userIds }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
   })
 }

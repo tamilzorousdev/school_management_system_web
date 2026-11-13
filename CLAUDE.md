@@ -50,10 +50,19 @@ src/
 Each feature has `api.ts` with types, query keys, an `xxxApi` object and hooks:
 
 ```ts
-export const studentKeys = { all: ['students'] as const, list: (p: Params) => [...studentKeys.all, 'list', p] as const }
-export const studentsApi = { list: (p: Params) => api.get<Paginated<Student>>('/admin/students', { ...p }) }
+export const studentKeys = {
+  all: ['students'] as const,
+  list: (p: Params) => [...studentKeys.all, 'list', p] as const,
+}
+export const studentsApi = {
+  list: (p: Params) => api.get<Paginated<Student>>('/admin/students', { ...p }),
+}
 export function useStudents(p: Params) {
-  return useQuery({ queryKey: studentKeys.list(p), queryFn: () => studentsApi.list(p), placeholderData: keepPreviousData })
+  return useQuery({
+    queryKey: studentKeys.list(p),
+    queryFn: () => studentsApi.list(p),
+    placeholderData: keepPreviousData,
+  })
 }
 ```
 

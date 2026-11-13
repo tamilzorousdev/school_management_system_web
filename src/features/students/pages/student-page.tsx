@@ -3,6 +3,7 @@ import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
   Bus,
+  Camera,
   ChevronDown,
   FileSpreadsheet,
   FileText,
@@ -21,6 +22,7 @@ import {
   Star,
   Medal,
   Trophy,
+  Trash2,
   UserRound,
   UsersRound,
   X,
@@ -48,9 +50,15 @@ import { StudentResults } from '@/features/exams/components/student-results'
 import { StudentFeesTab } from '@/features/fees/components/student-fees-tab'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
-import { openFile } from '@/lib/files'
+import { filesApi, openFile } from '@/lib/files'
 import { formatDate } from '@/lib/format'
-import { studentsApi, useStudent, useStudentMutation, type StudentDetail } from '../api'
+import {
+  studentsApi,
+  useStudent,
+  useStudentMutation,
+  type StudentDetail,
+  type StudentInput,
+} from '../api'
 import { AchievementsTab } from '../components/achievements-tab'
 import { BehaviourTab } from '../components/behaviour-tab'
 import { ExitModal } from '../components/exit-modal'
@@ -94,7 +102,42 @@ export function StudentPage() {
   const data = student.data
   const [modal, setModal] = useState<'edit' | 'class' | 'exit' | 'reissue' | null>(null)
   const [printing, setPrinting] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
   const reissue = useStudentMutation(() => recordsApi.reissueCard(id))
+  const updateStudent = useStudentMutation((patch: Partial<StudentInput>) =>
+    studentsApi.update(id, patch)
+  )
+
+  const uploadPhoto = async (file: File | undefined) => {
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alerts.error('Choose a PNG, JPG or WEBP image')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alerts.error('Photo must be 5 MB or smaller')
+      return
+    }
+    setPhotoUploading(true)
+    try {
+      const uploaded = await filesApi.upload(file, 'student_photo')
+      await updateStudent.mutateAsync({ photo_file_id: uploaded.id })
+      alerts.success('Student photo updated')
+    } catch (caught) {
+      alerts.error(toApiError(caught).message)
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const removePhoto = async () => {
+    try {
+      await updateStudent.mutateAsync({ photo_file_id: null })
+      alerts.success('Student photo removed')
+    } catch (caught) {
+      alerts.error(toApiError(caught).message)
+    }
+  }
   const go = (next: StudentTab) =>
     navigate({
       to: '/students/$studentId',
@@ -147,11 +190,34 @@ export function StudentPage() {
         <div className='h-16 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent sm:h-20' />
         <div className='-mt-10 grid gap-4 px-4 pb-4 sm:-mt-12 sm:px-6 sm:pb-5 lg:flex lg:items-end lg:justify-between'>
           <div className='flex items-end gap-4'>
-            <Avatar
-              name={data.full_name}
-              size='lg'
-              className='size-20 border-4 border-card text-xl shadow-sm sm:size-24'
-            />
+            <div className='relative'>
+              <Avatar
+                name={data.full_name}
+                src={data.photo_url}
+                size='lg'
+                className='size-20 border-4 border-card text-xl shadow-sm sm:size-24'
+              />
+              {canManage && (
+                <label
+                  htmlFor='student-avatar-upload'
+                  className='absolute -right-1 -bottom-1 grid size-7 cursor-pointer place-items-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition hover:bg-primary/90'
+                  title={data.photo_url ? 'Change photo' : 'Upload photo'}
+                >
+                  <Camera className='size-3.5' />
+                  <input
+                    id='student-avatar-upload'
+                    type='file'
+                    accept='image/jpeg,image/png,image/webp'
+                    className='sr-only'
+                    disabled={photoUploading}
+                    onChange={(event) => {
+                      void uploadPhoto(event.target.files?.[0])
+                      event.target.value = ''
+                    }}
+                  />
+                </label>
+              )}
+            </div>
             <div className='grid min-w-0 gap-1 pb-1'>
               <h1 className='truncate text-xl font-extrabold tracking-tight sm:text-2xl'>
                 {data.full_name}
@@ -220,6 +286,21 @@ export function StudentPage() {
                     >
                       <FileText />
                       Transfer certificate
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem asChild>
+                    <label
+                      htmlFor='student-avatar-upload'
+                      className='flex cursor-pointer items-center gap-2'
+                    >
+                      <Camera className='size-4' />
+                      {data.photo_url ? 'Change photo' : 'Upload photo'}
+                    </label>
+                  </DropdownMenuItem>
+                  {data.photo_url && (
+                    <DropdownMenuItem destructive onSelect={() => void removePhoto()}>
+                      <Trash2 className='size-4' />
+                      Remove photo
                     </DropdownMenuItem>
                   )}
                   {active && <DropdownMenuSeparator />}

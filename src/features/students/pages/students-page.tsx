@@ -159,7 +159,7 @@ export function StudentsPage() {
       sortKey: 'name',
       cell: (student) => (
         <div className='flex items-center gap-3'>
-          <Avatar name={student.full_name} />
+          <Avatar name={student.full_name} src={student.photo_url} />
           <div className='grid min-w-0'>
             <span className='truncate font-bold'>{student.full_name}</span>
             <span className='truncate font-mono text-xs text-muted-foreground'>
@@ -379,7 +379,7 @@ export function StudentsPage() {
           }}
           card={(student) => (
             <div className='flex items-start gap-3'>
-              <Avatar name={student.full_name} />
+              <Avatar name={student.full_name} src={student.photo_url} />
               <div className='grid min-w-0 flex-1 gap-1'>
                 <div className='flex items-start justify-between gap-2'>
                   <span className='truncate font-bold'>{student.full_name}</span>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Plus } from 'lucide-react'
+import { Camera, Plus, Trash2 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
+import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { useClasses, useSections } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
+import { filesApi } from '@/lib/files'
 import {
   studentsApi,
   useStudentMutation,
@@ -53,6 +55,8 @@ interface Draft {
   disability_category: string
   disability_percentage: string
   is_adopted: boolean
+  photo_file_id: number | null
+  photo_url: string | null
 }
 
 const emptyDraft = (): Draft => ({
@@ -75,6 +79,8 @@ const emptyDraft = (): Draft => ({
   disability_category: '',
   disability_percentage: '',
   is_adopted: false,
+  photo_file_id: null,
+  photo_url: null,
 })
 
 export function StudentFormModal({
@@ -119,6 +125,7 @@ function StudentForm({
   onDone: (id: number) => void
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [caregiverType, setCaregiverType] = useState<'parents' | 'guardian'>('parents')
   const [guardians, setGuardians] = useState<GuardianDraft[]>([emptyGuardian('father')])
   const [primary, setPrimary] = useState(0)
@@ -196,6 +203,7 @@ function StudentForm({
             ? Number(draft.disability_percentage)
             : null,
         is_adopted: draft.is_adopted,
+        photo_file_id: draft.photo_file_id,
         guardians: guardians.map(({ key: _key, ...guardian }, index) => ({
           ...guardian,
           email: guardian.email || null,
@@ -253,6 +261,64 @@ function StudentForm({
           Student
         </h3>
         <div className='grid gap-3 sm:grid-cols-2'>
+          <div className='flex items-center gap-4 sm:col-span-2'>
+            <Avatar
+              name={draft.first_name || 'New Student'}
+              src={draft.photo_url}
+              size='lg'
+              className='size-16 text-lg'
+            />
+            <div className='flex flex-wrap items-center gap-2'>
+              <label className='inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold hover:bg-accent hover:text-accent-foreground'>
+                <Camera className='size-3.5' />
+                {uploadingPhoto ? 'Uploading…' : draft.photo_url ? 'Change photo' : 'Upload photo'}
+                <input
+                  type='file'
+                  accept='image/jpeg,image/png,image/webp'
+                  className='sr-only'
+                  disabled={uploadingPhoto}
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    event.target.value = ''
+                    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                      alerts.error('Choose a PNG, JPG or WEBP image')
+                      return
+                    }
+                    if (file.size > 5 * 1024 * 1024) {
+                      alerts.error('Photo must be 5 MB or smaller')
+                      return
+                    }
+                    setUploadingPhoto(true)
+                    try {
+                      const uploaded = await filesApi.upload(file, 'student_photo')
+                      setDraft((current) => ({
+                        ...current,
+                        photo_file_id: uploaded.id,
+                        photo_url: uploaded.url,
+                      }))
+                    } catch (error) {
+                      alerts.error(toApiError(error).message)
+                    } finally {
+                      setUploadingPhoto(false)
+                    }
+                  }}
+                />
+              </label>
+              {draft.photo_url && (
+                <button
+                  type='button'
+                  onClick={() =>
+                    setDraft((current) => ({ ...current, photo_file_id: null, photo_url: null }))
+                  }
+                  className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
+                >
+                  <Trash2 className='size-3.5' />
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
           <FormField id='first_name' label='First name' required error={errors.first_name}>
             <Input
               id='first_name'
@@ -527,11 +593,7 @@ function StudentForm({
                 if (caregiverType === 'parents') {
                   const hasMother = guardians.some((g) => g.relation === 'mother')
                   const hasFather = guardians.some((g) => g.relation === 'father')
-                  const nextRelation = !hasMother
-                    ? 'mother'
-                    : !hasFather
-                      ? 'father'
-                      : 'grandparent'
+                  const nextRelation = !hasMother ? 'mother' : !hasFather ? 'father' : 'grandparent'
                   setGuardians((current) => [...current, emptyGuardian(nextRelation)])
                 } else {
                   setGuardians((current) => [...current, emptyGuardian('other')])

@@ -38,6 +38,7 @@ export interface StudentListItem {
   section: Ref | null
   roll_no: number | null
   photo_file_id: number | null
+  photo_url?: string | null
   guardians: GuardianSummary[]
   sibling_count: number
 }
@@ -111,6 +112,7 @@ export interface StudentInput {
   admission_date?: string
   class_id: number
   section_id?: number | null
+  photo_file_id?: number | null
   guardians: GuardianInput[]
 }
 

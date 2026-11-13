@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { CircleOff, Clock, Flag, MessagesSquare, MessageSquareText } from 'lucide-react'
+import { CircleOff, Clock, Flag, MessagesSquare, MessageSquareText, Plus, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -11,12 +13,14 @@ import { formatDateTime } from '@/lib/format'
 import { useChatInsights, useChatThreads, type ChatThread } from '../api'
 import { useAcademicYears } from '@/features/setup/api'
 import { ChatThreadSheet } from '../components/chat-thread-sheet'
+import { ChatGroupModal } from '../components/chat-group-modal'
 import type { ChatSearch } from '../search'
 
 const route = getRouteApi('/_app/chat')
 const LIMIT = 20
 
 export function ChatPage() {
+  const [creatingGroup, setCreatingGroup] = useState(false)
   const search = route.useSearch()
   const navigate = useNavigate({ from: '/chat' })
   const { thread: openId, year, ...filters } = search
@@ -83,25 +87,40 @@ export function ChatPage() {
   const columns: Column<ChatThread>[] = [
     {
       key: 'people',
-      header: 'Teacher ↔ Parent',
-      cell: (row) => (
-        <span className='grid min-w-0'>
-          <span className='font-semibold break-words'>
-            {row.teacher.name} ↔ {row.parent.name}
+      header: 'Conversation',
+      cell: (row) =>
+        row.is_group ? (
+          <span className='grid min-w-0'>
+            <span className='font-semibold break-words flex items-center gap-1.5'>
+              <Users className='size-4 text-primary shrink-0' />
+              {row.title || 'Group chat'}
+            </span>
+            <span className='text-xs text-muted-foreground'>Group conversation</span>
           </span>
-          <span className='text-xs text-muted-foreground capitalize'>{row.parent.label}</span>
-        </span>
-      ),
+        ) : (
+          <span className='grid min-w-0'>
+            <span className='font-semibold break-words'>
+              {row.teacher?.name ?? '—'} ↔ {row.parent?.name ?? '—'}
+            </span>
+            <span className='text-xs text-muted-foreground capitalize'>{row.parent?.label ?? 'Parent'}</span>
+          </span>
+        ),
     },
     {
       key: 'student',
       header: 'About',
-      cell: (row) => (
-        <span className='grid min-w-0'>
-          <span className='font-medium break-words'>{row.student.name}</span>
-          <span className='text-xs text-muted-foreground'>{row.class_section ?? 'Not placed'}</span>
-        </span>
-      ),
+      cell: (row) =>
+        row.is_group ? (
+          <span className='grid min-w-0'>
+            <span className='font-medium break-words'>{row.member_count ?? 0} members</span>
+            <Badge tone='info' className='w-fit text-[10px] mt-0.5'>Group</Badge>
+          </span>
+        ) : (
+          <span className='grid min-w-0'>
+            <span className='font-medium break-words'>{row.student?.name ?? '—'}</span>
+            <span className='text-xs text-muted-foreground'>{row.class_section ?? 'Not placed'}</span>
+          </span>
+        ),
     },
     {
       key: 'last',
@@ -148,6 +167,12 @@ export function ChatPage() {
         eyebrow='Communication'
         title='Chat audit'
         description='Teacher and parent conversations by academic year. Read them, handle reported messages and hide what does not belong. Every visit is recorded.'
+        actions={
+          <Button onClick={() => setCreatingGroup(true)}>
+            <Plus className='size-4' />
+            Create group
+          </Button>
+        }
       />
 
       {viewingPast && (
@@ -168,7 +193,7 @@ export function ChatPage() {
           <SearchBox
             value={search.search ?? ''}
             onChange={(value) => setSearch({ search: value || undefined })}
-            placeholder='Teacher, parent or student'
+            placeholder='Group name, teacher, parent or student'
             label='Search conversations'
           />
           <FilterSelect
@@ -206,8 +231,15 @@ export function ChatPage() {
           card={(row) => (
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
-                <span className='font-bold break-words'>
-                  {row.teacher.name} ↔ {row.parent.name}
+                <span className='font-bold break-words flex items-center gap-1.5'>
+                  {row.is_group ? (
+                    <>
+                      <Users className='size-4 text-primary shrink-0' />
+                      {row.title || 'Group chat'}
+                    </>
+                  ) : (
+                    `${row.teacher?.name ?? '—'} ↔ ${row.parent?.name ?? '—'}`
+                  )}
                 </span>
                 {row.open_flags > 0 && (
                   <Badge tone='danger' dot>
@@ -216,7 +248,9 @@ export function ChatPage() {
                 )}
               </div>
               <span className='text-xs text-muted-foreground'>
-                About {row.student.name} · {row.message_count} messages
+                {row.is_group
+                  ? `${row.member_count ?? 0} members · ${row.message_count} messages`
+                  : `About ${row.student?.name ?? '—'} · ${row.message_count} messages`}
               </span>
               <span className='line-clamp-1 text-sm'>{row.last_message_preview ?? ''}</span>
             </div>
@@ -232,6 +266,12 @@ export function ChatPage() {
       </Card>
 
       <ChatThreadSheet threadId={openId ?? null} onClose={() => open(undefined)} />
+
+      <ChatGroupModal
+        open={creatingGroup}
+        onClose={() => setCreatingGroup(false)}
+        onCreated={(id) => open(id)}
+      />
     </Page>
   )
 }

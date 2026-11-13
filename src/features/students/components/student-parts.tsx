@@ -1,11 +1,14 @@
 import { useState, type ReactNode } from 'react'
+import { Camera, Trash2 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
+import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
 import { Input } from '@/components/ui/input'
 import { useClasses, useSections } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
+import { filesApi } from '@/lib/files'
 import {
   studentsApi,
   useStudentMutation,
@@ -248,7 +251,10 @@ export function EditStudentModal({
     pincode: student.pincode ?? '',
     previous_school: student.previous_school ?? '',
     identification_marks: student.identification_marks ?? '',
+    photo_file_id: student.photo_file_id,
+    photo_url: student.photo_url ?? null,
   })
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useStudentMutation(() =>
     studentsApi.update(student.id, {
@@ -263,6 +269,7 @@ export function EditStudentModal({
       pincode: draft.pincode.trim() || null,
       previous_school: draft.previous_school.trim() || null,
       identification_marks: draft.identification_marks.trim() || null,
+      photo_file_id: draft.photo_file_id,
     })
   )
   const set = (field: keyof typeof draft, value: string) => {
@@ -312,6 +319,64 @@ export function EditStudentModal({
             {errors.root}
           </p>
         )}
+        <div className='flex items-center gap-4 sm:col-span-2'>
+          <Avatar
+            name={draft.first_name || student.full_name}
+            src={draft.photo_url}
+            size='lg'
+            className='size-16 text-lg'
+          />
+          <div className='flex flex-wrap items-center gap-2'>
+            <label className='inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold hover:bg-accent hover:text-accent-foreground'>
+              <Camera className='size-3.5' />
+              {uploadingPhoto ? 'Uploading…' : draft.photo_url ? 'Change photo' : 'Upload photo'}
+              <input
+                type='file'
+                accept='image/jpeg,image/png,image/webp'
+                className='sr-only'
+                disabled={uploadingPhoto}
+                onChange={async (event) => {
+                  const file = event.target.files?.[0]
+                  if (!file) return
+                  event.target.value = ''
+                  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                    alerts.error('Choose a PNG, JPG or WEBP image')
+                    return
+                  }
+                  if (file.size > 5 * 1024 * 1024) {
+                    alerts.error('Photo must be 5 MB or smaller')
+                    return
+                  }
+                  setUploadingPhoto(true)
+                  try {
+                    const uploaded = await filesApi.upload(file, 'student_photo')
+                    setDraft((current) => ({
+                      ...current,
+                      photo_file_id: uploaded.id,
+                      photo_url: uploaded.url,
+                    }))
+                  } catch (error) {
+                    alerts.error(toApiError(error).message)
+                  } finally {
+                    setUploadingPhoto(false)
+                  }
+                }}
+              />
+            </label>
+            {draft.photo_url && (
+              <button
+                type='button'
+                onClick={() =>
+                  setDraft((current) => ({ ...current, photo_file_id: null, photo_url: null }))
+                }
+                className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
+              >
+                <Trash2 className='size-3.5' />
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
         <FormField id='edit-first' label='First name' required error={errors.first_name}>
           <Input
             id='edit-first'

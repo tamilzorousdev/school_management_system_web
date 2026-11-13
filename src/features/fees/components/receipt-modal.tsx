@@ -11,13 +11,7 @@ import { useMe } from '@/features/auth/api'
 import { receiptUrl, type FeePayment } from '../api'
 import { PAYMENT_MODES, amountInWords, openReceipt, rupees } from '../labels'
 
-export function ReceiptModal({
-  payment,
-  onClose,
-}: {
-  payment: FeePayment
-  onClose: () => void
-}) {
+export function ReceiptModal({ payment, onClose }: { payment: FeePayment; onClose: () => void }) {
   const me = useMe()
   const school = me.data?.school
   const [downloading, setDownloading] = useState(false)
@@ -79,7 +73,7 @@ export function ReceiptModal({
               Receipt #{payment.receipt_no} · {formatDate(payment.paid_on)}
             </p>
           </div>
-          <Badge tone='success' className='px-3 py-1 text-xs font-bold uppercase tracking-wider'>
+          <Badge tone='success' className='px-3 py-1 text-xs font-bold tracking-wider uppercase'>
             Paid · Official Copy
           </Badge>
         </div>
@@ -150,7 +144,7 @@ export function ReceiptModal({
             </div>
 
             {payment.reference && (
-              <div className='sm:col-span-2 rounded-md border border-muted bg-muted/40 p-2.5'>
+              <div className='rounded-md border border-muted bg-muted/40 p-2.5 sm:col-span-2'>
                 <span className='text-[11px] font-semibold tracking-wider text-muted-foreground uppercase'>
                   Reference / Verification Details
                 </span>
@@ -160,7 +154,7 @@ export function ReceiptModal({
               </div>
             )}
 
-            <div className='sm:col-span-2 flex items-center justify-between border-t pt-2 text-xs'>
+            <div className='flex items-center justify-between border-t pt-2 text-xs sm:col-span-2'>
               <span className='text-muted-foreground'>Remaining Invoice Balance:</span>
               <span className='tabular font-bold text-foreground'>
                 {rupees(payment.invoice_balance)}
@@ -192,9 +186,7 @@ export function ReceiptModal({
               <span className='text-[10px] font-bold tracking-wider text-muted-foreground uppercase'>
                 Official Verification
               </span>
-              <p className='font-semibold text-foreground'>
-                {school?.name ?? 'School Management'}
-              </p>
+              <p className='font-semibold text-foreground'>{school?.name ?? 'School Management'}</p>
               <p className='text-[11px] text-muted-foreground'>
                 Computer-generated official receipt
               </p>

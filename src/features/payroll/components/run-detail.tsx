@@ -225,7 +225,9 @@ export function RunDetail({
       header: 'Employee',
       cell: (slip) => (
         <div className='grid min-w-0'>
-          <span className='truncate font-bold text-foreground hover:text-[#0D7A53]'>{slip.name}</span>
+          <span className='truncate font-bold text-foreground hover:text-[#0D7A53]'>
+            {slip.name}
+          </span>
           <span className='font-mono text-xs text-muted-foreground'>{slip.employee_no}</span>
         </div>
       ),
@@ -377,7 +379,7 @@ export function RunDetail({
             description: 'Set salaries for your staff, then re-run this month.',
           }}
           card={(slip) => (
-            <div className='grid gap-2 cursor-pointer' onClick={() => setViewingSlip(slip)}>
+            <div className='grid cursor-pointer gap-2' onClick={() => setViewingSlip(slip)}>
               <div className='flex items-start justify-between gap-2'>
                 <span className='grid min-w-0'>
                   <span className='truncate font-bold text-[#0D7A53]'>{slip.name}</span>
@@ -426,9 +428,7 @@ export function RunDetail({
           onClose={() => setSettingSalary(null)}
         />
       )}
-      {viewingSlip && (
-        <PayslipModal slip={viewingSlip} onClose={() => setViewingSlip(null)} />
-      )}
+      {viewingSlip && <PayslipModal slip={viewingSlip} onClose={() => setViewingSlip(null)} />}
     </div>
   )
 }

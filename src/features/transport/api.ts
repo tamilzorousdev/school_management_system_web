@@ -235,8 +235,7 @@ export const transportApi = {
       student_ids: studentIds,
       mode,
     }),
-  riders: (params: RiderListParams) =>
-    api.get<Paginated<Rider>>(`${base}/students`, { ...params }),
+  riders: (params: RiderListParams) => api.get<Paginated<Rider>>(`${base}/students`, { ...params }),
   setRider: (studentId: number, input: RiderInput) =>
     api.put<Rider>(`/admin/students/${studentId}/transport`, input),
   removeRider: (studentId: number) => api.delete<null>(`/admin/students/${studentId}/transport`),

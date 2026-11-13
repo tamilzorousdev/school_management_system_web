@@ -90,7 +90,20 @@ const go = async (url) => {
 const see = async (text, scope = page, timeout = 8000) => {
   await scope.getByText(text).locator('visible=true').first().waitFor({ state: 'visible', timeout })
 }
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
 const pickDate = async (trigger, iso) => {
   if (!iso) {
     const clear = trigger.getByRole('button', { name: 'Clear date' })
@@ -101,16 +114,42 @@ const pickDate = async (trigger, iso) => {
   await trigger.click()
   const calendar = page.locator('[data-radix-popper-content-wrapper]').last()
   await calendar.waitFor({ state: 'visible', timeout: 5000 })
-  const shownMonth = (await calendar.getByRole('button', { name: new RegExp(`^(${MONTH_NAMES.join('|')})$`) }).first().innerText()).trim()
-  const shownYear = Number((await calendar.getByRole('button', { name: /^\d{4}$/ }).first().innerText()).trim())
+  const shownMonth = (
+    await calendar
+      .getByRole('button', { name: new RegExp(`^(${MONTH_NAMES.join('|')})$`) })
+      .first()
+      .innerText()
+  ).trim()
+  const shownYear = Number(
+    (
+      await calendar
+        .getByRole('button', { name: /^\d{4}$/ })
+        .first()
+        .innerText()
+    ).trim()
+  )
   let steps = (year - shownYear) * 12 + (month - 1 - MONTH_NAMES.indexOf(shownMonth))
-  while (steps >= 12) { await calendar.getByTitle('Next year').click(); steps -= 12 }
-  while (steps <= -12) { await calendar.getByTitle('Previous year').click(); steps += 12 }
-  while (steps > 0) { await calendar.getByTitle('Next month').click(); steps -= 1 }
-  while (steps < 0) { await calendar.getByTitle('Previous month').click(); steps += 1 }
+  while (steps >= 12) {
+    await calendar.getByTitle('Next year').click()
+    steps -= 12
+  }
+  while (steps <= -12) {
+    await calendar.getByTitle('Previous year').click()
+    steps += 12
+  }
+  while (steps > 0) {
+    await calendar.getByTitle('Next month').click()
+    steps -= 1
+  }
+  while (steps < 0) {
+    await calendar.getByTitle('Previous month').click()
+    steps += 1
+  }
   const days = calendar.getByRole('button', { name: String(day), exact: true })
   await (day >= 15 ? days.last() : days.first()).click()
-  await calendar.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => page.keyboard.press('Escape'))
+  await calendar
+    .waitFor({ state: 'hidden', timeout: 5000 })
+    .catch(() => page.keyboard.press('Escape'))
 }
 const fill = async (scope, label, value) => {
   const field = scope.getByLabel(label).first()
@@ -371,7 +410,8 @@ await test(
     type: 'Validation',
     title: 'Add holiday with nothing filled, then last day before first day',
     steps: 'Holidays → Add holiday → Add. Then date 2026-12-10 and open Last day.',
-    expected: 'Enter a name · Choose the date · days before 10 Dec cannot be picked as the last day',
+    expected:
+      'Enter a name · Choose the date · days before 10 Dec cannot be picked as the last day',
   },
   async () => {
     await go('/setup?tab=holidays')
@@ -381,7 +421,10 @@ await test(
     await see('Choose the date', dialog())
     await fill(dialog(), /^Name/, `RT Holiday ${RUN}`)
     await fill(dialog(), /^Date/, '2026-12-10')
-    await dialog().getByLabel(/^Last day/).first().click()
+    await dialog()
+      .getByLabel(/^Last day/)
+      .first()
+      .click()
     const calendar = page.locator('[data-radix-popper-content-wrapper]').last()
     await calendar.waitFor({ state: 'visible', timeout: 5000 })
     if (!(await calendar.getByRole('button', { name: '5', exact: true }).first().isDisabled()))
@@ -1227,7 +1270,10 @@ await D4(
   async () => {
     await go(`/attendance?tab=staff&date=${lastSchoolDay}`)
     await see('Staff check-ins')
-    await page.getByRole('button', { name: /^Correct attendance for/ }).first().click()
+    await page
+      .getByRole('button', { name: /^Correct attendance for/ })
+      .first()
+      .click()
     await click(dialog(), 'Save correction')
     await see('Give a reason of at least 3 characters', dialog())
   }
@@ -1239,7 +1285,8 @@ await D4(
     type: 'View',
     title: 'Admin leave requests show staff leave only',
     steps: 'Attendance, Leave requests.',
-    expected: 'Staff leave list with the note that class teachers approve student leave; no Student leave switch',
+    expected:
+      'Staff leave list with the note that class teachers approve student leave; no Student leave switch',
   },
   async () => {
     await go('/attendance?tab=leave')
@@ -1289,7 +1336,10 @@ await D4(
     expected: '"Choose a subject"',
   },
   async () => {
-    await page.getByRole('button', { name: /, empty$/ }).first().click()
+    await page
+      .getByRole('button', { name: /, empty$/ })
+      .first()
+      .click()
     await click(dialog(), 'Save period')
     await see('Choose a subject', dialog())
   }
@@ -1300,14 +1350,18 @@ await D4(
     module: 'Timetable',
     type: 'Validation',
     title: 'Teacher clash is blocked',
-    steps: 'Section 6 - B, Monday Period 1, any subject, teacher Priya Venkatesh (teaches 6 - A then), Save period.',
+    steps:
+      'Section 6 - B, Monday Period 1, any subject, teacher Priya Venkatesh (teaches 6 - A then), Save period.',
     expected: 'Toast "Priya Venkatesh already teaches 6 - A in period 1 on Monday"; nothing saved',
   },
   async () => {
     await go('/timetable?tab=builder')
     await pick(page, 'Class', /^Class 6$/)
     await pick(page, 'Section', /^Section B$/)
-    await page.getByRole('button', { name: /^Monday Period 1/ }).first().click()
+    await page
+      .getByRole('button', { name: /^Monday Period 1/ })
+      .first()
+      .click()
     await dialog().getByRole('combobox', { name: 'Subject' }).click()
     await page.getByRole('option').first().click()
     await pick(dialog(), 'Teacher', /^Priya Venkatesh$/)
@@ -1328,9 +1382,15 @@ await D4(
     await go('/timetable?tab=builder')
     await pick(page, 'Class', /^Class 12$/)
     await pick(page, 'Section', /^Section A$/)
-    await page.getByRole('button', { name: /^Monday Period 1/ }).first().click()
+    await page
+      .getByRole('button', { name: /^Monday Period 1/ })
+      .first()
+      .click()
     await dialog().getByRole('combobox', { name: 'Subject' }).click()
-    await page.getByRole('option', { name: /Mathematics/ }).first().waitFor({ timeout: 8000 })
+    await page
+      .getByRole('option', { name: /Mathematics/ })
+      .first()
+      .waitFor({ timeout: 8000 })
   }
 )
 await D4(
@@ -1404,9 +1464,14 @@ await D4(
   async () => {
     await go('/students')
     await click(page, /Bulk actions/)
-    await page.getByRole('menuitem', { name: /Promote/ }).first().click()
+    await page
+      .getByRole('menuitem', { name: /Promote/ })
+      .first()
+      .click()
     await pick(dialog(), 'Class this year', /^Class UKG/)
-    await dialog().getByRole('button', { name: /^Add .+ for \d{4}-\d{2}$/ }).waitFor({ timeout: 8000 })
+    await dialog()
+      .getByRole('button', { name: /^Add .+ for \d{4}-\d{2}$/ })
+      .waitFor({ timeout: 8000 })
   }
 )
 
@@ -1414,14 +1479,19 @@ const D5 = (meta, fn) => test({ ...meta, day: 'Day 5' }, fn)
 const sessionToken = async (file) => {
   const stateFile = path.join(ROOT, file)
   const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
-  const entry = state.origins.flatMap((origin) => origin.localStorage).find((item) => item.name === 'tz-session')
+  const entry = state.origins
+    .flatMap((origin) => origin.localStorage)
+    .find((item) => item.name === 'tz-session')
   const refreshed = await fetch(`${BASE}/api/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ refresh_token: JSON.parse(entry.value).refreshToken }),
   }).then((response) => response.json())
   if (!refreshed.data) throw new Error(`Session in ${file} has ended`)
-  entry.value = JSON.stringify({ accessToken: refreshed.data.access_token, refreshToken: refreshed.data.refresh_token })
+  entry.value = JSON.stringify({
+    accessToken: refreshed.data.access_token,
+    refreshToken: refreshed.data.refresh_token,
+  })
   fs.writeFileSync(stateFile, JSON.stringify(state, null, 2))
   return refreshed.data.access_token
 }
@@ -1433,7 +1503,9 @@ const asUser = (token) => async (method, url, body) =>
   }).then((response) => response.json())
 const nextSchoolDay5 = (() => {
   for (let offset = 1; ; offset += 1) {
-    const date = new Date(Date.now() + 5.5 * 3600 * 1000 + offset * 86400000).toISOString().slice(0, 10)
+    const date = new Date(Date.now() + 5.5 * 3600 * 1000 + offset * 86400000)
+      .toISOString()
+      .slice(0, 10)
     if (new Date(`${date}T00:00:00Z`).getUTCDay() !== 0) return date
   }
 })()
@@ -1461,8 +1533,11 @@ await D5(
         reason: 'Regression proxy check',
       })
       if (!applied.data) throw new Error(`Could not apply a test leave: ${applied.message}`)
-      const decided = await api('POST', `/admin/staff-leaves/${applied.data.id}/decision`, { status: 'approved' })
-      if (decided.data?.status !== 'approved') throw new Error(`Test leave not approved: ${decided.message}`)
+      const decided = await api('POST', `/admin/staff-leaves/${applied.data.id}/decision`, {
+        status: 'approved',
+      })
+      if (decided.data?.status !== 'approved')
+        throw new Error(`Test leave not approved: ${decided.message}`)
     }
     await go(`/substitutes?date=${nextSchoolDay5}`)
     await see('Teachers away')
@@ -1487,7 +1562,10 @@ await D5(
     expected: '"Choose a teacher to take this period"',
   },
   async () => {
-    await page.getByRole('button', { name: /^Assign a proxy or combine the class for period/ }).first().click()
+    await page
+      .getByRole('button', { name: /^Assign a proxy or combine the class for period/ })
+      .first()
+      .click()
     await click(dialog(), 'Assign proxy')
     await see('Choose a teacher to take this period', dialog())
   }
@@ -1502,13 +1580,27 @@ await D5(
     expected: 'Toast "… will take period …", then "… removed from period …"',
   },
   async () => {
-    await page.getByRole('button', { name: /^Assign a proxy or combine the class for period/ }).first().click()
-    await dialog().getByRole('radiogroup', { name: 'Free teachers' }).getByRole('radio').first().click()
+    await page
+      .getByRole('button', { name: /^Assign a proxy or combine the class for period/ })
+      .first()
+      .click()
+    await dialog()
+      .getByRole('radiogroup', { name: 'Free teachers' })
+      .getByRole('radio')
+      .first()
+      .click()
     await click(dialog(), 'Assign proxy')
     await see(/will take period/)
-    await page.getByRole('button', { name: /^Remove .+ from period/ }).first().click()
+    await page
+      .getByRole('button', { name: /^Remove .+ from period/ })
+      .first()
+      .click()
     const confirm = page.getByRole('alertdialog')
-    if (await confirm.count()) await confirm.getByRole('button', { name: /Remove/ }).last().click()
+    if (await confirm.count())
+      await confirm
+        .getByRole('button', { name: /Remove/ })
+        .last()
+        .click()
     await see(/removed from period/)
   }
 )
@@ -1528,7 +1620,10 @@ await D5(
   async () => {
     await go('/payroll?tab=salaries&salary=missing')
     await see('Not set')
-    await page.getByRole('button', { name: /^Set salary for/ }).first().click()
+    await page
+      .getByRole('button', { name: /^Set salary for/ })
+      .first()
+      .click()
     await click(dialog(), 'Save salary')
     await see('Enter the basic pay', dialog())
   }
@@ -1545,14 +1640,20 @@ await D5(
   async () => {
     await go('/payroll?tab=runs')
     const runs = await api('GET', '/admin/payroll/runs?limit=50')
-    const finals = new Set((runs.data?.items ?? runs.data ?? []).filter((run) => run.status === 'final').map((run) => run.month))
+    const finals = new Set(
+      (runs.data?.items ?? runs.data ?? [])
+        .filter((run) => run.status === 'final')
+        .map((run) => run.month)
+    )
     await page.getByRole('combobox', { name: 'Month' }).first().click()
     const options = await page.getByRole('option').allInnerTexts()
-    const label = options.map((text) => text.trim()).find((text) => {
-      const [name, year] = text.split(' ')
-      const month = `${year}-${String(new Date(`${name} 1, ${year}`).getMonth() + 1).padStart(2, '0')}`
-      return !finals.has(month)
-    })
+    const label = options
+      .map((text) => text.trim())
+      .find((text) => {
+        const [name, year] = text.split(' ')
+        const month = `${year}-${String(new Date(`${name} 1, ${year}`).getMonth() + 1).padStart(2, '0')}`
+        return !finals.has(month)
+      })
     if (!label) throw new Error('Every month in the list is already final')
     await page.getByRole('option', { name: label }).first().click()
     await click(page, 'Run payroll')
@@ -1575,9 +1676,15 @@ await D5(
   },
   async () => {
     await go('/payroll?tab=runs')
-    await page.getByRole('row', { name: /September 2026/ }).first().click()
+    await page
+      .getByRole('row', { name: /September 2026/ })
+      .first()
+      .click()
     await see('September 2026 payroll')
-    await page.getByRole('button', { name: /^Payslip PDF for/ }).first().waitFor({ timeout: 8000 })
+    await page
+      .getByRole('button', { name: /^Payslip PDF for/ })
+      .first()
+      .waitFor({ timeout: 8000 })
   }
 )
 
@@ -1641,9 +1748,17 @@ await D5(
   },
   async () => {
     await go('/transport?tab=routes')
-    await page.getByRole('row', { name: /R1/ }).getByRole('link', { name: 'Open builder' }).or(page.getByRole('row', { name: /R1/ }).getByRole('button', { name: 'Open builder' })).first().click()
+    await page
+      .getByRole('row', { name: /R1/ })
+      .getByRole('link', { name: 'Open builder' })
+      .or(page.getByRole('row', { name: /R1/ }).getByRole('button', { name: 'Open builder' }))
+      .first()
+      .click()
     await page.getByLabel('Route map').waitFor({ timeout: 8000 })
-    await page.getByLabel(/^Stop 1: /).first().waitFor({ timeout: 8000 })
+    await page
+      .getByLabel(/^Stop 1: /)
+      .first()
+      .waitFor({ timeout: 8000 })
     await page.getByLabel('Stops in travel order').waitFor()
     await see('All changes saved')
   }
@@ -1799,9 +1914,11 @@ await TA(
     const all = await rows.count()
     await passed.click()
     await page.waitForTimeout(400)
-    if ((await passed.getAttribute('aria-pressed')) !== 'true') throw new Error('Card did not turn on')
+    if ((await passed.getAttribute('aria-pressed')) !== 'true')
+      throw new Error('Card did not turn on')
     const results = await page.locator('table tbody tr td:nth-last-child(2)').allInnerTexts()
-    if (results.some((text) => text.trim() !== 'Pass')) throw new Error(`Non-pass rows shown: ${results.join(',')}`)
+    if (results.some((text) => text.trim() !== 'Pass'))
+      throw new Error(`Non-pass rows shown: ${results.join(',')}`)
     await passed.click()
     await page.waitForTimeout(400)
     if ((await rows.count()) !== all) throw new Error('All rows did not come back')
@@ -1826,7 +1943,9 @@ await TA(
       const list = el.parentElement.nextElementSibling
       return Math.round(list.getBoundingClientRect().top)
     })
-    const room = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight - scrollY)
+    const room = await page.evaluate(
+      () => document.documentElement.scrollHeight - innerHeight - scrollY
+    )
     if (Math.abs(top - 80) > 30 && room > 2) throw new Error(`List is ${top}px from the top`)
     await card.click()
   }
@@ -1935,7 +2054,10 @@ await TA(
   async () => {
     await go('/setup?tab=profile')
     await see('School logo')
-    await page.getByText(/Upload logo|Change logo/).first().waitFor({ timeout: 8000 })
+    await page
+      .getByText(/Upload logo|Change logo/)
+      .first()
+      .waitFor({ timeout: 8000 })
   }
 )
 await TA(
@@ -1975,8 +2097,10 @@ await TA(
       const nav = page.getByRole('navigation').first()
       await nav.getByRole('link', { name: 'Proxy' }).waitFor({ timeout: 10000 })
       await nav.getByRole('link', { name: 'Fees' }).waitFor()
-      if (await nav.getByRole('link', { name: 'Payroll' }).count()) throw new Error('Payroll is shown')
-      if (await nav.getByRole('link', { name: /Users/ }).count()) throw new Error('Users & access is shown')
+      if (await nav.getByRole('link', { name: 'Payroll' }).count())
+        throw new Error('Payroll is shown')
+      if (await nav.getByRole('link', { name: /Users/ }).count())
+        throw new Error('Users & access is shown')
     }
   )
   await TA(
@@ -1992,17 +2116,28 @@ await TA(
       await go('/substitutes')
       await see('Teachers away')
       await page.waitForTimeout(800)
-      if (await page.getByText('Only the Administrative officer (AO) or the super admin assigns proxies').count())
+      if (
+        await page
+          .getByText('Only the Administrative officer (AO) or the super admin assigns proxies')
+          .count()
+      )
         throw new Error('AO is told it cannot assign')
     }
   )
   const combineCase = await (async () => {
     for (let offset = 0; offset < 7; offset += 1) {
-      const day = new Date(Date.now() + 5.5 * 3600 * 1000 + offset * 86400000).toISOString().slice(0, 10)
+      const day = new Date(Date.now() + 5.5 * 3600 * 1000 + offset * 86400000)
+        .toISOString()
+        .slice(0, 10)
       const board = (await api('GET', `/admin/substitutes?date=${day}`)).data
       for (const period of (board?.teachers ?? []).flatMap((item) => item.periods)) {
         if (period.substitution_id) continue
-        const options = (await api('GET', `/admin/substitutes/combine-options?date=${day}&slot_id=${period.slot_id}`)).data
+        const options = (
+          await api(
+            'GET',
+            `/admin/substitutes/combine-options?date=${day}&slot_id=${period.slot_id}`
+          )
+        ).data
         if (options?.targets.length >= 1) return { day, period, options }
       }
     }
@@ -2020,7 +2155,12 @@ await TA(
     async () => {
       if (!combineCase) return
       await go(`/substitutes?date=${combineCase.day}`)
-      await page.getByRole('button', { name: `Assign a proxy or combine the class for period ${combineCase.period.period_no}` }).first().click()
+      await page
+        .getByRole('button', {
+          name: `Assign a proxy or combine the class for period ${combineCase.period.period_no}`,
+        })
+        .first()
+        .click()
       await dialog().getByRole('radio', { name: 'Combine class' }).click()
       await see(`${combineCase.options.students.boys} boys`, dialog())
       await dialog().getByRole('button', { name: 'Combine class' }).last().click()
@@ -2033,22 +2173,37 @@ await TA(
       module: 'Combine class',
       type: 'Add',
       title: 'Combine the whole class with another section, then remove',
-      steps: 'Combine class, Whole class to one section, choose the first section, Combine class; then Remove.',
+      steps:
+        'Combine class, Whole class to one section, choose the first section, Combine class; then Remove.',
       expected: '"Combined class" with "Whole class … →", then removed',
     },
     async () => {
       if (!combineCase) return
       const target = combineCase.options.targets[0].section.name
       await go(`/substitutes?date=${combineCase.day}`)
-      await page.getByRole('button', { name: `Assign a proxy or combine the class for period ${combineCase.period.period_no}` }).first().click()
+      await page
+        .getByRole('button', {
+          name: `Assign a proxy or combine the class for period ${combineCase.period.period_no}`,
+        })
+        .first()
+        .click()
       await dialog().getByRole('radio', { name: 'Combine class' }).click()
       await pick(dialog(), 'Sit with section', target)
       await dialog().getByRole('button', { name: 'Combine class' }).last().click()
       await see(/combined$/)
       await see(`→ ${target}`)
-      await page.getByRole('button', { name: `Remove the combined class from period ${combineCase.period.period_no}` }).first().click()
+      await page
+        .getByRole('button', {
+          name: `Remove the combined class from period ${combineCase.period.period_no}`,
+        })
+        .first()
+        .click()
       const confirm = page.getByRole('alertdialog')
-      if (await confirm.count()) await confirm.getByRole('button', { name: /Remove/ }).last().click()
+      if (await confirm.count())
+        await confirm
+          .getByRole('button', { name: /Remove/ })
+          .last()
+          .click()
       await see('Combined class removed')
     }
   )
@@ -2061,7 +2216,10 @@ await TA(
   const state = await superAdmin.context.storageState()
   for (const origin of state.origins)
     origin.localStorage = origin.localStorage.filter((item) => item.name !== 'tz-school-id')
-  const fresh = await browser.newContext({ viewport: { width: 1440, height: 900 }, storageState: state })
+  const fresh = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    storageState: state,
+  })
   const previous = page
   page = await fresh.newPage()
   await TA(
@@ -2076,7 +2234,8 @@ await TA(
     async () => {
       const failed = []
       page.on('response', (response) => {
-        if (response.status() === 400 && response.url().includes('/api/v1/')) failed.push(response.url())
+        if (response.status() === 400 && response.url().includes('/api/v1/'))
+          failed.push(response.url())
       })
       await go('/')
       await page.waitForTimeout(1500)
@@ -2119,7 +2278,8 @@ await TA(
     await page.getByRole('tab', { name: /All achievements/ }).waitFor()
     await page.waitForTimeout(800)
     const results = await page.locator('table tbody tr td:nth-child(4)').allInnerTexts()
-    if (results.some((text) => text.trim() && text.trim() !== 'Winner')) throw new Error(results.join(','))
+    if (results.some((text) => text.trim() && text.trim() !== 'Winner'))
+      throw new Error(results.join(','))
   }
 )
 await TA(
@@ -2184,9 +2344,18 @@ await D7W(
   },
   async () => {
     await go('/fleet/maintenance')
-    await page.getByRole('button', { name: /^Add ticket/ }).first().click()
-    await dialog().getByRole('button', { name: /Save|Add ticket|Create/ }).last().click()
-    await dialog().locator('[aria-invalid="true"], .text-destructive').first().waitFor({ timeout: 8000 })
+    await page
+      .getByRole('button', { name: /^Add ticket/ })
+      .first()
+      .click()
+    await dialog()
+      .getByRole('button', { name: /Save|Add ticket|Create/ })
+      .last()
+      .click()
+    await dialog()
+      .locator('[aria-invalid="true"], .text-destructive')
+      .first()
+      .waitFor({ timeout: 8000 })
   }
 )
 await D7W(
@@ -2233,7 +2402,10 @@ await D9W(
   },
   async () => {
     await go('/')
-    await page.locator('div.grid.grid-cols-2 > button[aria-pressed]', { hasText: /present/i }).first().click()
+    await page
+      .locator('div.grid.grid-cols-2 > button[aria-pressed]', { hasText: /present/i })
+      .first()
+      .click()
     await page.waitForURL(/\/attendance/, { timeout: 8000 })
   }
 )
@@ -2263,7 +2435,10 @@ await D9W(
   },
   async () => {
     await go('/meetings')
-    await page.getByRole('heading', { name: /Meetings/ }).first().waitFor({ timeout: 8000 })
+    await page
+      .getByRole('heading', { name: /Meetings/ })
+      .first()
+      .waitFor({ timeout: 8000 })
   }
 )
 await TA(
@@ -2277,10 +2452,14 @@ await TA(
   },
   async () => {
     await go('/app-banners')
-    await page.getByRole('button', { name: /^Add banner/ }).first().click()
+    await page
+      .getByRole('button', { name: /^Add banner/ })
+      .first()
+      .click()
     await dialog().getByRole('button', { name: 'Save' }).click()
     await see('Enter a title of 3 to 80 letters', dialog())
-    if (await dialog().getByText('Upload a banner image').count()) throw new Error('Image should be optional')
+    if (await dialog().getByText('Upload a banner image').count())
+      throw new Error('Image should be optional')
   }
 )
 await test(
@@ -2294,9 +2473,14 @@ await test(
   },
   async () => {
     await go('/attendance?tab=staff')
-    await page.getByRole('heading', { name: 'Staff check-ins', exact: true }).waitFor({ timeout: 8000 })
+    await page
+      .getByRole('heading', { name: 'Staff check-ins', exact: true })
+      .waitFor({ timeout: 8000 })
     await page.getByRole('button', { name: 'Next page' }).waitFor({ timeout: 8000 })
-    await page.getByRole('checkbox', { name: /^Select (?!everyone)/ }).first().check()
+    await page
+      .getByRole('checkbox', { name: /^Select (?!everyone)/ })
+      .first()
+      .check()
     await see('Mark selected')
     await page.getByRole('button', { name: 'Mark selected' }).click()
     await see('Optional', dialog())
@@ -2330,7 +2514,8 @@ await test(
     type: 'View',
     title: 'Morning and afternoon sessions and the class report',
     steps: 'Attendance, Students tab, switch to Afternoon, open Class report.',
-    expected: 'Board switches to the afternoon session; class-wise report opens with an Excel button',
+    expected:
+      'Board switches to the afternoon session; class-wise report opens with an Excel button',
   },
   async () => {
     await go('/attendance?tab=students')
@@ -2350,7 +2535,8 @@ await test(
     type: 'View',
     title: 'Missed filter on the board and the missed attendance report',
     steps: 'Attendance, Students tab, choose Missed, open Missed report.',
-    expected: 'Only missed sections (or "Nothing missed") are shown; the report opens with the month and the class teachers',
+    expected:
+      'Only missed sections (or "Nothing missed") are shown; the report opens with the month and the class teachers',
   },
   async () => {
     await go('/attendance?tab=students')
@@ -2391,7 +2577,8 @@ await test(
     type: 'Add',
     title: 'School campus is set on the map, not typed',
     steps: 'School setup, Profile, click the map, move the radius slider. Do not save.',
-    expected: 'Map with the school pin and circle; clicking sets the gate, the slider changes the radius, the page stays on the profile',
+    expected:
+      'Map with the school pin and circle; clicking sets the gate, the slider changes the radius, the page stays on the profile',
   },
   async () => {
     await go('/setup?tab=profile')
@@ -2437,15 +2624,18 @@ await test(
     type: 'View',
     title: 'Diary is now called Homework and has no review step',
     steps: 'Sidebar, Homework; School setup, Chat.',
-    expected: 'Homework page without a waiting-for-review card; School setup has no Diary review options',
+    expected:
+      'Homework page without a waiting-for-review card; School setup has no Diary review options',
   },
   async () => {
     await go('/diary')
     await page.getByRole('heading', { name: 'Homework' }).waitFor({ timeout: 10000 })
-    if (await page.getByText('Waiting for review').count()) throw new Error('Review card still shown')
+    if (await page.getByText('Waiting for review').count())
+      throw new Error('Review card still shown')
     await go('/setup?tab=communication')
     await page.getByText('Chat office hours').waitFor({ timeout: 10000 })
-    if (await page.getByText('Diary review').count()) throw new Error('Diary review options still shown')
+    if (await page.getByText('Diary review').count())
+      throw new Error('Diary review options still shown')
   }
 )
 await test(
@@ -2471,8 +2661,10 @@ await test(
     module: 'Class performance',
     type: 'Flow',
     title: 'Below-average students can be picked for a special class',
-    steps: 'Class report, click a class with students below average, tick students, Schedule extra class.',
-    expected: 'Below average list with weak subjects; the special class form opens with the students ticked',
+    steps:
+      'Class report, click a class with students below average, tick students, Schedule extra class.',
+    expected:
+      'Below average list with weak subjects; the special class form opens with the students ticked',
   },
   async () => {
     await go('/class-performance')
@@ -2482,7 +2674,10 @@ await test(
     await page.getByText('Class average', { exact: false }).first().waitFor({ timeout: 8000 })
     await page.getByRole('checkbox', { name: 'Choose every student' }).check()
     await page.getByRole('button', { name: /Schedule extra class/ }).click()
-    await page.getByRole('dialog').getByText(/chosen\)/).waitFor({ timeout: 8000 })
+    await page
+      .getByRole('dialog')
+      .getByText(/chosen\)/)
+      .waitFor({ timeout: 8000 })
     await page.screenshot({ path: path.join(SHOTS, 'CP-02.png') })
     await page.getByRole('dialog').getByRole('button', { name: 'Create extra class' }).click()
     await page.getByText('Choose the teacher').waitFor({ timeout: 8000 })
@@ -2496,7 +2691,8 @@ await test(
     type: 'View',
     title: 'Whole-class special class form offers extra time with days, dates and hours',
     steps: 'Class performance, Special classes, choose a class, New special class.',
-    expected: 'Form with Whole class chosen, Extra time, Repeats on, First and Last day, Full day / Half day / Custom hours',
+    expected:
+      'Form with Whole class chosen, Extra time, Repeats on, First and Last day, Full day / Half day / Custom hours',
   },
   async () => {
     await go('/class-performance?tab=special')
@@ -2504,7 +2700,14 @@ await test(
     await page.getByRole('option').nth(1).click()
     await page.getByRole('button', { name: 'New special class' }).click()
     const dialog = page.getByRole('dialog')
-    for (const text of ['Whole class (special class)', 'Also create for', 'Extra time', 'Repeats on', 'Hours', 'Full day'])
+    for (const text of [
+      'Whole class (special class)',
+      'Also create for',
+      'Extra time',
+      'Repeats on',
+      'Hours',
+      'Full day',
+    ])
       await dialog.getByText(text, { exact: true }).first().waitFor({ timeout: 8000 })
     await dialog.getByRole('radio', { name: 'Full day' }).click()
     await page.waitForTimeout(400)
@@ -2519,7 +2722,8 @@ await test(
     type: 'View',
     title: 'Special classes can be added from the timetable and the bell schedule',
     steps: 'Timetable, Bell schedule; Builder.',
-    expected: 'Special class break without a special class shows an error; Special class asks morning or evening and which sections; break chips have no special class button',
+    expected:
+      'Special class break without a special class shows an error; Special class asks morning or evening and which sections; break chips have no special class button',
   },
   async () => {
     await go('/timetable?tab=bells')
@@ -2550,7 +2754,10 @@ await test(
   },
   async () => {
     await go('/setup?tab=holidays')
-    await page.getByRole('button', { name: /Add holiday/ }).first().click()
+    await page
+      .getByRole('button', { name: /Add holiday/ })
+      .first()
+      .click()
     const dialog = page.getByRole('dialog')
     await dialog.getByRole('radio', { name: 'Only some classes' }).click()
     await dialog.getByRole('checkbox').first().waitFor({ timeout: 8000 })
@@ -2579,13 +2786,21 @@ await test(
     type: 'View',
     title: 'Dashboard compares academic years',
     steps: 'Dashboard, Year by year card.',
-    expected: 'Studies (pass, fail and absent rates), attendance, sports and activities, fees and students for each year, current year marked',
+    expected:
+      'Studies (pass, fail and absent rates), attendance, sports and activities, fees and students for each year, current year marked',
   },
   async () => {
     await go('/')
     const card = page.getByRole('region', { name: 'Performance by academic year' })
     await card.waitFor({ timeout: 10000 })
-    for (const text of ['Pass rate', 'Fail rate', 'Absent in exams', 'Sports and activities', 'Collection rate', 'Current'])
+    for (const text of [
+      'Pass rate',
+      'Fail rate',
+      'Absent in exams',
+      'Sports and activities',
+      'Collection rate',
+      'Current',
+    ])
       await card.getByText(text, { exact: true }).first().waitFor({ timeout: 8000 })
     await card.getByRole('region', { name: 'Fees by head' }).waitFor({ timeout: 8000 })
     await card.screenshot({ path: path.join(SHOTS, 'YP-01.png') })
@@ -2611,7 +2826,9 @@ await test(
     await past.click()
     await see('Earlier years are read only.')
     await page.getByRole('button', { name: 'Back to current year' }).click()
-    await page.getByText('Earlier years are read only.').waitFor({ state: 'detached', timeout: 8000 })
+    await page
+      .getByText('Earlier years are read only.')
+      .waitFor({ state: 'detached', timeout: 8000 })
   }
 )
 await test(

@@ -146,4 +146,3 @@ export function amountInWords(value: number): string {
   const rupeesText = parts.length ? `Rupees ${parts.join(' ')}` : 'Rupees Zero'
   return `${rupeesText}${paise ? ` and ${belowHundred(paise)} Paise` : ''} Only`
 }
-

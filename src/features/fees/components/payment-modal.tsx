@@ -190,7 +190,7 @@ export function PaymentModal({
 
         {/* Dynamic Mode-Specific Fields */}
         {mode === 'upi' && (
-          <div className='sm:col-span-2 grid gap-4 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2'>
+          <div className='grid gap-4 rounded-lg border bg-muted/20 p-3 sm:col-span-2 sm:grid-cols-2'>
             <FormField
               id='upi-ref'
               label='UPI Ref / UTR number'
@@ -211,11 +211,7 @@ export function PaymentModal({
               />
             </FormField>
 
-            <FormField
-              id='upi-vpa'
-              label='Sender UPI ID / VPA'
-              hint='Optional sender address'
-            >
+            <FormField id='upi-vpa' label='Sender UPI ID / VPA' hint='Optional sender address'>
               <Input
                 id='upi-vpa'
                 value={upiVpa}
@@ -228,7 +224,7 @@ export function PaymentModal({
         )}
 
         {mode === 'card' && (
-          <div className='sm:col-span-2 grid gap-4 rounded-lg border bg-muted/20 p-3 sm:grid-cols-3'>
+          <div className='grid gap-4 rounded-lg border bg-muted/20 p-3 sm:col-span-2 sm:grid-cols-3'>
             <FormField id='card-network' label='Card network' required>
               <Combobox
                 id='card-network'
@@ -242,11 +238,7 @@ export function PaymentModal({
               />
             </FormField>
 
-            <FormField
-              id='card-last4'
-              label='Last 4 digits'
-              hint='Optional card digits'
-            >
+            <FormField id='card-last4' label='Last 4 digits' hint='Optional card digits'>
               <Input
                 id='card-last4'
                 value={cardLast4}
@@ -279,7 +271,7 @@ export function PaymentModal({
         )}
 
         {mode === 'bank_transfer' && (
-          <div className='sm:col-span-2 grid gap-4 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2'>
+          <div className='grid gap-4 rounded-lg border bg-muted/20 p-3 sm:col-span-2 sm:grid-cols-2'>
             <FormField
               id='bank-utr'
               label='UTR / Ref number'
@@ -300,12 +292,7 @@ export function PaymentModal({
               />
             </FormField>
 
-            <FormField
-              id='bank-name'
-              label='Sending bank name'
-              required
-              error={errors.bankName}
-            >
+            <FormField id='bank-name' label='Sending bank name' required error={errors.bankName}>
               <Combobox
                 id='bank-name'
                 label='Bank name'
@@ -326,7 +313,7 @@ export function PaymentModal({
         )}
 
         {mode === 'cheque' && (
-          <div className='sm:col-span-2 grid gap-4 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2'>
+          <div className='grid gap-4 rounded-lg border bg-muted/20 p-3 sm:col-span-2 sm:grid-cols-2'>
             <FormField
               id='cheque-no'
               label='Cheque number'
@@ -347,12 +334,7 @@ export function PaymentModal({
               />
             </FormField>
 
-            <FormField
-              id='cheque-date'
-              label='Cheque date'
-              required
-              error={errors.chequeDate}
-            >
+            <FormField id='cheque-date' label='Cheque date' required error={errors.chequeDate}>
               <Input
                 id='cheque-date'
                 type='date'
@@ -365,12 +347,7 @@ export function PaymentModal({
               />
             </FormField>
 
-            <FormField
-              id='cheque-bank'
-              label='Bank name'
-              required
-              error={errors.chequeBank}
-            >
+            <FormField id='cheque-bank' label='Bank name' required error={errors.chequeBank}>
               <Combobox
                 id='cheque-bank'
                 label='Bank name'
@@ -388,11 +365,7 @@ export function PaymentModal({
               />
             </FormField>
 
-            <FormField
-              id='cheque-branch'
-              label='Branch name'
-              hint='Optional branch location'
-            >
+            <FormField id='cheque-branch' label='Branch name' hint='Optional branch location'>
               <Input
                 id='cheque-branch'
                 value={chequeBranch}

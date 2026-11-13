@@ -20,14 +20,7 @@ import {
   type FeeInvoiceDetail,
   type FeePayment,
 } from '../api'
-import {
-  INVOICE_STATUS,
-  PAYMENT_MODES,
-  amountError,
-  formErrors,
-  round2,
-  rupees,
-} from '../labels'
+import { INVOICE_STATUS, PAYMENT_MODES, amountError, formErrors, round2, rupees } from '../labels'
 import { ReceiptModal } from './receipt-modal'
 
 export function InvoiceStatusBadge({ invoice }: { invoice: FeeInvoice }) {
@@ -291,7 +284,8 @@ function DiscountForm({ invoice, onDone }: { invoice: FeeInvoiceDetail; onDone: 
         else if (mode === 'percent') {
           const p = Number(percentage)
           if (p < 0 || p > 100) next.discount = 'Enter a valid percentage between 0 and 100'
-          else if (p > maxPercent) next.discount = `Percentage cannot exceed ${maxPercent}% (${rupees(max)})`
+          else if (p > maxPercent)
+            next.discount = `Percentage cannot exceed ${maxPercent}% (${rupees(max)})`
         }
         if (computedRupees > 0 && reason.trim().length < 3) next.reason = 'Give the reason'
         setErrors(next)
@@ -378,7 +372,7 @@ function DiscountForm({ invoice, onDone }: { invoice: FeeInvoiceDetail; onDone: 
                 aria-invalid={Boolean(errors.discount) || undefined}
                 onChange={(event) => setPercentage(event.target.value)}
               />
-              <span className='pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground font-semibold'>
+              <span className='pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm font-semibold text-muted-foreground'>
                 %
               </span>
             </div>
@@ -406,18 +400,26 @@ function DiscountForm({ invoice, onDone }: { invoice: FeeInvoiceDetail; onDone: 
         </Button>
       </div>
 
-      <div className='text-xs text-muted-foreground sm:col-span-3 flex flex-wrap items-center justify-between gap-1'>
+      <div className='flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground sm:col-span-3'>
         <span>
           Up to {rupees(max)} ({maxPercent}%). Enter 0 to remove.
         </span>
         {mode === 'percent' && Number(percentage) > 0 && (
           <span className='font-medium text-foreground'>
-            {percentage}% equals <span className='text-emerald-600 font-bold dark:text-emerald-400'>{rupees(computedRupees)}</span> discount
+            {percentage}% equals{' '}
+            <span className='font-bold text-emerald-600 dark:text-emerald-400'>
+              {rupees(computedRupees)}
+            </span>{' '}
+            discount
           </span>
         )}
         {mode === 'amount' && Number(amount) > 0 && (
           <span className='font-medium text-foreground'>
-            {rupees(Number(amount))} equals <span className='text-emerald-600 font-bold dark:text-emerald-400'>{computedPercent}%</span> of gross
+            {rupees(Number(amount))} equals{' '}
+            <span className='font-bold text-emerald-600 dark:text-emerald-400'>
+              {computedPercent}%
+            </span>{' '}
+            of gross
           </span>
         )}
       </div>

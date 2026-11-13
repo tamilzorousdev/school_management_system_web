@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const TONES = [
@@ -24,14 +25,29 @@ function initials(name: string) {
 
 export function Avatar({
   name,
+  src,
   size = 'md',
   className,
 }: {
   name: string
+  src?: string | null
   size?: keyof typeof sizes
   className?: string
 }) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const tone = TONES[[...name].reduce((sum, char) => sum + char.charCodeAt(0), 0) % TONES.length]
+
+  if (src && failedSrc !== src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        onError={() => setFailedSrc(src)}
+        className={cn('inline-block shrink-0 rounded-full object-cover', sizes[size], className)}
+      />
+    )
+  }
+
   return (
     <span
       aria-hidden

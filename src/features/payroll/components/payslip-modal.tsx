@@ -77,13 +77,7 @@ function toRelativeUrl(url: string | null | undefined): string | null {
   }
 }
 
-export function PayslipModal({
-  slip,
-  onClose,
-}: {
-  slip: Payslip | null
-  onClose: () => void
-}) {
+export function PayslipModal({ slip, onClose }: { slip: Payslip | null; onClose: () => void }) {
   const me = useMe().data
   const { data: schoolProfile } = useSchoolProfile()
   const schoolName = schoolProfile?.name || me?.school?.name || 'Tamilzorous Model School'
@@ -92,7 +86,9 @@ export function PayslipModal({
     ? `${schoolProfile.address}${schoolProfile.city ? `, ${schoolProfile.city}` : ''}`
     : 'School Campus Office, Chennai - 600001'
   const schoolLogoUrl = toRelativeUrl(schoolProfile?.logo_url || me?.school?.logo_url)
-  const schoolSignatureUrl = toRelativeUrl(schoolProfile?.signature_url || me?.school?.signature_url)
+  const schoolSignatureUrl = toRelativeUrl(
+    schoolProfile?.signature_url || me?.school?.signature_url
+  )
   const schoolSealUrl = toRelativeUrl(schoolProfile?.seal_url || me?.school?.seal_url)
   const [downloading, setDownloading] = useState(false)
 
@@ -101,10 +97,7 @@ export function PayslipModal({
   const handleDownloadPdf = async () => {
     setDownloading(true)
     try {
-      await downloadFile(
-        payslipPdfUrl(slip.id),
-        `Payslip-${slip.employee_no}-${slip.month}.pdf`
-      )
+      await downloadFile(payslipPdfUrl(slip.id), `Payslip-${slip.employee_no}-${slip.month}.pdf`)
     } catch (error) {
       alerts.error(toApiError(error).message)
     } finally {
@@ -176,7 +169,10 @@ export function PayslipModal({
 
   return (
     <Dialog open={Boolean(slip)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent hideClose className='max-h-[94vh] max-w-3xl overflow-y-auto p-0 sm:rounded-2xl border bg-white shadow-2xl'>
+      <DialogContent
+        hideClose
+        className='max-h-[94vh] max-w-3xl overflow-y-auto border bg-white p-0 shadow-2xl sm:rounded-2xl'
+      >
         {/* Action Header Bar (No-Print) */}
         <div className='flex items-center justify-between border-b bg-muted/30 px-6 py-3 print:hidden'>
           <span className='font-mono text-xs font-semibold text-muted-foreground'>
@@ -196,14 +192,20 @@ export function PayslipModal({
               <FileDown className='size-4' />
               Download PDF
             </Button>
-            <Button variant='ghost' size='icon' className='size-8' onClick={onClose} aria-label='Close'>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='size-8'
+              onClick={onClose}
+              aria-label='Close'
+            >
               <X className='size-4' />
             </Button>
           </div>
         </div>
 
         {/* MODERN MINIMAL INVOICE/PAYSLIP CONTAINER (1:1 with reference image) */}
-        <div className='bg-white p-8 sm:p-12 text-[#111827]'>
+        <div className='bg-white p-8 text-[#111827] sm:p-12'>
           {/* 1. Header: PAYSLIP title + Payslip Number on left, Website / School Logo on right */}
           <div className='flex items-start justify-between'>
             <div>
@@ -249,9 +251,7 @@ export function PayslipModal({
             {/* Row 1, Left: Billed by (School) */}
             <div>
               <p className='text-[#6B7280]'>Billed by:</p>
-              <p className='mt-1 text-sm font-bold text-[#111827]'>
-                {schoolName}
-              </p>
+              <p className='mt-1 text-sm font-bold text-[#111827]'>{schoolName}</p>
               <p className='text-[#6B7280]'>{schoolEmail}</p>
               <p className='text-[#6B7280]'>{schoolAddress}</p>
             </div>
@@ -299,7 +299,7 @@ export function PayslipModal({
             {/* Table Rows */}
             <div className='divide-y divide-[#F3F4F6] text-xs'>
               {tableItems.map((item) => (
-                <div key={item.name} className='grid grid-cols-12 py-3 items-center'>
+                <div key={item.name} className='grid grid-cols-12 items-center py-3'>
                   <div className='col-span-6 font-semibold text-[#111827]'>{item.name}</div>
                   <div className='col-span-2 text-center text-[#6B7280]'>{item.qty}</div>
                   <div className='col-span-2 text-center'>
@@ -327,7 +327,7 @@ export function PayslipModal({
 
           {/* 4. Financial Summary (Right-aligned, matching reference image) */}
           <div className='mt-6 flex flex-col items-end text-xs'>
-            <div className='w-full sm:w-64 space-y-2 border-t border-[#E5E7EB] pt-4'>
+            <div className='w-full space-y-2 border-t border-[#E5E7EB] pt-4 sm:w-64'>
               <div className='flex justify-between text-[#6B7280]'>
                 <span>Subtotal</span>
                 <span className='font-mono font-medium text-[#111827]'>{rupees(slip.gross)}</span>
@@ -340,7 +340,7 @@ export function PayslipModal({
               </div>
               <div className='flex items-center justify-between border-t border-[#E5E7EB] pt-2'>
                 <span className='text-sm font-bold text-[#111827]'>Grand Total</span>
-                <span className='text-base font-extrabold text-[#111827] font-mono'>
+                <span className='font-mono text-base font-extrabold text-[#111827]'>
                   {rupees(slip.net)}
                 </span>
               </div>
@@ -359,7 +359,7 @@ export function PayslipModal({
           {/* 6. Bottom Section: Payment Method on left, Stylized Signature on right */}
           <div className='mt-10 flex flex-wrap items-end justify-between gap-6 pt-4'>
             {/* Left: Payment Method */}
-            <div className='text-xs space-y-0.5'>
+            <div className='space-y-0.5 text-xs'>
               <p className='font-bold text-[#111827]'>Payment Method</p>
               <p className='text-[#6B7280]'>
                 {slip.bank_name ? 'EFT Bank Transfer' : 'Direct Transfer'}
@@ -367,7 +367,7 @@ export function PayslipModal({
               <p className='text-[#6B7280]'>
                 Account Number: {slip.bank_name || 'Canara Bank'}
                 {slip.bank_account_last4 ? ` ····${slip.bank_account_last4}` : ' ····5678'}
-                <span className='ml-2 text-[#111827] font-medium'>
+                <span className='ml-2 font-medium text-[#111827]'>
                   (Paid Days: {slip.paid_days}/{slip.working_days})
                 </span>
               </p>
@@ -383,22 +383,25 @@ export function PayslipModal({
                       className='size-full object-contain'
                     />
                   </div>
-                  <span className='mt-1 text-[10px] font-medium uppercase tracking-wider text-[#6B7280]'>
+                  <span className='mt-1 text-[10px] font-medium tracking-wider text-[#6B7280] uppercase'>
                     Official Seal
                   </span>
                 </div>
               )}
-              <div className='inline-block w-40 sm:w-44 text-center'>
+              <div className='inline-block w-40 text-center sm:w-44'>
                 {schoolSignatureUrl ? (
-                  <div className='flex h-14 sm:h-16 w-full items-end justify-center pb-1'>
+                  <div className='flex h-14 w-full items-end justify-center pb-1 sm:h-16'>
                     <img
                       src={schoolSignatureUrl}
                       alt='Authorized Signatory'
-                      className='max-h-14 sm:max-h-16 w-auto max-w-full object-contain mix-blend-multiply'
+                      className='max-h-14 w-auto max-w-full object-contain mix-blend-multiply sm:max-h-16'
                     />
                   </div>
                 ) : (
-                  <svg viewBox='0 0 120 36' className='mx-auto h-9 w-28 text-[#111827] stroke-current fill-none'>
+                  <svg
+                    viewBox='0 0 120 36'
+                    className='mx-auto h-9 w-28 fill-none stroke-current text-[#111827]'
+                  >
                     <path
                       d='M10 24 Q 25 5, 40 22 T 65 14 Q 85 8, 105 24'
                       strokeWidth='1.6'
@@ -408,7 +411,7 @@ export function PayslipModal({
                     <path d='M42 20 Q 55 12, 68 20' strokeWidth='1.4' />
                   </svg>
                 )}
-                <div className='border-t border-[#111827] pt-1 text-center font-bold text-xs text-[#111827]'>
+                <div className='border-t border-[#111827] pt-1 text-center text-xs font-bold text-[#111827]'>
                   Authorized Signatory
                 </div>
               </div>
