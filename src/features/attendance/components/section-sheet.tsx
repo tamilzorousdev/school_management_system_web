@@ -51,6 +51,7 @@ const ROW_TINT: Record<AttendanceStatus, string> = {
   late: 'bg-warning/5',
   half_day: 'bg-info/5',
   leave: 'bg-muted/60',
+  od: 'bg-primary/5',
 }
 
 interface Mark {
@@ -158,7 +159,10 @@ function RosterEditor({
     Object.fromEntries(
       roster.students.map((student) => [
         student.student_id,
-        { status: student.status, remarks: student.remarks ?? '' },
+        {
+          status: student.on_duty ? 'od' : student.status,
+          remarks: student.remarks ?? '',
+        },
       ])
     )
   )
@@ -181,7 +185,7 @@ function RosterEditor({
           student.student_id,
           {
             ...current[student.student_id],
-            status: student.on_leave ? 'leave' : 'present',
+            status: student.on_duty ? 'od' : student.on_leave ? 'leave' : 'present',
           },
         ])
       )
@@ -253,14 +257,20 @@ function RosterEditor({
                         <span className='grid min-w-0'>
                           <span className='flex items-center gap-1.5 truncate font-semibold'>
                             {student.full_name}
-                            {student.on_leave && <Badge tone='info'>Approved leave</Badge>}
+                            {student.on_duty ? (
+                              <Badge tone='primary'>
+                                On Duty (OD){student.od_reason ? ` · ${student.od_reason}` : ''}
+                              </Badge>
+                            ) : student.on_leave ? (
+                              <Badge tone='info'>Approved leave</Badge>
+                            ) : null}
                           </span>
                           <span className='truncate font-mono text-xs text-muted-foreground'>
                             {student.admission_no}
                           </span>
                         </span>
                       </div>
-                      {editable ? (
+                      {editable && !student.on_duty ? (
                         <SegmentedControl
                           label={`Status for ${student.full_name}`}
                           value={mark.status}
@@ -268,8 +278,8 @@ function RosterEditor({
                           options={STATUS_OPTIONS}
                         />
                       ) : (
-                        <Badge tone={ATTENDANCE_STATUS[mark.status].tone}>
-                          {ATTENDANCE_STATUS[mark.status].label}
+                        <Badge tone={ATTENDANCE_STATUS[mark.status]?.tone ?? 'primary'}>
+                          {student.on_duty ? 'On Duty (OD)' : ATTENDANCE_STATUS[mark.status]?.label}
                         </Badge>
                       )}
                     </div>

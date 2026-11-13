@@ -43,6 +43,7 @@ interface Draft {
   blood_group: string
   house: string
   admission_no: string
+  emis_number: string
   admission_date: string
   class_id: number | null
   section_id: number | null
@@ -67,6 +68,7 @@ const emptyDraft = (): Draft => ({
   blood_group: '',
   house: '',
   admission_no: '',
+  emis_number: '',
   admission_date: '',
   class_id: null,
   section_id: null,
@@ -188,6 +190,7 @@ function StudentForm({
         blood_group: (draft.blood_group || null) as StudentInput['blood_group'],
         house: blank(draft.house),
         admission_no: draft.admission_no.trim() || undefined,
+        emis_number: draft.emis_number.trim() || null,
         admission_date: draft.admission_date || undefined,
         class_id: draft.class_id!,
         section_id: draft.section_id,
@@ -433,6 +436,20 @@ function StudentForm({
               id='admission_no'
               value={draft.admission_no}
               onChange={(event) => set('admission_no', event.target.value)}
+            />
+          </FormField>
+          <FormField
+            id='emis_number'
+            label='EMIS number'
+            error={errors.emis_number}
+            hint='Education Management Info ID'
+          >
+            <Input
+              id='emis_number'
+              maxLength={50}
+              placeholder='e.g. 33020100101'
+              value={draft.emis_number}
+              onChange={(event) => set('emis_number', event.target.value)}
             />
           </FormField>
           <FormField id='admission_date' label='Admission date' hint='Defaults to today'>

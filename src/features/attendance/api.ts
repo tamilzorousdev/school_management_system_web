@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, type Paginated } from '@/lib/api/client'
 import { downloadFile } from '@/lib/files'
 
-export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day' | 'leave'
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'od'
 export type StudentLeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
 export type StaffAttendanceStatus = 'present' | 'late' | 'half_day' | 'absent'
 export type StaffBoardStatus = StaffAttendanceStatus | 'on_leave' | 'not_checked_in'
@@ -23,6 +23,7 @@ export interface AttendanceSummary {
   late: number
   half_day: number
   leave: number
+  od?: number
   percent: number | null
 }
 
@@ -116,6 +117,8 @@ export interface RosterStudent {
   status: AttendanceStatus
   remarks: string | null
   on_leave: boolean
+  on_duty?: boolean
+  od_reason?: string | null
 }
 
 export interface Roster {

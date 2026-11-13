@@ -1,14 +1,27 @@
 import { useState, type FormEvent } from 'react'
 import { Save } from 'lucide-react'
+import { Combobox } from '@/components/common/combobox'
 import { ErrorState } from '@/components/common/display'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { alerts } from '@/lib/alerts'
-import { setupApi, useSchoolProfile, useSetupMutation, type SchoolProfile } from '../api'
+import {
+  setupApi,
+  useSchoolProfile,
+  useSetupMutation,
+  type ChatDeleteWindow,
+  type SchoolProfile,
+} from '../api'
 import { fieldErrorsOf } from '../form-actions'
 import { RootError, Section } from './setup-shared'
+
+const CHAT_DELETE_WINDOW_OPTIONS = [
+  { value: '1_hour', label: '1 hour' },
+  { value: '24_hours', label: '24 hours (default)' },
+  { value: 'anytime', label: 'Anytime' },
+]
 
 export function CommunicationTab({ canManage }: { canManage: boolean }) {
   const profile = useSchoolProfile()
@@ -28,6 +41,7 @@ function CommunicationSettings({
   const [draft, setDraft] = useState({
     chat_office_start: school.chat_office_start ?? '08:00',
     chat_office_end: school.chat_office_end ?? '17:00',
+    chat_delete_window: (school.chat_delete_window ?? '24_hours') as ChatDeleteWindow,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useSetupMutation((input: Partial<SchoolProfile>) => setupApi.updateSchool(input))
@@ -85,6 +99,33 @@ function CommunicationSettings({
               value={draft.chat_office_end}
               disabled={!canManage}
               onChange={(event) => set('chat_office_end', event.target.value)}
+            />
+          </FormField>
+        </div>
+      </Section>
+
+      <Section
+        title='Message deletion for everyone'
+        description='Configure how long senders (parents and staff) have to delete a message for everyone in chat threads.'
+      >
+        <div className='max-w-md'>
+          <FormField
+            id='chat-delete-window'
+            label='Allowed deletion window'
+            error={errors.chat_delete_window}
+            hint='After this window, messages can only be deleted for oneself.'
+          >
+            <Combobox
+              id='chat-delete-window'
+              label='Deletion window'
+              value={draft.chat_delete_window}
+              placeholder='Select deletion window'
+              options={CHAT_DELETE_WINDOW_OPTIONS}
+              onChange={(value) =>
+                canManage && value && set('chat_delete_window', value as ChatDeleteWindow)
+              }
+              highlightSelected={false}
+              className='sm:w-full'
             />
           </FormField>
         </div>

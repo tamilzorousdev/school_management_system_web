@@ -18,6 +18,7 @@ export const ATTENDANCE_STATUS: Record<
   late: { label: 'Late', short: 'L', tone: 'warning' },
   half_day: { label: 'Half day', short: 'HD', tone: 'info' },
   leave: { label: 'Leave', short: 'Leave', tone: 'neutral' },
+  od: { label: 'On Duty', short: 'OD', tone: 'info' },
 }
 
 export const ATTENDANCE_STATUSES = Object.keys(ATTENDANCE_STATUS) as AttendanceStatus[]

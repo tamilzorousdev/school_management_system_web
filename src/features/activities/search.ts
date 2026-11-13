@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const ACTIVITY_TABS = ['leaderboard', 'all'] as const
+export const ACTIVITY_TABS = ['leaderboard', 'all', 'on_duty'] as const
 export type ActivityTab = (typeof ACTIVITY_TABS)[number]
 
 export const CATEGORY_FILTERS = [

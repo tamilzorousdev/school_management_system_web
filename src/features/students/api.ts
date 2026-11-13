@@ -24,6 +24,7 @@ export interface GuardianSummary {
 export interface StudentListItem {
   id: number
   admission_no: string
+  emis_number: string | null
   first_name: string
   last_name: string | null
   full_name: string
@@ -93,6 +94,7 @@ export interface GuardianInput {
 }
 
 export interface StudentInput {
+  emis_number?: string | null
   first_name: string
   last_name?: string | null
   dob: string
@@ -183,6 +185,7 @@ export interface GuardianListParams {
 export interface Admission {
   id: number
   application_no: string
+  emis_number: string | null
   status: AdmissionStatus
   class: Ref
   academic_year: Ref
@@ -213,6 +216,7 @@ export interface AdmissionInsights {
 }
 
 export interface AdmissionInput {
+  emis_number?: string | null
   class_id: number
   first_name: string
   last_name?: string | null

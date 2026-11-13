@@ -135,26 +135,35 @@ export interface ImportReport {
   }[]
 }
 
+export interface PromotionStudent {
+  student_id: number
+  full_name: string
+  admission_no: string
+  section_id?: number | null
+  section_name: string | null
+  roll_no: number | null
+  already_moved: boolean
+  result_percent?: number | null
+  passed?: boolean | null
+}
+
 export interface PromotionPreview {
   from_year: Ref
   to_year: Ref
   from_class: Ref
+  from_sections: Ref[]
+  pass_percent?: number | null
+  average_percent?: number | null
   suggested_class: Ref | null
   to_sections: Ref[]
-  students: {
-    student_id: number
-    full_name: string
-    admission_no: string
-    section_name: string | null
-    roll_no: number | null
-    already_moved: boolean
-  }[]
+  students: PromotionStudent[]
 }
 
 export interface PromotionInput {
   from_class_id: number
+  from_section_id?: number | null
   to_class_id: number
-  to_section_id?: number
+  to_section_id?: number | null
   student_ids?: number[]
   detained_ids?: number[]
 }
@@ -270,8 +279,11 @@ export const recordsApi = {
     form.append('send_invites', String(sendInvites))
     return api.upload<ImportReport>('/admin/student-import', form)
   },
-  promotionPreview: (classId: number) =>
-    api.get<PromotionPreview>('/admin/promotions/preview', { class_id: classId }),
+  promotionPreview: (classId: number, sectionId?: number | null) =>
+    api.get<PromotionPreview>('/admin/promotions/preview', {
+      class_id: classId,
+      ...(sectionId ? { section_id: sectionId } : {}),
+    }),
   promote: (input: PromotionInput) =>
     api.post<{ promoted: number; detained: number; skipped: number }>('/admin/promotions', input),
 }
@@ -317,10 +329,10 @@ export function useTransferCertificate(id: number, enabled: boolean) {
   })
 }
 
-export function usePromotionPreview(classId: number | null) {
+export function usePromotionPreview(classId: number | null, sectionId?: number | null) {
   return useQuery({
-    queryKey: recordKeys.promotion(classId ?? 0),
-    queryFn: () => recordsApi.promotionPreview(classId!),
+    queryKey: [...recordKeys.promotion(classId ?? 0), sectionId ?? 0],
+    queryFn: () => recordsApi.promotionPreview(classId!, sectionId),
     enabled: Boolean(classId),
     retry: false,
     meta: { silent: true },

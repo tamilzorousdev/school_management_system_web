@@ -55,6 +55,7 @@ function ApplicationForm({
   const classes = useClasses()
   const [draft, setDraft] = useState({
     class_id: '',
+    emis_number: '',
     first_name: '',
     last_name: '',
     dob: '',
@@ -88,6 +89,7 @@ function ApplicationForm({
     try {
       const admission = await save({
         class_id: Number(draft.class_id),
+        emis_number: draft.emis_number.trim() || null,
         first_name: draft.first_name.trim(),
         last_name: draft.last_name.trim() || null,
         dob: draft.dob,
@@ -171,6 +173,15 @@ function ApplicationForm({
               invalid={Boolean(errors.class_id)}
               highlightSelected={false}
               className='sm:w-full'
+            />
+          </FormField>
+          <FormField id='app-emis' label='EMIS number' hint='Optional state EMIS ID'>
+            <Input
+              id='app-emis'
+              maxLength={50}
+              placeholder='e.g. 33020100101'
+              value={draft.emis_number}
+              onChange={(event) => set('emis_number', event.target.value)}
             />
           </FormField>
           <FormField id='app-previous' label='Previous school'>

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import { Award, Globe2, Medal, MountainSnow, Trophy, Users } from 'lucide-react'
+import { Award, CalendarDays, Globe2, Medal, MountainSnow, Plus, Trash2, Trophy, Users } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -7,7 +8,9 @@ import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { useClasses, useSections } from '@/features/setup/api'
 import {
   CATEGORY_LABELS,
@@ -21,15 +24,20 @@ import {
 } from '@/features/students/achievement-labels'
 import { formatDate } from '@/lib/format'
 import {
+  activitiesApi,
   useActivityInsights,
   useActivityList,
   useLeaderboard,
+  useSportsOnDutyList,
+  useSportsOnDutyMutation,
   type ActivityFilter,
   type ActivityListParams,
   type LeaderboardRow,
   type SchoolAchievement,
+  type SportsOnDuty,
 } from '../api'
 import { ActivityPodium } from '../components/activity-podium'
+import { SportsOnDutyModal } from '../components/sports-on-duty-modal'
 import type { ActivitiesSearch, ActivityTab, CategoryFilter, QuickFilter } from '../search'
 
 const route = getRouteApi('/_app/activities')
@@ -81,6 +89,13 @@ export function ActivitiesPage() {
   const sections = useSections(search.class_id, Boolean(search.class_id))
   const insights = useActivityInsights(filter)
   const leaderboard = useLeaderboard({ ...filter, limit: 25 }, search.tab === 'leaderboard')
+  const [addingOd, setAddingOd] = useState(false)
+  const [removingOd, setRemovingOd] = useState<SportsOnDuty | null>(null)
+  const odList = useSportsOnDutyList({
+    class_id: search.section_id ? undefined : search.class_id,
+    section_id: search.section_id,
+  })
+  const removeOd = useSportsOnDutyMutation((id: number) => activitiesApi.removeOnDuty(id))
   const quick: Partial<ActivityListParams> =
     search.quick === 'sports'
       ? { category: 'sports' }
@@ -173,6 +188,14 @@ export function ActivitiesPage() {
         eyebrow='Academics'
         title='Sports & activities'
         description='Students ranked by sports, competitions, arts and other activities, not only by marks. Points = level × result.'
+        action={
+          search.tab === 'on_duty' ? (
+            <Button size='sm' onClick={() => setAddingOd(true)}>
+              <Plus />
+              Map Sports OD
+            </Button>
+          ) : undefined
+        }
       />
       <PageTabs
         label='Sports and activities sections'
@@ -181,6 +204,7 @@ export function ActivitiesPage() {
         tabs={[
           { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
           { value: 'all', label: 'All achievements', icon: Award, count: counts?.total },
+          { value: 'on_duty', label: 'On Duty (OD)', icon: CalendarDays, count: odList.data?.length },
         ]}
       />
       <InsightCards items={cards} loading={!counts} />
@@ -289,6 +313,14 @@ export function ActivitiesPage() {
             onRetry={() => void leaderboard.refetch()}
             title={CATEGORY_FILTER_LABELS[category]}
           />
+        ) : search.tab === 'on_duty' ? (
+          <SportsOnDutyView
+            rows={odList.data ?? []}
+            loading={odList.isFetching}
+            error={odList.isError ? odList.error.message : null}
+            onRetry={() => void odList.refetch()}
+            onDelete={(row) => setRemovingOd(row)}
+          />
         ) : (
           <DataTable
             rows={list.data?.items ?? []}
@@ -320,6 +352,25 @@ export function ActivitiesPage() {
           />
         )}
       </Card>
+      {addingOd && <SportsOnDutyModal onClose={() => setAddingOd(false)} />}
+      <ConfirmDialog
+        open={Boolean(removingOd)}
+        title='Cancel Sports On Duty?'
+        description={`Are you sure you want to remove ${removingOd?.student.name} from On Duty for ${removingOd?.title}?`}
+        confirmText='Cancel OD'
+        confirmTone='destructive'
+        isConfirming={removeOd.isPending}
+        onCancel={() => setRemovingOd(null)}
+        onConfirm={async () => {
+          if (!removingOd) return
+          try {
+            await removeOd.mutateAsync(removingOd.id)
+            setRemovingOd(null)
+          } catch (error) {
+            alerts.error(toApiError(error).message)
+          }
+        }}
+      />
     </Page>
   )
 }
@@ -513,5 +564,122 @@ function AchievementCard({ row }: { row: SchoolAchievement }) {
       </div>
       <span className='text-xs text-muted-foreground'>{formatDate(row.achieved_on)}</span>
     </div>
+  )
+}
+
+function SportsOnDutyView({
+  rows,
+  loading,
+  error,
+  onRetry,
+  onDelete,
+}: {
+  rows: SportsOnDuty[]
+  loading: boolean
+  error: string | null
+  onRetry: () => void
+  onDelete: (row: SportsOnDuty) => void
+}) {
+  const columns: Column<SportsOnDuty>[] = [
+    {
+      key: 'student',
+      header: 'Student',
+      cell: (row) => (
+        <div className='grid min-w-0'>
+          <span className='truncate font-bold'>{row.student.name}</span>
+          <span className='truncate text-xs text-muted-foreground'>
+            {[row.student.section_name, row.student.admission_no].filter(Boolean).join(' · ')}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'sport',
+      header: 'Sport & Event',
+      cell: (row) => (
+        <div className='grid min-w-0'>
+          <span className='truncate font-semibold'>{row.title}</span>
+          <span className='text-xs text-muted-foreground'>{row.sport_name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'dates',
+      header: 'Dates',
+      cell: (row) => (
+        <div className='grid text-xs'>
+          <span className='font-medium'>
+            {formatDate(row.from_date)}
+            {row.to_date !== row.from_date ? ` – ${formatDate(row.to_date)}` : ''}
+          </span>
+          <span className='text-muted-foreground'>
+            {row.session === 'morning'
+              ? 'Morning only'
+              : row.session === 'afternoon'
+                ? 'Afternoon only'
+                : 'Full day'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'venue',
+      header: 'Venue',
+      cell: (row) => <span className='text-xs text-muted-foreground'>{row.venue ?? '—'}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      cell: (row) => (
+        <Button
+          size='icon-sm'
+          variant='ghost'
+          aria-label='Cancel sports OD'
+          className='text-destructive hover:bg-destructive/10'
+          onClick={() => onDelete(row)}
+        >
+          <Trash2 />
+        </Button>
+      ),
+    },
+  ]
+
+  return (
+    <DataTable
+      rows={rows}
+      columns={columns}
+      rowKey={(row) => row.id}
+      loading={loading}
+      error={error}
+      onRetry={onRetry}
+      empty={{
+        icon: Medal,
+        title: 'No students on Sports OD',
+        description: 'Map students participating in sports tournaments or meets to mark them On Duty.',
+      }}
+      card={(row) => (
+        <div className='flex items-center justify-between gap-3 p-3'>
+          <div className='grid min-w-0'>
+            <span className='truncate font-bold'>{row.student.name}</span>
+            <span className='truncate text-xs text-muted-foreground'>
+              {row.sport_name} · {row.title}
+            </span>
+            <span className='text-xs text-muted-foreground'>
+              {formatDate(row.from_date)} – {formatDate(row.to_date)}
+            </span>
+          </div>
+          <Button
+            size='icon-sm'
+            variant='ghost'
+            aria-label='Cancel sports OD'
+            className='text-destructive hover:bg-destructive/10'
+            onClick={() => onDelete(row)}
+          >
+            <Trash2 />
+          </Button>
+        </div>
+      )}
+    />
   )
 }

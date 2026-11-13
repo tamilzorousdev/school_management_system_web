@@ -295,6 +295,7 @@ const DAY_STYLE: Record<DayStatus, string> = {
   late: 'bg-warning/15 text-warning',
   half_day: 'bg-info/15 text-info',
   leave: 'bg-secondary text-secondary-foreground ring-1 ring-border',
+  od: 'bg-info/15 text-info',
   not_marked: 'text-foreground',
   holiday: 'bg-muted text-muted-foreground',
   weekly_off: 'text-muted-foreground/60',

@@ -242,6 +242,7 @@ export function EditStudentModal({
   const [draft, setDraft] = useState({
     first_name: student.first_name,
     last_name: student.last_name ?? '',
+    emis_number: student.emis_number ?? '',
     dob: student.dob,
     gender: student.gender,
     blood_group: student.blood_group ?? '',
@@ -258,6 +259,7 @@ export function EditStudentModal({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useStudentMutation(() =>
     studentsApi.update(student.id, {
+      emis_number: draft.emis_number.trim() || null,
       first_name: draft.first_name.trim(),
       last_name: draft.last_name.trim() || null,
       dob: draft.dob,
@@ -389,6 +391,13 @@ export function EditStudentModal({
             id='edit-last'
             value={draft.last_name}
             onChange={(event) => set('last_name', event.target.value)}
+          />
+        </FormField>
+        <FormField id='edit-emis' label='EMIS number' hint='Optional'>
+          <Input
+            id='edit-emis'
+            value={draft.emis_number}
+            onChange={(event) => set('emis_number', event.target.value)}
           />
         </FormField>
         <FormField id='edit-dob' label='Date of birth' required error={errors.dob}>

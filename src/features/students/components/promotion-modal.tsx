@@ -18,7 +18,9 @@ import { recordsApi, usePromotionPreview, type PromotionInput } from '../records
 export function PromotionModal({ onClose }: { onClose: () => void }) {
   const classes = useClasses()
   const [classId, setClassId] = useState<number | null>(null)
-  const preview = usePromotionPreview(classId)
+  const [fromSectionId, setFromSectionId] = useState<number | null>(null)
+  const preview = usePromotionPreview(classId, fromSectionId)
+  const currentSections = useSections(classId ?? undefined, Boolean(classId))
   const [target, setTarget] = useState<{
     classId: number | null
     sectionId: number | null
@@ -78,12 +80,14 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
   const waiting = data?.students.filter((student) => !student.already_moved) ?? []
   const moving = waiting.length - detained.length
 
+  const selectedFromSectionName = currentSections.data?.find((s) => s.id === fromSectionId)?.name
+
   return (
     <AppModal
       open
       onOpenChange={(open) => !open && onClose()}
       title='Promote to next year'
-      description='Moves a class into the next academic year. Students who repeat stay in the same class.'
+      description='Moves a class or section into the next academic year. Students who repeat stay in the same class.'
       size='xl'
       footer={
         <div className='flex w-full flex-wrap justify-end gap-2'>
@@ -98,6 +102,7 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
               try {
                 const result = await promote.mutateAsync({
                   from_class_id: data.from_class.id,
+                  ...(fromSectionId ? { from_section_id: fromSectionId } : {}),
                   to_class_id: toClassId,
                   ...(toSectionId ? { to_section_id: toSectionId } : {}),
                   detained_ids: detained,
@@ -117,10 +122,10 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
       }
     >
       <div className='grid gap-4'>
-        <div className='grid gap-4 sm:grid-cols-[1fr_auto_1fr_1fr] sm:items-start'>
-          <FormField id='promote-from' label='Class this year'>
+        <div className='grid gap-3 sm:grid-cols-2 sm:items-start lg:grid-cols-[1fr_1fr_auto_1fr_1fr]'>
+          <FormField id='promote-from-class' label='Class this year'>
             <Combobox
-              id='promote-from'
+              id='promote-from-class'
               label='Class this year'
               value={classId ? String(classId) : undefined}
               placeholder='Choose class'
@@ -131,15 +136,36 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
               }))}
               onChange={(value) => {
                 setClassId(value ? Number(value) : null)
+                setFromSectionId(null)
                 setDetained([])
               }}
               highlightSelected={false}
               className='sm:w-full'
             />
           </FormField>
-          <div aria-hidden className='hidden gap-1.5 sm:grid'>
+          <FormField id='promote-from-section' label='Section this year'>
+            <Combobox
+              id='promote-from-section'
+              label='Section this year'
+              value={fromSectionId ? String(fromSectionId) : undefined}
+              placeholder='All sections'
+              allLabel='All sections'
+              options={(currentSections.data ?? []).map((item) => ({
+                value: String(item.id),
+                label: `Section ${item.name}`,
+                hint: `${item.student_count}/${item.capacity}`,
+              }))}
+              onChange={(value) => {
+                setFromSectionId(value ? Number(value) : null)
+                setDetained([])
+              }}
+              highlightSelected={false}
+              className='sm:w-full'
+            />
+          </FormField>
+          <div aria-hidden className='hidden gap-1.5 lg:grid'>
             <span className='invisible text-xs font-semibold'>to</span>
-            <span className='flex h-9 items-center'>
+            <span className='flex h-9 items-center justify-center'>
               <ArrowRight className='size-5 text-muted-foreground' />
             </span>
           </div>
@@ -162,7 +188,7 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
           </FormField>
           <FormField
             id='promote-section'
-            label='Section'
+            label='Section next year'
             hint={
               noNextSections ? (
                 canSetUp ? (
@@ -219,10 +245,31 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
           <Skeleton className='h-48' />
         ) : (
           <>
-            <p className='text-sm text-muted-foreground'>
-              {data.from_year.name} → {data.to_year.name}. Tick the students who will repeat Class{' '}
-              {data.from_class.name}.
+            <div className='flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/40 p-3 text-sm'>
+              <div className='flex flex-wrap items-center gap-2.5'>
+                <span className='font-semibold'>
+                  Class {data.from_class.name}
+                  {selectedFromSectionName ? ` - ${selectedFromSectionName}` : ' (All sections)'}
+                </span>
+                {data.pass_percent !== null && data.pass_percent !== undefined && (
+                  <Badge tone={data.pass_percent >= 50 ? 'success' : 'danger'}>
+                    Pass {data.pass_percent}%
+                  </Badge>
+                )}
+                {data.average_percent !== null && data.average_percent !== undefined && (
+                  <Badge tone='neutral'>Avg {data.average_percent}%</Badge>
+                )}
+              </div>
+              <div className='text-xs text-muted-foreground'>
+                {waiting.length} to promote ({detained.length} repeating)
+              </div>
+            </div>
+
+            <p className='text-xs text-muted-foreground'>
+              {data.from_year.name} → {data.to_year.name}. All students are selected to promote by
+              default. Check a student to mark them as repeating Class {data.from_class.name}.
             </p>
+
             <ul className='grid max-h-80 gap-1.5 overflow-auto sm:grid-cols-2'>
               {data.students.map((student) => {
                 const repeat = detained.includes(student.student_id)
@@ -249,7 +296,18 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
                         }
                       />
                       <span className='grid min-w-0 flex-1'>
-                        <span className='truncate font-semibold'>{student.full_name}</span>
+                        <span className='flex items-center gap-2 truncate font-semibold'>
+                          <span className='truncate'>{student.full_name}</span>
+                          {student.result_percent !== null &&
+                            student.result_percent !== undefined && (
+                              <Badge
+                                tone={student.passed === false ? 'danger' : 'success'}
+                                className='font-mono text-[10px]'
+                              >
+                                {student.result_percent}%
+                              </Badge>
+                            )}
+                        </span>
                         <span className='text-xs text-muted-foreground'>
                           {student.section_name ? `Section ${student.section_name}` : 'No section'}
                           {student.roll_no ? ` · Roll ${student.roll_no}` : ''}

@@ -224,6 +224,12 @@ export function StudentPage() {
               </h1>
               <div className='flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground'>
                 <span className='font-mono text-xs'>{data.admission_no}</span>
+                {data.emis_number && (
+                  <>
+                    <span>·</span>
+                    <span className='font-mono text-xs'>EMIS {data.emis_number}</span>
+                  </>
+                )}
                 <span>·</span>
                 <span>Class {classSection(data.class?.name, data.section?.name)}</span>
                 {data.roll_no && <span>· Roll {data.roll_no}</span>}
@@ -481,6 +487,7 @@ function ProfileTab({
         <Block title='Profile'>
           <Facts
             items={[
+              ['EMIS number', student.emis_number ?? '—'],
               ['Date of birth', `${formatDate(student.dob)} · ${student.age} years`],
               ['Gender', GENDER_LABELS[student.gender]],
               ['Blood group', student.blood_group ?? '—'],

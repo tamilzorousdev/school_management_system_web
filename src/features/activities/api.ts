@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginated } from '@/lib/api/client'
 import type { Achievement, AchievementLevel } from '@/features/students/records-api'
 
@@ -23,6 +23,46 @@ export interface LeaderboardRow {
   podiums: number
   outside_events: number
   best_level: AchievementLevel
+}
+
+export interface SportsOnDutyStudent {
+  id: number
+  name: string
+  admission_no: string
+  section_name: string | null
+}
+
+export interface SportsOnDuty {
+  id: number
+  student: SportsOnDutyStudent
+  sport_name: string
+  title: string
+  from_date: string
+  to_date: string
+  session: string | null
+  venue: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface CreateSportsOnDutyInput {
+  student_ids: number[]
+  sport_name: string
+  title: string
+  from_date: string
+  to_date: string
+  session?: 'morning' | 'afternoon' | null
+  venue?: string | null
+  notes?: string | null
+}
+
+export interface SportsOnDutyParams {
+  [key: string]: string | number | boolean | undefined | null
+  date?: string
+  search?: string
+  student_id?: number
+  class_id?: number
+  section_id?: number
 }
 
 export interface Leaderboard {
@@ -65,6 +105,7 @@ export const activityKeys = {
   insights: (params: ActivityFilter) => [...activityKeys.all, 'insights', params] as const,
   leaderboard: (params: ActivityFilter & { limit?: number }) =>
     [...activityKeys.all, 'leaderboard', params] as const,
+  onDuty: (params?: SportsOnDutyParams) => [...activityKeys.all, 'on-duty', params] as const,
 }
 
 export const activitiesApi = {
@@ -74,6 +115,11 @@ export const activitiesApi = {
     api.get<ActivityInsights>('/admin/achievements/insights', { ...params }),
   leaderboard: (params: ActivityFilter & { limit?: number }) =>
     api.get<Leaderboard>('/admin/achievements/leaderboard', { ...params }),
+  listOnDuty: (params?: SportsOnDutyParams) =>
+    api.get<SportsOnDuty[]>('/admin/sports-on-duty', params),
+  createOnDuty: (input: CreateSportsOnDutyInput) =>
+    api.post<SportsOnDuty[]>('/admin/sports-on-duty', input),
+  removeOnDuty: (id: number) => api.delete<{ message: string }>(`/admin/sports-on-duty/${id}`),
 }
 
 export function useActivityList(params: ActivityListParams) {
@@ -98,5 +144,25 @@ export function useLeaderboard(params: ActivityFilter & { limit?: number }, enab
     queryFn: () => activitiesApi.leaderboard(params),
     placeholderData: keepPreviousData,
     enabled,
+  })
+}
+
+export function useSportsOnDutyList(params?: SportsOnDutyParams) {
+  return useQuery({
+    queryKey: activityKeys.onDuty(params),
+    queryFn: () => activitiesApi.listOnDuty(params),
+  })
+}
+
+export function useSportsOnDutyMutation<TInput, TOutput>(
+  mutationFn: (input: TInput) => Promise<TOutput>
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: activityKeys.all })
+      void queryClient.invalidateQueries({ queryKey: ['attendance'] })
+    },
   })
 }

@@ -86,6 +86,7 @@ export interface SetupSummary {
 }
 
 export type DiaryReviewMode = 'all' | 'remarks' | 'none'
+export type ChatDeleteWindow = '1_hour' | '24_hours' | 'anytime'
 
 export interface SchoolProfile {
   id: number
@@ -108,6 +109,7 @@ export interface SchoolProfile {
   diary_review_mode: DiaryReviewMode
   chat_office_start: string
   chat_office_end: string
+  chat_delete_window?: ChatDeleteWindow
   logo_file_id: number | null
   logo_url: string | null
   signature_file_id: number | null

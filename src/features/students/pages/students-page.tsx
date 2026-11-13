@@ -164,6 +164,7 @@ export function StudentsPage() {
             <span className='truncate font-bold'>{student.full_name}</span>
             <span className='truncate font-mono text-xs text-muted-foreground'>
               {student.admission_no}
+              {student.emis_number ? ` · EMIS ${student.emis_number}` : ''}
             </span>
           </div>
         </div>
@@ -393,6 +394,7 @@ export function StudentsPage() {
                 </div>
                 <span className='font-mono text-xs text-muted-foreground'>
                   {student.admission_no}
+                  {student.emis_number ? ` · EMIS ${student.emis_number}` : ''}
                   {student.roll_no ? ` · Roll ${student.roll_no}` : ''}
                 </span>
                 {student.guardians[0] && (
