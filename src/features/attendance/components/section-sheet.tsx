@@ -258,7 +258,7 @@ function RosterEditor({
                           <span className='flex items-center gap-1.5 truncate font-semibold'>
                             {student.full_name}
                             {student.on_duty ? (
-                              <Badge tone='primary'>
+                              <Badge tone='success'>
                                 On Duty (OD){student.od_reason ? ` · ${student.od_reason}` : ''}
                               </Badge>
                             ) : student.on_leave ? (

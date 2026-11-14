@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import { Award, CalendarDays, Globe2, Medal, MountainSnow, Plus, Trash2, Trophy, Users } from 'lucide-react'
+import {
+  Award,
+  CalendarDays,
+  Globe2,
+  Medal,
+  MountainSnow,
+  Plus,
+  Trash2,
+  Trophy,
+  Users,
+} from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -22,6 +32,8 @@ import {
   SCOPE_LABELS,
   VENUE_LABELS,
 } from '@/features/students/achievement-labels'
+import { alerts } from '@/lib/alerts'
+import { toApiError } from '@/lib/api/errors'
 import { formatDate } from '@/lib/format'
 import {
   activitiesApi,
@@ -188,7 +200,7 @@ export function ActivitiesPage() {
         eyebrow='Academics'
         title='Sports & activities'
         description='Students ranked by sports, competitions, arts and other activities, not only by marks. Points = level × result.'
-        action={
+        actions={
           search.tab === 'on_duty' ? (
             <Button size='sm' onClick={() => setAddingOd(true)}>
               <Plus />
@@ -204,7 +216,12 @@ export function ActivitiesPage() {
         tabs={[
           { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
           { value: 'all', label: 'All achievements', icon: Award, count: counts?.total },
-          { value: 'on_duty', label: 'On Duty (OD)', icon: CalendarDays, count: odList.data?.length },
+          {
+            value: 'on_duty',
+            label: 'On Duty (OD)',
+            icon: CalendarDays,
+            count: odList.data?.length,
+          },
         ]}
       />
       <InsightCards items={cards} loading={!counts} />
@@ -358,9 +375,9 @@ export function ActivitiesPage() {
         title='Cancel Sports On Duty?'
         description={`Are you sure you want to remove ${removingOd?.student.name} from On Duty for ${removingOd?.title}?`}
         confirmText='Cancel OD'
-        confirmTone='destructive'
-        isConfirming={removeOd.isPending}
-        onCancel={() => setRemovingOd(null)}
+        destructive
+        loading={removeOd.isPending}
+        onOpenChange={(open) => !open && setRemovingOd(null)}
         onConfirm={async () => {
           if (!removingOd) return
           try {
@@ -656,7 +673,8 @@ function SportsOnDutyView({
       empty={{
         icon: Medal,
         title: 'No students on Sports OD',
-        description: 'Map students participating in sports tournaments or meets to mark them On Duty.',
+        description:
+          'Map students participating in sports tournaments or meets to mark them On Duty.',
       }}
       card={(row) => (
         <div className='flex items-center justify-between gap-3 p-3'>

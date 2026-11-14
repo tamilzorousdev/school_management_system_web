@@ -48,15 +48,17 @@ export function SportsOnDutyModal({ onClose }: { onClose: () => void }) {
   const classes = useClasses()
   const sections = useSections(
     selectedClass ? Number(selectedClass) : undefined,
-    Boolean(selectedClass),
+    Boolean(selectedClass)
   )
   const students = useStudents({
+    page: 1,
+    limit: 100,
     section_id: selectedSection ? Number(selectedSection) : undefined,
     status: 'active',
   })
 
   const save = useSportsOnDutyMutation((input: Parameters<typeof activitiesApi.createOnDuty>[0]) =>
-    activitiesApi.createOnDuty(input),
+    activitiesApi.createOnDuty(input)
   )
 
   const set = (field: keyof typeof draft, value: string) => {
@@ -66,7 +68,7 @@ export function SportsOnDutyModal({ onClose }: { onClose: () => void }) {
 
   const toggleStudent = (id: number) => {
     setSelectedStudentIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     )
   }
 
@@ -125,13 +127,13 @@ export function SportsOnDutyModal({ onClose }: { onClose: () => void }) {
   return (
     <AppModal
       open
-      onClose={onClose}
+      onOpenChange={(open) => !open && onClose()}
       title='Map Sports On Duty (OD)'
       description='Students on OD automatically appear as On Duty in daily attendance and cannot be marked absent.'
       formId='sports-od-form'
       submitText='Save Sports OD'
-      isSubmitting={save.isPending}
-      className='sm:max-w-xl'
+      loading={save.isPending}
+      size='lg'
     >
       <form id='sports-od-form' onSubmit={submit} className='grid gap-4'>
         <div className='grid gap-4 sm:grid-cols-2'>
@@ -248,7 +250,7 @@ export function SportsOnDutyModal({ onClose }: { onClose: () => void }) {
 
           {errors.students && <p className='text-xs text-destructive'>{errors.students}</p>}
 
-          <div className='max-h-48 overflow-y-auto divide-y rounded-md border'>
+          <div className='max-h-48 divide-y overflow-y-auto rounded-md border'>
             {(students.data?.items ?? []).length === 0 ? (
               <p className='p-3 text-center text-xs text-muted-foreground'>
                 No students found for this class/section.
@@ -263,7 +265,7 @@ export function SportsOnDutyModal({ onClose }: { onClose: () => void }) {
                     onClick={() => toggleStudent(student.id)}
                     className={cn(
                       'flex w-full items-center justify-between p-2 text-left text-xs transition-colors hover:bg-muted/50',
-                      picked && 'bg-primary/5 font-semibold text-primary',
+                      picked && 'bg-primary/5 font-semibold text-primary'
                     )}
                   >
                     <div className='grid min-w-0'>
@@ -273,7 +275,7 @@ export function SportsOnDutyModal({ onClose }: { onClose: () => void }) {
                         {student.section?.name ?? ''}
                       </span>
                     </div>
-                    {picked && <Check className='size-4 text-primary shrink-0' />}
+                    {picked && <Check className='size-4 shrink-0 text-primary' />}
                   </button>
                 )
               })
@@ -294,4 +296,3 @@ export function SportsOnDutyModal({ onClose }: { onClose: () => void }) {
     </AppModal>
   )
 }
-
