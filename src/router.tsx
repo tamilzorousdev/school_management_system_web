@@ -13,6 +13,7 @@ import { queryClient } from '@/lib/api/query-client'
 import { session } from '@/lib/auth/session'
 import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
+import { feedbackSearchSchema } from '@/features/feedback/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
@@ -286,6 +287,16 @@ const performanceRoute = createRoute({
   ),
 })
 
+const feedbackRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/teacher-feedback',
+  validateSearch: feedbackSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/feedback/pages/feedback-page'),
+    'FeedbackPage'
+  ),
+})
+
 const timetableRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/timetable',
@@ -412,6 +423,7 @@ const routeTree = rootRoute.addChildren([
     staffProfileRoute,
     attendanceRoute,
     performanceRoute,
+    feedbackRoute,
     timetableRoute,
     substitutesRoute,
     payrollRoute,

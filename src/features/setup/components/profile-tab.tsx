@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { ImageUp, Save, Trash2 } from 'lucide-react'
+import { ImageUp, PenLine, Save, Trash2 } from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { ErrorState } from '@/components/common/display'
 import { FormField } from '@/components/common/form-field'
+import { SignatureModal } from '@/components/common/signature-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -298,35 +299,18 @@ function SchoolLogo({ school, canManage }: { school: SchoolProfile; canManage: b
 }
 
 function SchoolSignature({ school, canManage }: { school: SchoolProfile; canManage: boolean }) {
-  const [uploading, setUploading] = useState(false)
+  const [signing, setSigning] = useState(false)
   const [error, setError] = useState('')
   const save = useSetupMutation((signature_file_id: number | null) =>
     setupApi.updateSchool({ signature_file_id })
   )
-
-  const upload = async (file: File | undefined) => {
-    if (!file) return
-    setError('')
-    if (!LOGO_TYPES.includes(file.type)) return setError('Choose a PNG, JPG or WEBP image')
-    if (file.size > 2 * 1024 * 1024) return setError('The signature must be 2 MB or smaller')
-    setUploading(true)
-    try {
-      const uploaded = await filesApi.upload(file, 'school_signature')
-      await save.mutateAsync(uploaded.id)
-      alerts.success('Authorized signature saved')
-    } catch (caught) {
-      setError(toApiError(caught).message)
-    } finally {
-      setUploading(false)
-    }
-  }
 
   return (
     <FormField
       id='school-signature'
       label='Authorized digital signature'
       error={error}
-      hint='PNG with transparent background or JPG, up to 2 MB. Displayed on receipts, payslips and report cards.'
+      hint='Sign on the screen or upload a photo of a paper signature. Displayed on receipts, payslips and report cards.'
       className='sm:col-span-2'
     >
       <div className='flex flex-wrap items-center gap-4'>
@@ -338,31 +322,22 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
               className='size-full object-contain'
             />
           ) : (
-            <ImageUp className='size-6 text-muted-foreground' aria-hidden />
+            <PenLine className='size-6 text-muted-foreground' aria-hidden />
           )}
         </div>
         {canManage && (
           <div className='flex flex-wrap gap-2'>
-            <Button asChild variant='outline' size='sm' disabled={uploading}>
-              <label htmlFor='school-signature' className='cursor-pointer'>
-                <ImageUp />
-                {uploading
-                  ? 'Uploading…'
-                  : school.signature_url
-                    ? 'Change signature'
-                    : 'Upload signature'}
-                <input
-                  id='school-signature'
-                  type='file'
-                  accept={LOGO_TYPES.join(',')}
-                  className='sr-only'
-                  disabled={uploading}
-                  onChange={(event) => {
-                    void upload(event.target.files?.[0])
-                    event.target.value = ''
-                  }}
-                />
-              </label>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={() => {
+                setError('')
+                setSigning(true)
+              }}
+            >
+              <PenLine />
+              {school.signature_url ? 'Change signature' : 'Add signature'}
             </Button>
             {school.signature_url && (
               <Button
@@ -370,7 +345,7 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
                 variant='ghost'
                 size='sm'
                 className='text-destructive hover:bg-destructive/10'
-                loading={save.isPending && !uploading}
+                loading={save.isPending && !signing}
                 onClick={async () => {
                   try {
                     await save.mutateAsync(null)
@@ -387,6 +362,17 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
           </div>
         )}
       </div>
+      {signing && (
+        <SignatureModal
+          title='Authorized signature'
+          photoPurpose='school_signature'
+          onSave={async (fileId) => {
+            await save.mutateAsync(fileId)
+            alerts.success('Authorized signature saved')
+          }}
+          onClose={() => setSigning(false)}
+        />
+      )}
     </FormField>
   )
 }

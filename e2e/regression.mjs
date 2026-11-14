@@ -885,6 +885,45 @@ await test(
       throw new Error('Promote disabled')
   }
 )
+await test(
+  {
+    id: 'PR-02',
+    module: 'Promotion',
+    type: 'Edit',
+    title: 'Every student is ticked to promote and can be unticked; grade-wise pass % shown',
+    steps: 'Bulk actions → Promote to next year → Class 6, untick the first student.',
+    expected:
+      'All ticked at first, Promote count drops by 1, Grade-wise pass percentage strip shown',
+  },
+  async () => {
+    await go('/students')
+    await click(page, /bulk actions/i)
+    await page.getByRole('menuitem', { name: /promote to next year/i }).click()
+    await pick(dialog(), 'Class this year', 'Class 6')
+    await see('Kavin Narayanan', dialog())
+    const boxes = dialog().getByRole('checkbox', { name: /^Promote / })
+    const total = await boxes.count()
+    const state = await boxes.evaluateAll((items) => ({
+      enabled: items.filter((item) => !item.disabled).length,
+      ticked: items.filter((item) => !item.disabled && item.checked).length,
+      first: items.findIndex((item) => !item.disabled),
+    }))
+    if (!state.enabled) throw new Error('No student to promote')
+    if (state.ticked !== state.enabled)
+      throw new Error(`${state.ticked} of ${state.enabled} ticked at first`)
+
+    const button = dialog().getByRole('button', { name: /^promote \d+/i })
+    const before = Number((await button.textContent()).match(/\d+/)[0])
+    const first = boxes.nth(state.first)
+    await first.uncheck()
+    const after = Number((await button.textContent()).match(/\d+/)[0])
+    if (after !== before - 1) throw new Error(`Promote ${before} → ${after}`)
+    await first.check()
+    await see('Grade-wise pass percentage', dialog())
+    await page.keyboard.press('Escape')
+    return `${total} students, untick works`
+  }
+)
 
 await test(
   {
@@ -2636,6 +2675,128 @@ await test(
     await page.getByText('Chat office hours').waitFor({ timeout: 10000 })
     if (await page.getByText('Diary review').count())
       throw new Error('Diary review options still shown')
+  }
+)
+await test(
+  {
+    id: 'DSIG-01',
+    module: 'School setup',
+    type: 'Add',
+    title: 'Sign on the screen and save it as the authorized signature',
+    steps:
+      'School setup, Profile, Add/Change signature, Sign here, draw with the mouse, Save signature.',
+    expected:
+      'Signature saved; the preview shows the drawn signature; Upload photo is the second option',
+  },
+  async () => {
+    const before = (await api('GET', '/admin/school')).data?.signature_file_id ?? null
+    await go('/setup?tab=profile')
+    await page.getByRole('button', { name: /^(Add|Change) signature$/ }).click()
+    await dialog().getByRole('radio', { name: 'Upload photo' }).waitFor({ timeout: 8000 })
+    const pad = dialog().getByRole('img', { name: /Signature pad/ })
+    const box = await pad.boundingBox()
+    await page.mouse.move(box.x + 60, box.y + 140)
+    await page.mouse.down()
+    for (const [x, y] of [
+      [110, 60],
+      [160, 150],
+      [220, 70],
+      [280, 140],
+      [360, 90],
+      [430, 130],
+    ])
+      await page.mouse.move(box.x + x, box.y + y, { steps: 6 })
+    await page.mouse.up()
+    await dialog().getByRole('button', { name: 'Save signature' }).click()
+    await see('Authorized signature saved')
+    const after = (await api('GET', '/admin/school')).data
+    if (!after.signature_file_id || after.signature_file_id === before)
+      throw new Error('Signature not saved')
+    const file = (await api('GET', `/files/${after.signature_file_id}`)).data
+    if (file.mime_type !== 'image/png' || file.purpose !== 'signature_pad')
+      throw new Error(`Saved ${file.mime_type} ${file.purpose}`)
+    await page.screenshot({ path: path.join(SHOTS, 'DSIG-01.png') })
+    await api('PATCH', '/admin/school', { signature_file_id: before })
+    return `PNG ${file.width}x${file.height}`
+  }
+)
+await test(
+  {
+    id: 'TF-01',
+    module: 'Teacher feedback',
+    type: 'View',
+    title: 'Teacher ranking from parent ratings',
+    steps: 'Academics, Teacher feedback.',
+    expected: 'Insight cards and teachers ranked #1, #2 … with average stars and good / bad',
+  },
+  async () => {
+    await go('/teacher-feedback')
+    await page.getByRole('heading', { name: 'Teacher feedback' }).waitFor({ timeout: 10000 })
+    for (const text of ['Parent ratings', 'Average stars', 'Good behaviour', 'Top teacher'])
+      await page.getByText(text, { exact: true }).first().waitFor({ timeout: 8000 })
+    await page.getByText('#1', { exact: true }).first().waitFor({ timeout: 8000 })
+    await page.screenshot({ path: path.join(SHOTS, 'TF-01.png'), fullPage: true })
+  }
+)
+await test(
+  {
+    id: 'TF-02',
+    module: 'Teacher feedback',
+    type: 'View',
+    title: 'Clicking a ranked teacher lists their parent ratings with the parent name',
+    steps: 'Ranking, click the #1 teacher.',
+    expected:
+      'Parent ratings tab filtered to that teacher, with stars, behaviour, remark and parent',
+  },
+  async () => {
+    await page.getByText('#1', { exact: true }).first().click()
+    await page.waitForURL(/tab=ratings/, { timeout: 8000 })
+    await page
+      .getByText(/\d+ ratings/)
+      .first()
+      .waitFor({ timeout: 8000 })
+    await page
+      .getByRole('button', { name: /^Remove rating of / })
+      .first()
+      .waitFor({ timeout: 8000 })
+  }
+)
+await test(
+  {
+    id: 'TF-03',
+    module: 'Teacher feedback',
+    type: 'View',
+    title: 'Teacher report by class and subject',
+    steps: 'Teacher feedback, Teacher report tab.',
+    expected: 'A card per teacher with Class, Subject, Pass, Fail and Average per class',
+  },
+  async () => {
+    await go('/teacher-feedback?tab=report')
+    for (const text of ['Class', 'Subject', 'Pass', 'Fail', 'Average'])
+      await page
+        .getByRole('columnheader', { name: text, exact: true })
+        .first()
+        .waitFor({ timeout: 10000 })
+    await page.screenshot({ path: path.join(SHOTS, 'TF-03.png'), fullPage: false })
+  }
+)
+await test(
+  {
+    id: 'TF-04',
+    module: 'Teacher feedback',
+    type: 'Edit',
+    title: 'Settings: ratings on, how often, student feedback on',
+    steps: 'Teacher feedback, Settings.',
+    expected: 'Two switches and 1 month / 2 / 3 / 6 months / 1 year choices',
+  },
+  async () => {
+    await go('/teacher-feedback')
+    await page.getByRole('button', { name: 'Settings' }).click()
+    await see('Parents can rate teachers', dialog())
+    for (const text of ['1 month', '3 months', '6 months', '1 year'])
+      await dialog().getByRole('radio', { name: text }).waitFor({ timeout: 8000 })
+    await see('Teachers give students feedback', dialog())
+    await page.keyboard.press('Escape')
   }
 )
 await test(

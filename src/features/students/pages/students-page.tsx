@@ -389,7 +389,9 @@ export function StudentsPage() {
                 name={student.full_name}
                 src={student.photo_url}
                 previewable
-                subtitle={student.admission_no ? `Admission No: ${student.admission_no}` : undefined}
+                subtitle={
+                  student.admission_no ? `Admission No: ${student.admission_no}` : undefined
+                }
               />
               <div className='grid min-w-0 flex-1 gap-1'>
                 <div className='flex items-start justify-between gap-2'>

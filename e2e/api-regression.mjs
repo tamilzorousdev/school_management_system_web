@@ -975,6 +975,53 @@ await D4(
   }
 )
 await D4(
+  'API-AT-OD1',
+  'Attendance',
+  'GET',
+  '/admin/attendance/board',
+  'A student on Sports OD today shows on the board',
+  '200; on_duty lists the student with the event, the section counts 1 OD more',
+  async () => {
+    if (!board?.working_day) return 'Skipped: not a working day'
+    const section = board.sections.find(
+      (item) =>
+        !item.marked && item.total > 0 && !item.holiday && item.section_id !== childSectionId
+    )
+    if (!section) return 'Skipped: every section is marked'
+    const students = (
+      await admin('GET', `/admin/students?section_id=${section.section_id}&page=1&limit=100`)
+    ).body.data.items
+    const onDutyIds = new Set((board.on_duty ?? []).map((item) => item.student_id))
+    const student = students.find((item) => !onDutyIds.has(item.id))
+    if (!student) return 'Skipped: no free student'
+    const created = await admin('POST', '/admin/sports-on-duty', {
+      student_ids: [student.id],
+      sport_name: 'Regression sport',
+      title: 'Regression OD check',
+      from_date: today,
+      to_date: today,
+    })
+    expectStatus(created, 201)
+    const odId = created.body.data.find((item) => item.student.id === student.id)?.id
+    try {
+      const after = (await admin('GET', `/admin/attendance/board?date=${today}`)).body.data
+      const listed = after.on_duty.find((item) => item.student_id === student.id)
+      if (
+        !listed ||
+        listed.title !== 'Regression OD check' ||
+        listed.section_id !== section.section_id
+      )
+        throw new Error('Student not in on_duty')
+      const row = after.sections.find((item) => item.section_id === section.section_id)
+      if ((row.od ?? 0) !== (section.od ?? 0) + 1)
+        throw new Error(`Section OD ${row.od}, was ${section.od}`)
+      return `200; ${after.on_duty.length} on duty, ${section.name} shows ${row.od} OD`
+    } finally {
+      if (odId) await admin('DELETE', `/admin/sports-on-duty/${odId}`)
+    }
+  }
+)
+await D4(
   'API-AT-02',
   'Attendance',
   'PUT',
@@ -5795,6 +5842,368 @@ await TA(
     )
   }
 )
+
+const uploadPhoto = async (token, fixture, purpose) => {
+  const form = new FormData()
+  const bytes = fs.readFileSync(path.join(ROOT, 'fixtures', fixture))
+  form.append('file', new Blob([bytes], { type: 'image/jpeg' }), fixture)
+  form.append('purpose', purpose)
+  const response = await fetch(`${API}/files`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    body: form,
+  })
+  return { status: response.status, body: await response.json() }
+}
+let signatureFileId = 0
+await TA(
+  'API-DSIG-01',
+  'Digital signature',
+  'POST',
+  '/files',
+  'Parent uploads a phone photo of a signature on paper (purpose signature)',
+  '201; a cropped transparent PNG',
+  async () => {
+    const result = await uploadPhoto(parentToken, 'signature-photo.jpg', 'signature')
+    expectStatus(result, 201)
+    const file = result.body.data
+    if (file.mime_type !== 'image/png' || !file.name.endsWith('.png'))
+      throw new Error(`Got ${file.mime_type}`)
+    if (!(file.width < 800 && file.height < 500))
+      throw new Error(`Not cropped: ${file.width}x${file.height}`)
+    const image = await fetch(file.url)
+    const head = new Uint8Array(await image.arrayBuffer()).slice(0, 26)
+    if (head[1] !== 0x50 || head[25] !== 6) throw new Error('Not a PNG with transparency')
+    signatureFileId = file.id
+    return `201; PNG ${file.width}x${file.height} with transparent background`
+  }
+)
+await TA(
+  'API-DSIG-02',
+  'Digital signature',
+  'POST',
+  '/files',
+  'Photo of blank paper as a signature',
+  '400 SIGNATURE_NOT_FOUND',
+  async () =>
+    expectStatus(
+      await uploadPhoto(parentToken, 'blank-paper.jpg', 'signature'),
+      400,
+      'SIGNATURE_NOT_FOUND'
+    )
+)
+await TA(
+  'API-DSIG-03',
+  'Digital signature',
+  'PUT',
+  '/mobile/parent/signature',
+  'Parent saves the cleaned signature',
+  '200; signature_url',
+  async () => {
+    if (!signatureFileId) return 'Skipped: no signature uploaded'
+    const before = (await parent('GET', '/mobile/parent/profile')).body?.data
+    const previous = before?.signature_file_id ?? null
+    const result = await parent('PUT', '/mobile/parent/signature', {
+      signature_file_id: signatureFileId,
+    })
+    expectStatus(result, 200)
+    if (!result.body.data.signature_url) throw new Error('No signature_url')
+    await parent('PUT', '/mobile/parent/signature', { signature_file_id: previous })
+    return '200; signature saved, then put back'
+  }
+)
+await TA(
+  'API-DSIG-04',
+  'Digital signature',
+  'POST',
+  '/files',
+  'Other images keep their format (student photo)',
+  '201; image/jpeg',
+  async () => {
+    const result = await uploadPhoto(adminToken, 'signature-photo.jpg', 'student_photo')
+    expectStatus(result, 201)
+    if (result.body.data.mime_type !== 'image/jpeg')
+      throw new Error(`Got ${result.body.data.mime_type}`)
+    return '201; image/jpeg unchanged'
+  }
+)
+
+const feedbackBefore = (await admin('GET', '/admin/feedback/settings')).body?.data
+let ratedTeacher = null
+let ratingId = 0
+let feedbackId = 0
+await TA(
+  'API-FB-01',
+  'Teacher feedback',
+  'PUT',
+  '/admin/feedback/settings',
+  'Admin opens parent ratings every 3 months and student feedback',
+  '200; cycle and term returned',
+  async () => {
+    const result = await admin('PUT', '/admin/feedback/settings', {
+      teacher_rating_enabled: true,
+      teacher_rating_months: 3,
+      student_feedback_enabled: true,
+    })
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (!data.teacher_rating_enabled || data.teacher_rating_months !== 3 || !data.cycle)
+      throw new Error('Settings not saved')
+    return `200; window ${data.cycle.start} to ${data.cycle.end}, term ${data.term?.name ?? 'none'}`
+  }
+)
+await TA(
+  'API-FB-02',
+  'Teacher feedback',
+  'PUT',
+  '/admin/feedback/settings',
+  'Rating every 4 months',
+  '400 VALIDATION_FAILED on teacher_rating_months',
+  async () =>
+    expectFields(await admin('PUT', '/admin/feedback/settings', { teacher_rating_months: 4 }), [
+      'teacher_rating_months',
+    ])
+)
+await TA(
+  'API-FB-03',
+  'Teacher feedback',
+  'GET',
+  '/mobile/parent/children/{id}/teacher-ratings',
+  'Parent sees the child teachers to rate',
+  '200; enabled, teachers with subjects',
+  async () => {
+    const result = await parent('GET', `/mobile/parent/children/${child.id}/teacher-ratings`)
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (!data.enabled || !data.teachers.length) throw new Error('No teachers to rate')
+    ratedTeacher = data.teachers.find((item) => !item.rated) ?? null
+    return `200; ${data.teachers.length} teachers, ${data.teachers.filter((item) => item.rated).length} already rated`
+  }
+)
+await TA(
+  'API-FB-04',
+  'Teacher feedback',
+  'POST',
+  '/mobile/parent/children/{id}/teacher-ratings',
+  'Parent rates a teacher 4 stars, good',
+  '201; my_rating saved; admin told',
+  async () => {
+    if (!ratedTeacher) return 'Skipped: every teacher already rated this window'
+    const result = await parent('POST', `/mobile/parent/children/${child.id}/teacher-ratings`, {
+      teacher_user_id: ratedTeacher.teacher_user_id,
+      stars: 4,
+      behaviour: 'good',
+      remark: 'Regression rating',
+    })
+    expectStatus(result, 201)
+    if (result.body.data.my_rating?.stars_label !== 'Very good')
+      throw new Error('Rating not returned')
+    const list = (
+      await admin(
+        'GET',
+        `/admin/feedback/ratings?teacher_user_id=${ratedTeacher.teacher_user_id}&search=Regression`
+      )
+    ).body.data.items
+    const row = list.find((item) => item.remark === 'Regression rating')
+    if (!row?.parent?.name) throw new Error('Office does not see the parent')
+    ratingId = row.id
+    const inbox =
+      (await admin('GET', '/me/notifications?limit=20&category=system')).body?.data?.items ?? []
+    if (!inbox.some((item) => item.title?.includes(ratedTeacher.name)))
+      throw new Error('Admin not notified')
+    return `201; ${ratedTeacher.name} 4 stars, office sees ${row.parent.name}, admin notified`
+  }
+)
+await TA(
+  'API-FB-05',
+  'Teacher feedback',
+  'POST',
+  '/mobile/parent/children/{id}/teacher-ratings',
+  'Rate the same teacher again in the window',
+  '409 ALREADY_RATED',
+  async () => {
+    if (!ratedTeacher || !ratingId) return 'Skipped: no rating made'
+    return expectStatus(
+      await parent('POST', `/mobile/parent/children/${child.id}/teacher-ratings`, {
+        teacher_user_id: ratedTeacher.teacher_user_id,
+        stars: 5,
+        behaviour: 'good',
+      }),
+      409,
+      'ALREADY_RATED'
+    )
+  }
+)
+await TA(
+  'API-FB-06',
+  'Teacher feedback',
+  'POST',
+  '/mobile/parent/children/{id}/teacher-ratings',
+  'Rate someone who does not teach the child',
+  '400 NOT_CHILD_TEACHER',
+  async () =>
+    expectStatus(
+      await parent('POST', `/mobile/parent/children/${child.id}/teacher-ratings`, {
+        teacher_user_id: 999999,
+        stars: 3,
+        behaviour: 'bad',
+      }),
+      400,
+      'NOT_CHILD_TEACHER'
+    )
+)
+await TA(
+  'API-FB-07',
+  'Teacher feedback',
+  'GET',
+  '/admin/feedback/ranking',
+  'Teacher ranking',
+  '200; rated teachers ranked from 1',
+  async () => {
+    const result = await admin('GET', '/admin/feedback/ranking')
+    expectStatus(result, 200)
+    const ranked = result.body.data.filter((item) => item.rank !== null)
+    if (ratingId && !ranked.length) throw new Error('Nobody ranked')
+    if (ranked.some((item, index) => item.rank !== index + 1)) throw new Error('Ranks out of order')
+    return `200; ${ranked.length} ranked of ${result.body.data.length}`
+  }
+)
+await TA(
+  'API-FB-08',
+  'Teacher feedback',
+  'GET',
+  '/mobile/teacher/ratings',
+  'Teacher sees own ratings without parent names',
+  '200; summary, remarks have no parent or student',
+  async () => {
+    const result = await teacher('GET', '/mobile/teacher/ratings')
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (data.remarks.some((item) => 'parent' in item || 'student' in item || 'created_at' in item))
+      throw new Error('Rater shown to teacher')
+    return `200; ${data.summary.ratings} ratings, average ${data.summary.average_stars ?? '-'}`
+  }
+)
+await TA(
+  'API-FB-09',
+  'Teacher feedback',
+  'GET',
+  '/mobile/teacher/feedback/sections/{sectionId}',
+  'Teacher opens student feedback for a section',
+  '200; enabled, term, students',
+  async () => {
+    if (!teacherSection) return 'Skipped: demo teacher has no section'
+    const result = await teacher('GET', `/mobile/teacher/feedback/sections/${teacherSection}`)
+    expectStatus(result, 200)
+    if (!result.body.data.enabled || !result.body.data.students.length)
+      throw new Error('Nothing to give')
+    return `200; ${result.body.data.given}/${result.body.data.total} given in ${result.body.data.term?.name}`
+  }
+)
+await TA(
+  'API-FB-10',
+  'Teacher feedback',
+  'POST',
+  '/mobile/teacher/feedback/students/{studentId}',
+  'Teacher gives a student 4/5/3 stars; again is refused',
+  '201 with labels; then 409 FEEDBACK_ALREADY_GIVEN',
+  async () => {
+    if (!teacherSection) return 'Skipped: demo teacher has no section'
+    const roster = (await teacher('GET', `/mobile/teacher/feedback/sections/${teacherSection}`))
+      .body.data
+    const student = roster.students.find((item) => !item.feedback)
+    if (!student) return 'Skipped: every student already has feedback this term'
+    const result = await teacher(
+      'POST',
+      `/mobile/teacher/feedback/students/${student.student_id}`,
+      {
+        studies: 4,
+        behaviour: 5,
+        sports: 3,
+        remark: 'Regression feedback',
+      }
+    )
+    expectStatus(result, 201)
+    const data = result.body.data
+    if (
+      data.studies_label !== 'Very good' ||
+      data.behaviour_label !== 'Excellent' ||
+      data.sports_label !== 'Good'
+    )
+      throw new Error('Labels wrong')
+    feedbackId = data.id
+    expectStatus(
+      await teacher('POST', `/mobile/teacher/feedback/students/${student.student_id}`, {
+        studies: 3,
+        behaviour: 3,
+      }),
+      409,
+      'FEEDBACK_ALREADY_GIVEN'
+    )
+    return `201; ${data.student.name}: ${data.studies_label}, ${data.behaviour_label}, ${data.sports_label}`
+  }
+)
+await TA(
+  'API-FB-11',
+  'Teacher feedback',
+  'POST',
+  '/mobile/teacher/feedback/students/{studentId}',
+  'Stars out of range',
+  '400 VALIDATION_FAILED on studies, behaviour',
+  async () =>
+    expectFields(
+      await teacher('POST', `/mobile/teacher/feedback/students/${child.id}`, {
+        studies: 6,
+        behaviour: 0,
+      }),
+      ['studies', 'behaviour']
+    )
+)
+await TA(
+  'API-FB-12',
+  'Teacher feedback',
+  'GET',
+  '/admin/feedback/teacher-report',
+  'Teacher-wise report by class and subject',
+  '200; each teacher with classes, pass/fail % and rating',
+  async () => {
+    const result = await admin('GET', '/admin/feedback/teacher-report')
+    expectStatus(result, 200)
+    const rows = result.body.data.teachers
+    if (!rows.length) throw new Error('No teachers in the report')
+    const withResults = rows
+      .flatMap((row) => row.classes)
+      .filter((item) => item.pass_percent !== null)
+    if (withResults.some((item) => Math.abs(item.pass_percent + item.fail_percent - 100) > 0.11))
+      throw new Error('Pass and fail do not add to 100')
+    return `200; ${rows.length} teachers, ${withResults.length} class-subjects with results`
+  }
+)
+await TA(
+  'API-FB-13',
+  'Teacher feedback',
+  'POST',
+  '/mobile/parent/children/{id}/teacher-ratings',
+  'Ratings turned off',
+  '403 RATING_CLOSED',
+  async () => {
+    await admin('PUT', '/admin/feedback/settings', { teacher_rating_enabled: false })
+    const result = await parent('POST', `/mobile/parent/children/${child.id}/teacher-ratings`, {
+      teacher_user_id: ratedTeacher?.teacher_user_id ?? 1,
+      stars: 3,
+      behaviour: 'good',
+    })
+    return expectStatus(result, 403, 'RATING_CLOSED')
+  }
+)
+if (ratingId) await admin('DELETE', `/admin/feedback/ratings/${ratingId}`)
+if (feedbackId) await admin('DELETE', `/admin/feedback/student-feedback/${feedbackId}`)
+if (feedbackBefore)
+  await admin('PUT', '/admin/feedback/settings', {
+    teacher_rating_enabled: feedbackBefore.teacher_rating_enabled,
+    teacher_rating_months: feedbackBefore.teacher_rating_months,
+    student_feedback_enabled: feedbackBefore.student_feedback_enabled,
+  })
 
 await admin('DELETE', `/admin/students/${studentId}`)
 if (userId) await admin('DELETE', `/admin/users/${userId}`)

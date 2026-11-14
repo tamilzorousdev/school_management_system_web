@@ -21,6 +21,7 @@ import {
   // Smartphone,
   // TabletSmartphone,
   Siren,
+  Star,
   Trophy,
   Truck,
   UsersRound,
@@ -49,6 +50,7 @@ export type NavPath =
   | '/fees'
   | '/exams'
   | '/class-performance'
+  | '/teacher-feedback'
   | '/activities'
   | '/transport'
   | '/notifications'
@@ -203,6 +205,15 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: ChartColumnBig,
         shortcut: 'nav.performance',
         permission: 'exams.view',
+      },
+      {
+        to: '/teacher-feedback',
+        label: 'Teacher feedback',
+        description:
+          'Parent ratings of teachers, teacher ranking, teacher-wise results by class and subject, and feedback on students',
+        icon: Star,
+        shortcut: 'nav.feedback',
+        permission: 'feedback.view',
       },
       {
         to: '/activities',

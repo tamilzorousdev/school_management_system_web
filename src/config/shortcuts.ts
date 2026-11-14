@@ -18,6 +18,7 @@ export const SHORTCUTS = {
   'nav.fees': { combo: 'g f', label: 'Go to fees', group: 'Navigation' },
   'nav.exams': { combo: 'g x', label: 'Go to exams', group: 'Navigation' },
   'nav.performance': { combo: 'g 4', label: 'Go to class performance', group: 'Navigation' },
+  'nav.feedback': { combo: 'g 5', label: 'Go to teacher feedback', group: 'Navigation' },
   'nav.activities': { combo: 'g k', label: 'Go to sports and activities', group: 'Navigation' },
   'nav.transport': { combo: 'g m', label: 'Go to buses and routes', group: 'Navigation' },
   'nav.admissions': { combo: 'g a', label: 'Go to admissions', group: 'Navigation' },

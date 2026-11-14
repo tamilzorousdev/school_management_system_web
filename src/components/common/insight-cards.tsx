@@ -45,7 +45,13 @@ function scrollToResults(cards: HTMLElement | null) {
 export function InsightCards({ items, loading }: { items: Insight[]; loading?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   return (
-    <div ref={ref} className='grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3'>
+    <div
+      ref={ref}
+      className={cn(
+        'grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3',
+        items.length === 5 && 'lg:grid-cols-3 min-[1400px]:grid-cols-5'
+      )}
+    >
       {items.map((item) => {
         const tone = tones[item.tone ?? 'primary']
         const interactive = Boolean(item.onClick)

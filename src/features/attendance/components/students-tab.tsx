@@ -7,6 +7,7 @@ import {
   ClipboardX,
   Inbox,
   LayoutGrid,
+  Medal,
   UserRoundX,
   UsersRound,
   X,
@@ -18,7 +19,7 @@ import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { formatDateTime } from '@/lib/format'
+import { formatDate, formatDateTime } from '@/lib/format'
 import { useBellSchedule } from '@/features/timetable/api'
 import {
   ordinal,
@@ -34,6 +35,7 @@ import { ClassReportSheet } from './class-report-sheet'
 import { DateStepper } from './date-stepper'
 import { MissedReportSheet } from './missed-report-sheet'
 import { Notice } from './notice'
+import { OnDutyModal } from './on-duty-modal'
 import { SectionSheet } from './section-sheet'
 
 type BoardFilter = 'all' | 'not_marked' | 'missed'
@@ -84,9 +86,12 @@ export function StudentsTab({
     : SESSION_OPTIONS
   const [classReport, setClassReport] = useState(false)
   const [missedReport, setMissedReport] = useState(false)
+  const [onDutyOpen, setOnDutyOpen] = useState(false)
   const [filter, setFilter] = useState<BoardFilter>('all')
   const data = board.data
   const summary = data?.summary
+  const onDuty = data?.on_duty ?? []
+  const odEvents = [...new Set(onDuty.map((student) => student.title))]
   const allRows = data?.sections ?? []
   const rows = allRows.filter((row) =>
     filter === 'missed'
@@ -161,6 +166,17 @@ export function StudentsTab({
       onClick: () => setFilter(filter === 'missed' ? 'all' : 'missed'),
     },
     {
+      key: 'od',
+      label: 'On Duty (OD)',
+      value: onDuty.length,
+      hint: odEvents.length
+        ? `${odEvents.length === 1 ? odEvents[0] : `${odEvents.length} events`} · counted present`
+        : 'No Sports OD today',
+      icon: Medal,
+      tone: onDuty.length ? 'success' : 'neutral',
+      onClick: () => setOnDutyOpen(true),
+    },
+    {
       key: 'leave',
       label: 'Student leave waiting',
       value: data?.leave_pending ?? 0,
@@ -230,9 +246,13 @@ export function StudentsTab({
             {' / '}
             <span className='font-semibold text-warning'>{row.late}</span>
             <span className='text-muted-foreground'> of {row.total}</span>
+            {Boolean(row.od) && <OdTag count={row.od!} />}
           </span>
         ) : (
-          <span className='tabular text-sm text-muted-foreground'>{studentsText(row.total)}</span>
+          <span className='tabular text-sm text-muted-foreground'>
+            {studentsText(row.total)}
+            {Boolean(row.od) && <OdTag count={row.od!} />}
+          </span>
         ),
     },
     {
@@ -285,6 +305,16 @@ export function StudentsTab({
       </div>
       {data && !data.working_day && <Notice>{dayOffText(data.holiday)}</Notice>}
       <InsightCards items={cards} loading={board.isPending} />
+      <OnDutyModal
+        open={onDutyOpen}
+        students={onDuty}
+        dateText={`${formatDate(date)} · ${periodMode ? ordinal(activeSlot.period ?? 1) + ' period' : activeSlot.session === 'afternoon' ? 'Afternoon' : 'Morning'}`}
+        onClose={() => setOnDutyOpen(false)}
+        onOpenSection={(id) => {
+          setOnDutyOpen(false)
+          onOpenSection(id)
+        }}
+      />
       <Card className='overflow-hidden'>
         <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
           <div className='flex flex-wrap items-center gap-3'>
@@ -432,6 +462,14 @@ function MarkedBadge({ row }: { row: BoardSection }) {
   return (
     <Badge tone={row.marked ? 'success' : 'warning'} dot>
       {row.marked ? 'Marked' : 'Not marked'}
+    </Badge>
+  )
+}
+
+function OdTag({ count }: { count: number }) {
+  return (
+    <Badge tone='success' className='ml-1.5 px-1.5 py-0 text-[10px]'>
+      {count} OD
     </Badge>
   )
 }

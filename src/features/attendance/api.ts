@@ -67,6 +67,17 @@ export interface BoardSection extends AttendanceSummary {
   taken_at: string | null
 }
 
+export interface BoardOnDuty {
+  student_id: number
+  name: string
+  admission_no: string | null
+  section_id: number
+  section: string
+  title: string
+  sport_name: string
+  session: AttendanceSessionName | null
+}
+
 export interface AttendanceBoard {
   date: string
   mode: AttendanceMode
@@ -83,6 +94,7 @@ export interface AttendanceBoard {
   grace_minutes: number
   below_75: number
   leave_pending: number
+  on_duty?: BoardOnDuty[]
   sections: BoardSection[]
 }
 

@@ -13,7 +13,48 @@ import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { cn } from '@/lib/utils'
 import { useStudentMutation } from '../api'
-import { recordsApi, usePromotionPreview, type PromotionInput } from '../records-api'
+import {
+  recordsApi,
+  usePromotionPreview,
+  type PromotionInput,
+  type ResultSummary,
+} from '../records-api'
+
+const passTone = (percent: number | null) =>
+  percent === null ? 'neutral' : percent >= 75 ? 'success' : percent >= 50 ? 'warning' : 'danger'
+
+function ResultChip({
+  result,
+  active,
+  prefix,
+}: {
+  result: ResultSummary
+  active?: boolean
+  prefix: string
+}) {
+  return (
+    <span
+      className={cn(
+        'grid min-w-24 shrink-0 gap-0.5 rounded-lg border px-2.5 py-1.5 text-xs',
+        active ? 'border-primary bg-primary/5' : 'bg-card'
+      )}
+    >
+      <span className='font-semibold'>
+        {prefix} {result.name}
+      </span>
+      {result.pass_percent === null ? (
+        <span className='text-muted-foreground'>No results</span>
+      ) : (
+        <span className='flex items-center gap-1'>
+          <Badge tone={passTone(result.pass_percent)} className='px-1 py-0 font-mono text-[10px]'>
+            {result.pass_percent}%
+          </Badge>
+          <span className='text-muted-foreground'>pass · avg {result.average_percent}%</span>
+        </span>
+      )}
+    </span>
+  )
+}
 
 export function PromotionModal({ onClose }: { onClose: () => void }) {
   const classes = useClasses()
@@ -79,6 +120,10 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
   }
   const waiting = data?.students.filter((student) => !student.already_moved) ?? []
   const moving = waiting.length - detained.length
+  const failedIds = waiting
+    .filter((student) => student.passed === false)
+    .map((student) => student.student_id)
+  const gradeResults = (data?.class_results ?? []).filter((result) => result.assessed > 0)
 
   const selectedFromSectionName = currentSections.data?.find((s) => s.id === fromSectionId)?.name
 
@@ -261,14 +306,67 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
                 )}
               </div>
               <div className='text-xs text-muted-foreground'>
-                {waiting.length} to promote ({detained.length} repeating)
+                {Math.max(0, moving)} of {waiting.length} selected ({detained.length} repeating)
               </div>
             </div>
 
-            <p className='text-xs text-muted-foreground'>
-              {data.from_year.name} → {data.to_year.name}. All students are selected to promote by
-              default. Check a student to mark them as repeating Class {data.from_class.name}.
-            </p>
+            {gradeResults.length > 0 && (
+              <div className='grid gap-1.5'>
+                <span className='text-xs font-semibold text-muted-foreground'>
+                  Grade-wise pass percentage, {data.from_year.name}
+                </span>
+                <div className='flex gap-2 overflow-x-auto pb-1'>
+                  {gradeResults.map((result) => (
+                    <ResultChip
+                      key={result.id}
+                      result={result}
+                      prefix='Class'
+                      active={result.id === data.from_class.id}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(data.section_results?.length ?? 0) > 1 && (
+              <div className='flex flex-wrap gap-2'>
+                {data.section_results!.map((result) => (
+                  <ResultChip
+                    key={result.id}
+                    result={result}
+                    prefix='Section'
+                    active={result.id === fromSectionId}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className='flex flex-wrap items-center justify-between gap-2'>
+              <p className='text-xs text-muted-foreground'>
+                {data.from_year.name} → {data.to_year.name}. Every student is selected. Untick a
+                student to keep them in Class {data.from_class.name}.
+              </p>
+              <div className='flex flex-wrap gap-1.5'>
+                <Button
+                  type='button'
+                  size='sm'
+                  variant='outline'
+                  disabled={detained.length === 0}
+                  onClick={() => setDetained([])}
+                >
+                  Select all
+                </Button>
+                <Button
+                  type='button'
+                  size='sm'
+                  variant='outline'
+                  disabled={failedIds.length === 0}
+                  onClick={() => setDetained(failedIds)}
+                >
+                  Untick failed ({failedIds.length})
+                </Button>
+              </div>
+            </div>
 
             <ul className='grid max-h-80 gap-1.5 overflow-auto sm:grid-cols-2'>
               {data.students.map((student) => {
@@ -284,9 +382,10 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
                     >
                       <input
                         type='checkbox'
-                        className='size-4 accent-[var(--warning)]'
+                        aria-label={`Promote ${student.full_name}`}
+                        className='size-4 accent-primary'
                         disabled={student.already_moved}
-                        checked={repeat}
+                        checked={!student.already_moved && !repeat}
                         onChange={() =>
                           setDetained((current) =>
                             repeat

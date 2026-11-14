@@ -147,6 +147,14 @@ export interface PromotionStudent {
   passed?: boolean | null
 }
 
+export interface ResultSummary {
+  id: number
+  name: string
+  assessed: number
+  pass_percent: number | null
+  average_percent: number | null
+}
+
 export interface PromotionPreview {
   from_year: Ref
   to_year: Ref
@@ -154,6 +162,8 @@ export interface PromotionPreview {
   from_sections: Ref[]
   pass_percent?: number | null
   average_percent?: number | null
+  class_results?: ResultSummary[]
+  section_results?: ResultSummary[]
   suggested_class: Ref | null
   to_sections: Ref[]
   students: PromotionStudent[]
