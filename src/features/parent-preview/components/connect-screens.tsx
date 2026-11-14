@@ -434,7 +434,11 @@ export function ChatScreen({ base, party }: { base: string; party: AppParty }) {
                 onClick={() => setOpen(thread)}
                 className='flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-3 text-left shadow-xs hover:bg-muted/50'
               >
-                <Avatar name={thread.is_group ? (thread.title || 'Group') : (thread.other?.name ?? '')} className='size-11 shrink-0' />
+                <Avatar
+                  name={thread.is_group ? (thread.title || 'Group') : (thread.other?.name ?? '')}
+                  src={thread.is_group ? null : thread.other?.photo_url}
+                  className='size-11 shrink-0'
+                />
                 <span className='grid min-w-0 flex-1 gap-0.5'>
                   <span className='flex items-center justify-between gap-2'>
                     <span className='truncate text-sm font-bold'>{thread.is_group ? (thread.title || 'Group chat') : (thread.other?.name ?? '—')}</span>
@@ -546,7 +550,11 @@ function ThreadView({
         onClick={onBack}
         className='flex items-center gap-3 rounded-2xl border bg-card p-3 text-left shadow-xs hover:bg-muted/50'
       >
-        <Avatar name={thread.is_group ? (thread.title || 'Group') : (thread.other?.name ?? '')} className='size-10 shrink-0' />
+        <Avatar
+          name={thread.is_group ? (thread.title || 'Group') : (thread.other?.name ?? '')}
+          src={thread.is_group ? null : thread.other?.photo_url}
+          className='size-10 shrink-0'
+        />
         <span className='grid min-w-0 flex-1'>
           <span className='truncate text-sm font-bold'>{thread.is_group ? (thread.title || 'Group chat') : (thread.other?.name ?? '—')}</span>
           <span className='truncate text-[11px] text-muted-foreground'>

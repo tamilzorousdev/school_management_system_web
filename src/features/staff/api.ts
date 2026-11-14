@@ -38,6 +38,7 @@ export interface StaffListItem {
   mobile: string
   email: string | null
   photo_file_id: number | null
+  photo_url: string | null
   roles: { code: string; name: string }[]
   staff_type: StaffType
   designation: string
@@ -141,6 +142,7 @@ export interface StaffProfileInput {
   emergency_contact_name?: string | null
   emergency_contact_mobile?: string | null
   employee_no?: string
+  photo_file_id?: number | null
 }
 
 export interface CreateStaffInput extends StaffProfileInput {

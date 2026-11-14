@@ -5,6 +5,7 @@ import {
   Bus,
   Camera,
   ChevronDown,
+  Eye,
   FileSpreadsheet,
   FileText,
   HeartPulse,
@@ -27,7 +28,7 @@ import {
   UsersRound,
   X,
 } from 'lucide-react'
-import { Avatar } from '@/components/common/avatar'
+import { Avatar, ImagePreviewModal } from '@/components/common/avatar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DocumentList } from '@/components/common/document-list'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -103,6 +104,7 @@ export function StudentPage() {
   const [modal, setModal] = useState<'edit' | 'class' | 'exit' | 'reissue' | null>(null)
   const [printing, setPrinting] = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
+  const [viewingPhoto, setViewingPhoto] = useState(false)
   const reissue = useStudentMutation(() => recordsApi.reissueCard(id))
   const updateStudent = useStudentMutation((patch: Partial<StudentInput>) =>
     studentsApi.update(id, patch)
@@ -134,6 +136,7 @@ export function StudentPage() {
     try {
       await updateStudent.mutateAsync({ photo_file_id: null })
       alerts.success('Student photo removed')
+      setViewingPhoto(false)
     } catch (caught) {
       alerts.error(toApiError(caught).message)
     }
@@ -195,13 +198,19 @@ export function StudentPage() {
                 name={data.full_name}
                 src={data.photo_url}
                 size='lg'
+                previewable
+                subtitle={data.admission_no ? `Admission No: ${data.admission_no}` : undefined}
+                onChangePhoto={canManage ? uploadPhoto : undefined}
+                onRemovePhoto={canManage ? removePhoto : undefined}
+                isUploading={photoUploading}
                 className='size-20 border-4 border-card text-xl shadow-sm sm:size-24'
               />
               {canManage && (
                 <label
                   htmlFor='student-avatar-upload'
-                  className='absolute -right-1 -bottom-1 grid size-7 cursor-pointer place-items-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition hover:bg-primary/90'
+                  className='absolute -right-1 -bottom-1 z-10 grid size-7 cursor-pointer place-items-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition hover:bg-primary/90'
                   title={data.photo_url ? 'Change photo' : 'Upload photo'}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <Camera className='size-3.5' />
                   <input
@@ -292,6 +301,12 @@ export function StudentPage() {
                     >
                       <FileText />
                       Transfer certificate
+                    </DropdownMenuItem>
+                  )}
+                  {data.photo_url && (
+                    <DropdownMenuItem onSelect={() => setViewingPhoto(true)}>
+                      <Eye className='size-4' />
+                      View photo
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem asChild>
@@ -410,6 +425,16 @@ export function StudentPage() {
             alerts.error(toApiError(error).message)
           }
         }}
+      />
+      <ImagePreviewModal
+        open={viewingPhoto}
+        onOpenChange={setViewingPhoto}
+        src={data.photo_url}
+        title={data.full_name}
+        subtitle={data.admission_no ? `Admission No: ${data.admission_no}` : undefined}
+        onChangePhoto={canManage ? uploadPhoto : undefined}
+        onRemovePhoto={canManage ? removePhoto : undefined}
+        isUploading={photoUploading}
       />
     </Page>
   )

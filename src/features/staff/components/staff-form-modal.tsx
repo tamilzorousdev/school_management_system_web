@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Check } from 'lucide-react'
+import { Camera, Check, Trash2 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
+import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
 import { Input } from '@/components/ui/input'
@@ -9,6 +10,7 @@ import { can, useMe, type Language, type Me } from '@/features/auth/api'
 import { RootError } from '@/features/setup/components/setup-shared'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
+import { filesApi } from '@/lib/files'
 import { cn } from '@/lib/utils'
 import {
   staffApi,
@@ -59,6 +61,8 @@ interface Draft {
   emergency_contact_name: string
   emergency_contact_mobile: string
   employee_no: string
+  photo_file_id: number | null
+  photo_url: string | null
 }
 
 const toDraft = (staff?: StaffDetail): Draft => ({
@@ -81,6 +85,8 @@ const toDraft = (staff?: StaffDetail): Draft => ({
   emergency_contact_name: staff?.emergency_contact_name ?? '',
   emergency_contact_mobile: staff?.emergency_contact_mobile ?? '',
   employee_no: staff?.employee_no ?? '',
+  photo_file_id: staff?.photo_file_id ?? null,
+  photo_url: staff?.photo_url ?? null,
 })
 
 const canGrantAdmin = (me: Me | undefined) =>
@@ -143,6 +149,7 @@ function StaffForm({
 }) {
   const me = useMe().data
   const [draft, setDraft] = useState<Draft>(() => toDraft(staff))
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [qualifications, setQualifications] = useState<QualificationDraft[]>([])
   const [sendInvite, setSendInvite] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -223,6 +230,7 @@ function StaffForm({
       emergency_contact_name: blank(draft.emergency_contact_name),
       emergency_contact_mobile: draft.emergency_contact_mobile || null,
       employee_no: draft.employee_no.trim() || undefined,
+      photo_file_id: draft.photo_file_id,
     }
     try {
       const { role_codes: _roles, ...withoutRoles } = profile
@@ -261,6 +269,30 @@ function StaffForm({
   const today = new Date().toISOString().slice(0, 10)
   const heading = 'text-xs font-bold tracking-wider text-muted-foreground uppercase'
 
+  const handleUploadPhoto = async (file: File) => {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alerts.error('Choose a PNG, JPG or WEBP image')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alerts.error('Photo must be 5 MB or smaller')
+      return
+    }
+    setUploadingPhoto(true)
+    try {
+      const uploaded = await filesApi.upload(file, 'staff_photo')
+      setDraft((current) => ({
+        ...current,
+        photo_file_id: uploaded.id,
+        photo_url: uploaded.url,
+      }))
+    } catch (error) {
+      alerts.error(toApiError(error).message)
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
   return (
     <form id={FORM_ID} onSubmit={submit} noValidate className='grid gap-5'>
       <RootError message={rootError ?? undefined} />
@@ -268,6 +300,50 @@ function StaffForm({
       <section className='grid gap-3'>
         <h3 className={heading}>Person</h3>
         <div className='grid gap-3 sm:grid-cols-2'>
+          <div className='flex items-center gap-4 sm:col-span-2'>
+            <Avatar
+              name={draft.name || 'New Staff'}
+              src={draft.photo_url}
+              size='lg'
+              previewable
+              subtitle={draft.designation || undefined}
+              onChangePhoto={handleUploadPhoto}
+              onRemovePhoto={() =>
+                setDraft((current) => ({ ...current, photo_file_id: null, photo_url: null }))
+              }
+              isUploading={uploadingPhoto}
+              className='size-16 text-lg'
+            />
+            <div className='flex flex-wrap items-center gap-2'>
+              <label className='inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold hover:bg-accent hover:text-accent-foreground'>
+                <Camera className='size-3.5' />
+                {uploadingPhoto ? 'Uploading…' : draft.photo_url ? 'Change photo' : 'Upload photo'}
+                <input
+                  type='file'
+                  accept='image/jpeg,image/png,image/webp'
+                  className='sr-only'
+                  disabled={uploadingPhoto}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (file) void handleUploadPhoto(file)
+                    event.target.value = ''
+                  }}
+                />
+              </label>
+              {draft.photo_url && (
+                <button
+                  type='button'
+                  onClick={() =>
+                    setDraft((current) => ({ ...current, photo_file_id: null, photo_url: null }))
+                  }
+                  className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
+                >
+                  <Trash2 className='size-3.5' />
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
           <FormField id='name' label='Full name' required error={errors.name}>
             <Input
               id='name'

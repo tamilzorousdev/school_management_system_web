@@ -249,6 +249,30 @@ function StudentForm({
 
   const maxContacts = caregiverType === 'parents' ? 5 : 4
 
+  const handleUploadPhoto = async (file: File) => {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alerts.error('Choose a PNG, JPG or WEBP image')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alerts.error('Photo must be 5 MB or smaller')
+      return
+    }
+    setUploadingPhoto(true)
+    try {
+      const uploaded = await filesApi.upload(file, 'student_photo')
+      setDraft((current) => ({
+        ...current,
+        photo_file_id: uploaded.id,
+        photo_url: uploaded.url,
+      }))
+    } catch (error) {
+      alerts.error(toApiError(error).message)
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
   return (
     <form id={FORM_ID} onSubmit={submit} noValidate className='grid gap-5'>
       {rootError && (
@@ -269,6 +293,13 @@ function StudentForm({
               name={draft.first_name || 'New Student'}
               src={draft.photo_url}
               size='lg'
+              previewable
+              subtitle={draft.last_name ? `${draft.first_name} ${draft.last_name}` : undefined}
+              onChangePhoto={handleUploadPhoto}
+              onRemovePhoto={() =>
+                setDraft((current) => ({ ...current, photo_file_id: null, photo_url: null }))
+              }
+              isUploading={uploadingPhoto}
               className='size-16 text-lg'
             />
             <div className='flex flex-wrap items-center gap-2'>
@@ -280,31 +311,10 @@ function StudentForm({
                   accept='image/jpeg,image/png,image/webp'
                   className='sr-only'
                   disabled={uploadingPhoto}
-                  onChange={async (event) => {
+                  onChange={(event) => {
                     const file = event.target.files?.[0]
-                    if (!file) return
+                    if (file) void handleUploadPhoto(file)
                     event.target.value = ''
-                    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-                      alerts.error('Choose a PNG, JPG or WEBP image')
-                      return
-                    }
-                    if (file.size > 5 * 1024 * 1024) {
-                      alerts.error('Photo must be 5 MB or smaller')
-                      return
-                    }
-                    setUploadingPhoto(true)
-                    try {
-                      const uploaded = await filesApi.upload(file, 'student_photo')
-                      setDraft((current) => ({
-                        ...current,
-                        photo_file_id: uploaded.id,
-                        photo_url: uploaded.url,
-                      }))
-                    } catch (error) {
-                      alerts.error(toApiError(error).message)
-                    } finally {
-                      setUploadingPhoto(false)
-                    }
                   }}
                 />
               </label>
