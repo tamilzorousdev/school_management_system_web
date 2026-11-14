@@ -52,6 +52,8 @@ export interface TeacherPreview {
     designation: string
     employee_no: string
     can_sign_in: boolean
+    photo_file_id?: number | null
+    photo_url?: string | null
   }
   today: TodayTimetable
   classes: TeacherClass[]

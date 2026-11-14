@@ -103,7 +103,17 @@ export function TeacherHomeScreen({
           )}
           <AppCard className='grid gap-3'>
             <div className='flex items-center gap-3'>
-              <Avatar name={teacher.name} className='size-14 shrink-0 rounded-2xl text-lg' />
+              <Avatar
+                name={teacher.name}
+                src={teacher.photo_url}
+                previewable
+                subtitle={
+                  teacher.employee_no
+                    ? `Employee No: ${teacher.employee_no}`
+                    : teacher.designation
+                }
+                className='size-14 shrink-0 rounded-2xl text-lg'
+              />
               <div className='grid min-w-0 gap-0.5'>
                 <span className='truncate text-lg leading-tight font-extrabold'>
                   {teacher.name}

@@ -4,7 +4,9 @@ import {
   ArrowLeft,
   BookOpen,
   CalendarDays,
+  Camera,
   ChevronDown,
+  Eye,
   FileText,
   Landmark,
   Pencil,
@@ -14,7 +16,7 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-react'
-import { Avatar } from '@/components/common/avatar'
+import { Avatar, ImagePreviewModal } from '@/components/common/avatar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { Page } from '@/components/common/page'
@@ -34,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
+import { filesApi } from '@/lib/files'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { staffApi, useStaff, useStaffMutation, type StaffDetail, type StaffStatus } from '../api'
@@ -166,8 +169,45 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
   const [editing, setEditing] = useState(false)
   const [nextStatus, setNextStatus] = useState<StaffStatus | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const update = useStaffMutation((status: StaffStatus) => staffApi.update(staff.id, { status }))
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [viewingPhoto, setViewingPhoto] = useState(false)
+  const updateStaff = useStaffMutation((input: Parameters<typeof staffApi.update>[1]) =>
+    staffApi.update(staff.id, input)
+  )
   const remove = useStaffMutation(() => staffApi.remove(staff.id))
+
+  const uploadPhoto = async (file?: File) => {
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alerts.error('Choose a PNG, JPG or WEBP image')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alerts.error('Photo must be 5 MB or smaller')
+      return
+    }
+    setPhotoUploading(true)
+    try {
+      const uploaded = await filesApi.upload(file, 'staff_photo')
+      await updateStaff.mutateAsync({ photo_file_id: uploaded.id })
+      alerts.success('Staff photo updated')
+    } catch (caught) {
+      alerts.error(toApiError(caught).message)
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const removePhoto = async () => {
+    try {
+      await updateStaff.mutateAsync({ photo_file_id: null })
+      alerts.success('Staff photo removed')
+      setViewingPhoto(false)
+    } catch (caught) {
+      alerts.error(toApiError(caught).message)
+    }
+  }
+
   const status = STAFF_STATUS[staff.status]
   const statusChoices = (Object.keys(STATUS_ACTIONS) as StaffStatus[]).filter(
     (value) => value !== staff.status
@@ -177,7 +217,40 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
   return (
     <Card className='gap-4 p-4 sm:p-5'>
       <div className='flex flex-wrap items-start gap-4'>
-        <Avatar name={staff.name} size='lg' />
+        <div className='relative'>
+          <Avatar
+            name={staff.name}
+            src={staff.photo_url}
+            size='lg'
+            previewable
+            subtitle={staff.employee_no ? `Employee No: ${staff.employee_no}` : staff.designation}
+            onChangePhoto={canManage ? uploadPhoto : undefined}
+            onRemovePhoto={canManage ? removePhoto : undefined}
+            isUploading={photoUploading}
+            className='size-16 text-lg'
+          />
+          {canManage && (
+            <label
+              htmlFor='staff-avatar-upload'
+              className='absolute -right-1 -bottom-1 z-10 grid size-6 cursor-pointer place-items-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition hover:bg-primary/90'
+              title={staff.photo_url ? 'Change photo' : 'Upload photo'}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Camera className='size-3' />
+              <input
+                id='staff-avatar-upload'
+                type='file'
+                accept='image/jpeg,image/png,image/webp'
+                className='sr-only'
+                disabled={photoUploading}
+                onChange={(event) => {
+                  void uploadPhoto(event.target.files?.[0])
+                  event.target.value = ''
+                }}
+              />
+            </label>
+          )}
+        </div>
         <div className='grid min-w-0 flex-1 gap-1.5'>
           <div className='flex flex-wrap items-center gap-2'>
             <h1 className='text-2xl font-extrabold tracking-tight'>{staff.name}</h1>
@@ -206,6 +279,28 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
+                {staff.photo_url && (
+                  <DropdownMenuItem onSelect={() => setViewingPhoto(true)}>
+                    <Eye className='size-4' />
+                    View photo
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem asChild>
+                  <label
+                    htmlFor='staff-avatar-upload'
+                    className='flex cursor-pointer items-center gap-2'
+                  >
+                    <Camera className='size-4' />
+                    {staff.photo_url ? 'Change photo' : 'Upload photo'}
+                  </label>
+                </DropdownMenuItem>
+                {staff.photo_url && (
+                  <DropdownMenuItem destructive onSelect={() => void removePhoto()}>
+                    <Trash2 className='size-4' />
+                    Remove photo
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 {statusChoices.map((value) => (
                   <DropdownMenuItem key={value} onSelect={() => setNextStatus(value)}>
                     {STATUS_ACTIONS[value].label}
@@ -247,11 +342,11 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
         description={action?.description ?? ''}
         confirmText={action?.label ?? 'Confirm'}
         destructive={action?.destructive}
-        loading={update.isPending}
+        loading={updateStaff.isPending}
         onConfirm={async () => {
           if (!nextStatus) return
           try {
-            await update.mutateAsync(nextStatus)
+            await updateStaff.mutateAsync({ status: nextStatus })
             alerts.success(`${staff.name} marked ${STAFF_STATUS[nextStatus].label.toLowerCase()}`)
           } catch (error) {
             alerts.error(toApiError(error).message)
@@ -282,6 +377,16 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
             setDeleting(false)
           }
         }}
+      />
+      <ImagePreviewModal
+        open={viewingPhoto}
+        onOpenChange={setViewingPhoto}
+        src={staff.photo_url}
+        title={staff.name}
+        subtitle={staff.employee_no ? `Employee No: ${staff.employee_no}` : staff.designation}
+        onChangePhoto={canManage ? uploadPhoto : undefined}
+        onRemovePhoto={canManage ? removePhoto : undefined}
+        isUploading={photoUploading}
       />
     </Card>
   )

@@ -12,6 +12,7 @@ interface Ref {
 export interface ChatPerson extends Ref {
   role: ChatParty
   label: string | null
+  photo_url?: string | null
 }
 
 export interface ChatMember {
