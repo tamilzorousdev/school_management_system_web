@@ -5,7 +5,12 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
-import { useAddGroupMembers, useChatDirectory, useCreateGroup, type ChatDirectoryUser } from '../api'
+import {
+  useAddGroupMembers,
+  useChatDirectory,
+  useCreateGroup,
+  type ChatDirectoryUser,
+} from '../api'
 
 interface ChatGroupModalProps {
   open: boolean
@@ -88,14 +93,14 @@ export function ChatGroupModal({ open, onClose, onCreated }: ChatGroupModalProps
             Add members {selected.length > 0 && `(${selected.length} selected)`}
           </label>
           {selected.length > 0 && (
-            <div className='flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 rounded-md border bg-muted/30'>
+            <div className='flex max-h-24 flex-wrap gap-1.5 overflow-y-auto rounded-md border bg-muted/30 p-1.5'>
               {selected.map((user) => (
                 <Badge key={user.id} tone='info' className='flex items-center gap-1 text-xs'>
                   <span>{user.name}</span>
                   <button
                     type='button'
                     onClick={() => toggleUser(user)}
-                    className='rounded hover:bg-primary/20 p-0.5'
+                    className='rounded p-0.5 hover:bg-primary/20'
                   >
                     <X className='size-3' />
                   </button>
@@ -105,7 +110,7 @@ export function ChatGroupModal({ open, onClose, onCreated }: ChatGroupModalProps
           )}
 
           <div className='relative'>
-            <Search className='absolute left-2.5 top-2.5 size-4 text-muted-foreground' />
+            <Search className='absolute top-2.5 left-2.5 size-4 text-muted-foreground' />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -114,9 +119,11 @@ export function ChatGroupModal({ open, onClose, onCreated }: ChatGroupModalProps
             />
           </div>
 
-          <div className='max-h-48 overflow-y-auto rounded-md border divide-y'>
+          <div className='max-h-48 divide-y overflow-y-auto rounded-md border'>
             {directory.isLoading ? (
-              <div className='p-3 text-center text-xs text-muted-foreground'>Loading directory...</div>
+              <div className='p-3 text-center text-xs text-muted-foreground'>
+                Loading directory...
+              </div>
             ) : users.length === 0 ? (
               <div className='p-3 text-center text-xs text-muted-foreground'>No users found</div>
             ) : (
@@ -127,7 +134,7 @@ export function ChatGroupModal({ open, onClose, onCreated }: ChatGroupModalProps
                     key={user.id}
                     type='button'
                     onClick={() => toggleUser(user)}
-                    className='w-full flex items-center justify-between p-2.5 text-left text-sm hover:bg-muted/50 transition-colors'
+                    className='flex w-full items-center justify-between p-2.5 text-left text-sm transition-colors hover:bg-muted/50'
                   >
                     <div className='grid min-w-0'>
                       <span className='font-medium'>{user.name}</span>
@@ -137,7 +144,9 @@ export function ChatGroupModal({ open, onClose, onCreated }: ChatGroupModalProps
                     </div>
                     <div
                       className={`grid size-5 place-items-center rounded border ${
-                        isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-input'
+                        isSelected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-input'
                       }`}
                     >
                       {isSelected && <Check className='size-3.5' />}
@@ -200,9 +209,7 @@ export function AddGroupMembersModal({
     }
   }
 
-  const availableUsers = (directory.data ?? []).filter(
-    (u) => !existingMemberUserIds.includes(u.id)
-  )
+  const availableUsers = (directory.data ?? []).filter((u) => !existingMemberUserIds.includes(u.id))
 
   return (
     <AppModal
@@ -221,14 +228,14 @@ export function AddGroupMembersModal({
     >
       <form id='add-members-form' onSubmit={handleSubmit} className='grid gap-4 py-2'>
         {selected.length > 0 && (
-          <div className='flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 rounded-md border bg-muted/30'>
+          <div className='flex max-h-24 flex-wrap gap-1.5 overflow-y-auto rounded-md border bg-muted/30 p-1.5'>
             {selected.map((user) => (
               <Badge key={user.id} tone='info' className='flex items-center gap-1 text-xs'>
                 <span>{user.name}</span>
                 <button
                   type='button'
                   onClick={() => toggleUser(user)}
-                  className='rounded hover:bg-primary/20 p-0.5'
+                  className='rounded p-0.5 hover:bg-primary/20'
                 >
                   <X className='size-3' />
                 </button>
@@ -238,7 +245,7 @@ export function AddGroupMembersModal({
         )}
 
         <div className='relative'>
-          <Search className='absolute left-2.5 top-2.5 size-4 text-muted-foreground' />
+          <Search className='absolute top-2.5 left-2.5 size-4 text-muted-foreground' />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -247,9 +254,11 @@ export function AddGroupMembersModal({
           />
         </div>
 
-        <div className='max-h-48 overflow-y-auto rounded-md border divide-y'>
+        <div className='max-h-48 divide-y overflow-y-auto rounded-md border'>
           {directory.isLoading ? (
-            <div className='p-3 text-center text-xs text-muted-foreground'>Loading directory...</div>
+            <div className='p-3 text-center text-xs text-muted-foreground'>
+              Loading directory...
+            </div>
           ) : availableUsers.length === 0 ? (
             <div className='p-3 text-center text-xs text-muted-foreground'>No users to add</div>
           ) : (
@@ -260,7 +269,7 @@ export function AddGroupMembersModal({
                   key={user.id}
                   type='button'
                   onClick={() => toggleUser(user)}
-                  className='w-full flex items-center justify-between p-2.5 text-left text-sm hover:bg-muted/50 transition-colors'
+                  className='flex w-full items-center justify-between p-2.5 text-left text-sm transition-colors hover:bg-muted/50'
                 >
                   <div className='grid min-w-0'>
                     <span className='font-medium'>{user.name}</span>
@@ -270,7 +279,9 @@ export function AddGroupMembersModal({
                   </div>
                   <div
                     className={`grid size-5 place-items-center rounded border ${
-                      isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-input'
+                      isSelected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-input'
                     }`}
                   >
                     {isSelected && <Check className='size-3.5' />}

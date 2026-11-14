@@ -5426,6 +5426,35 @@ await TA(
 )
 
 await TA(
+  'API-CHD-08',
+  'Chat edit',
+  'GET',
+  '/admin/chat/threads/{id}',
+  'Office sees the text before an edit',
+  '200; earlier_versions has the old text, the parent sees only the new text',
+  async () => {
+    if (!chatThreadId) return 'Skipped: no thread'
+    const sent = await parent('POST', `/mobile/parent/chat/threads/${chatThreadId}/messages`, {
+      body: 'First words',
+    })
+    expectStatus(sent, 201)
+    const path = `/mobile/parent/chat/threads/${chatThreadId}/messages/${sent.body.data.id}/edit`
+    expectStatus(await parent('POST', path, { body: 'Second words' }), 200)
+    expectStatus(await parent('POST', path, { body: 'Final words' }), 200)
+    const audit = (await admin('GET', `/admin/chat/threads/${chatThreadId}`)).body.data
+    const seen = audit.messages.find((row) => row.id === sent.body.data.id)
+    const versions = (seen?.earlier_versions ?? []).map((row) => row.body)
+    if (versions.join('|') !== 'First words|Second words' || seen.original_body !== 'Final words')
+      throw new Error(`Office got ${JSON.stringify(versions)}`)
+    const mine = (
+      await parent('GET', `/mobile/parent/chat/threads/${chatThreadId}/messages`)
+    ).body.data.items.find((row) => row.id === sent.body.data.id)
+    if (mine?.earlier_versions) throw new Error('Parent can see earlier versions')
+    return '200; office sees 2 earlier versions'
+  }
+)
+
+await TA(
   'API-CHG-01',
   'Group chat',
   'POST',
@@ -5577,7 +5606,10 @@ await TA(
   '200; returns summary counts (total, teacher_signed, parent_signed, parent_pending) and student roster',
   async () => {
     if (!teacherSection) return 'Skipped: no teacher section'
-    const res = await teacher('GET', `/mobile/teacher/sections/${teacherSection}/report-cards/signatures`)
+    const res = await teacher(
+      'GET',
+      `/mobile/teacher/sections/${teacherSection}/report-cards/signatures`
+    )
     expectStatus(res, 200)
     const { summary, students } = res.body.data
     if (typeof summary.total !== 'number' || !Array.isArray(students)) {
@@ -5596,7 +5628,11 @@ await TA(
   '201; returns updated section signatures status',
   async () => {
     if (!teacherSection) return 'Skipped: no teacher section'
-    const res = await teacher('POST', `/mobile/teacher/sections/${teacherSection}/report-cards/sign`, {})
+    const res = await teacher(
+      'POST',
+      `/mobile/teacher/sections/${teacherSection}/report-cards/sign`,
+      {}
+    )
     expectStatus(res, 201)
     const { summary } = res.body.data
     if (summary.teacher_signed === 0) throw new Error('Teacher signature not recorded')

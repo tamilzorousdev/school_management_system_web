@@ -88,7 +88,11 @@ export function ChatThreadSheet({
             <SheetHeader>
               <div className='flex items-center gap-3'>
                 <span className='grid size-11 shrink-0 place-items-center rounded-full bg-primary/10 text-primary'>
-                  {data.is_group ? <Users className='size-5' /> : <MessagesSquare className='size-5' />}
+                  {data.is_group ? (
+                    <Users className='size-5' />
+                  ) : (
+                    <MessagesSquare className='size-5' />
+                  )}
                 </span>
                 <div className='grid min-w-0 gap-0.5'>
                   <SheetTitle className='break-words'>
@@ -130,11 +134,11 @@ export function ChatThreadSheet({
                   title={`Members (${data.members?.length ?? data.member_count ?? 0})`}
                   actions={
                     <Button variant='outline' size='sm' onClick={() => setAddingMembers(true)}>
-                      <Plus className='size-3 mr-1' /> Add member
+                      <Plus className='mr-1 size-3' /> Add member
                     </Button>
                   }
                 >
-                  <div className='flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 rounded-md border bg-muted/20'>
+                  <div className='flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-md border bg-muted/20 p-1'>
                     {data.members && data.members.length > 0 ? (
                       data.members.map((m) => (
                         <Badge key={m.id} tone='neutral' className='text-xs'>
@@ -142,7 +146,7 @@ export function ChatThreadSheet({
                         </Badge>
                       ))
                     ) : (
-                      <span className='text-xs text-muted-foreground p-1'>No members listed</span>
+                      <span className='p-1 text-xs text-muted-foreground'>No members listed</span>
                     )}
                   </div>
                 </Block>
@@ -168,7 +172,7 @@ export function ChatThreadSheet({
                           <span className='font-semibold text-foreground'>
                             {message.sender.name}
                           </span>
-                          <Badge tone='neutral' className='text-[10px] py-0 px-1 capitalize'>
+                          <Badge tone='neutral' className='px-1 py-0 text-[10px] capitalize'>
                             {message.sender_party}
                           </Badge>
                           <span className='tabular'>{formatDateTime(message.sent_at)}</span>
@@ -210,6 +214,27 @@ export function ChatThreadSheet({
                             {message.original_body}
                           </span>
                         )}
+                        {message.earlier_versions?.length ? (
+                          <span className='grid gap-1 rounded-md border border-dashed bg-muted/40 p-2 text-xs'>
+                            <span className='font-semibold text-muted-foreground'>
+                              Before{' '}
+                              {message.earlier_versions.length === 1 ? 'the edit' : 'the edits'}
+                            </span>
+                            {message.earlier_versions.map((version) => (
+                              <span
+                                key={version.replaced_at}
+                                className='grid gap-0.5 break-words whitespace-pre-line'
+                              >
+                                <span className='text-muted-foreground line-through'>
+                                  {version.body ?? 'No text'}
+                                </span>
+                                <span className='tabular text-[11px] text-muted-foreground'>
+                                  Changed {formatDateTime(version.replaced_at)}
+                                </span>
+                              </span>
+                            ))}
+                          </span>
+                        ) : null}
                         {message.file && message.kind === 'voice' && (
                           <span className='grid gap-0.5'>
                             <audio
@@ -418,7 +443,9 @@ function Block({
   return (
     <section className='grid gap-3'>
       <div className='flex items-center justify-between'>
-        <h3 className='text-xs font-bold tracking-wider text-muted-foreground uppercase'>{title}</h3>
+        <h3 className='text-xs font-bold tracking-wider text-muted-foreground uppercase'>
+          {title}
+        </h3>
         {actions}
       </div>
       {children}

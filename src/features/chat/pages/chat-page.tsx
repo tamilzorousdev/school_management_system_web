@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { CircleOff, Clock, Flag, MessagesSquare, MessageSquareText, Plus, Users } from 'lucide-react'
+import {
+  CircleOff,
+  Clock,
+  Flag,
+  MessagesSquare,
+  MessageSquareText,
+  Plus,
+  Users,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
@@ -91,8 +99,8 @@ export function ChatPage() {
       cell: (row) =>
         row.is_group ? (
           <span className='grid min-w-0'>
-            <span className='font-semibold break-words flex items-center gap-1.5'>
-              <Users className='size-4 text-primary shrink-0' />
+            <span className='flex items-center gap-1.5 font-semibold break-words'>
+              <Users className='size-4 shrink-0 text-primary' />
               {row.title || 'Group chat'}
             </span>
             <span className='text-xs text-muted-foreground'>Group conversation</span>
@@ -102,7 +110,9 @@ export function ChatPage() {
             <span className='font-semibold break-words'>
               {row.teacher?.name ?? '—'} ↔ {row.parent?.name ?? '—'}
             </span>
-            <span className='text-xs text-muted-foreground capitalize'>{row.parent?.label ?? 'Parent'}</span>
+            <span className='text-xs text-muted-foreground capitalize'>
+              {row.parent?.label ?? 'Parent'}
+            </span>
           </span>
         ),
     },
@@ -113,12 +123,16 @@ export function ChatPage() {
         row.is_group ? (
           <span className='grid min-w-0'>
             <span className='font-medium break-words'>{row.member_count ?? 0} members</span>
-            <Badge tone='info' className='w-fit text-[10px] mt-0.5'>Group</Badge>
+            <Badge tone='info' className='mt-0.5 w-fit text-[10px]'>
+              Group
+            </Badge>
           </span>
         ) : (
           <span className='grid min-w-0'>
             <span className='font-medium break-words'>{row.student?.name ?? '—'}</span>
-            <span className='text-xs text-muted-foreground'>{row.class_section ?? 'Not placed'}</span>
+            <span className='text-xs text-muted-foreground'>
+              {row.class_section ?? 'Not placed'}
+            </span>
           </span>
         ),
     },
@@ -231,10 +245,10 @@ export function ChatPage() {
           card={(row) => (
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
-                <span className='font-bold break-words flex items-center gap-1.5'>
+                <span className='flex items-center gap-1.5 font-bold break-words'>
                   {row.is_group ? (
                     <>
-                      <Users className='size-4 text-primary shrink-0' />
+                      <Users className='size-4 shrink-0 text-primary' />
                       {row.title || 'Group chat'}
                     </>
                   ) : (

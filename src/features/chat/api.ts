@@ -78,6 +78,7 @@ export interface AuditMessage {
   deleted_at: string | null
   deleted_by: Ref | null
   deleted_for_me_by: Ref[]
+  earlier_versions?: { body: string | null; replaced_at: string; edited_by: Ref }[]
 }
 
 export interface ChatAuditEntry {
@@ -133,8 +134,7 @@ export const chatApi = {
   addMembers: (id: number, dto: { user_ids: number[] }) =>
     api.post<ChatMember[]>(`/admin/chat/groups/${id}/members`, dto),
   members: (id: number) => api.get<ChatMember[]>(`/admin/chat/groups/${id}/members`),
-  directory: (search?: string) =>
-    api.get<ChatDirectoryUser[]>('/admin/chat/directory', { search }),
+  directory: (search?: string) => api.get<ChatDirectoryUser[]>('/admin/chat/directory', { search }),
 }
 
 export function useChatThreads(params: ChatThreadParams) {
