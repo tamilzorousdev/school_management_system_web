@@ -129,7 +129,7 @@ export function AppLayout() {
   const isStaffOnly = me.data.apps.includes('staff') && !me.data.apps.includes('admin')
   const isAllowedPath =
     (isParentOnly && pathname.includes('/parent-preview')) ||
-    (isStaffOnly && pathname.includes('/teacher-preview'))
+    (isStaffOnly && (pathname.includes('/teacher-preview') || pathname.startsWith('/exams')))
 
   if (!me.data.apps.includes('admin') && !isAllowedPath) {
     if (isParentOnly) {

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import {
   BookOpenCheck,
   ClipboardCheck,
+  ClipboardList,
   Ellipsis,
-  PencilLine,
   Plus,
   Send,
   SquarePen,
@@ -303,8 +303,8 @@ function RowActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
         <DropdownMenuItem onSelect={() => onOpen('marks', exam.id)}>
-          <PencilLine />
-          {canManage ? 'Enter marks' : 'View marks'}
+          <ClipboardList />
+          Student Marks
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onOpen('results', exam.id)}>
           <Trophy />

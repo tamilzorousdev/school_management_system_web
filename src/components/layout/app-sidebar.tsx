@@ -27,6 +27,7 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
     items: group.items.filter((item) => {
       if (item.to === '/parent-preview' && me.apps.includes('parent')) return true
       if (item.to === '/teacher-preview' && me.apps.includes('staff')) return true
+      if (item.to === '/exams' && me.apps.includes('staff')) return true
       return can(me, item.permission)
     }),
   })).filter((group) => group.items.length > 0)

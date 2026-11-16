@@ -35,13 +35,12 @@ export function DashboardPage() {
   const me = useMe().data
   const dashboard = useDashboard()
   const navigate = useNavigate()
-  const firstName = greetingName(me?.name ?? '')
   const items = insights(me, dashboard.data, navigate)
   return (
     <Page>
       <PageHeader
         eyebrow='Overview'
-        title={`Good ${greeting()}, ${firstName}`}
+        title={`Good ${greeting()}, Tamilzorous`}
         description='Today at a glance: students, attendance, staff, buses and alerts.'
       />
       {can(me, 'fleet.view') && <SosBanner />}
@@ -57,7 +56,6 @@ export function DashboardPage() {
     </Page>
   )
 }
-
 function greeting() {
   const hour = Number(
     new Date().toLocaleString('en-IN', { hour: 'numeric', hour12: false, timeZone: 'Asia/Kolkata' })
@@ -220,21 +218,4 @@ function BusMap() {
       )}
     </Card>
   )
-}
-
-const ROLE_WORDS = [
-  'school',
-  'admin',
-  'super',
-  'principal',
-  'administrative',
-  'officer',
-  'transport',
-  'tamilzorous',
-]
-
-function greetingName(name: string) {
-  const words = name.trim().split(/s+/).filter(Boolean)
-  const personal = words.find((word) => !ROLE_WORDS.includes(word.toLowerCase()))
-  return personal ?? 'there'
 }
