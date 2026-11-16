@@ -9,6 +9,7 @@ import {
   Paperclip,
   Plus,
   ShieldCheck,
+  Trash2,
   Users,
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
@@ -30,7 +31,8 @@ import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { formatDateTime, formatTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { chatApi, useChatAction, useChatThread, type AuditMessage } from '../api'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
+import { chatApi, useChatAction, useChatThread, useDeleteGroup, type AuditMessage } from '../api'
 import { AddGroupMembersModal } from './chat-group-modal'
 
 const AUDIT_ACTION: Record<string, string> = {
@@ -43,6 +45,7 @@ const AUDIT_ACTION: Record<string, string> = {
   deleted_for_me: 'deleted a message for themselves',
   cleared_chat: 'cleared the chat for themselves',
   edited_message: 'edited a message',
+  deleted_group: 'deleted the group',
 }
 
 const length = (seconds: number | null) =>
@@ -61,6 +64,8 @@ export function ChatThreadSheet({
   const data = thread.data
   const [hiding, setHiding] = useState<AuditMessage | null>(null)
   const [addingMembers, setAddingMembers] = useState(false)
+  const [deletingGroup, setDeletingGroup] = useState(false)
+  const removeGroup = useDeleteGroup()
   const unhide = useChatAction((id: number) => chatApi.unhide(id))
   const dismiss = useChatAction((id: number) => chatApi.dismiss(id))
 
@@ -133,9 +138,19 @@ export function ChatThreadSheet({
                 <Block
                   title={`Members (${data.members?.length ?? data.member_count ?? 0})`}
                   actions={
-                    <Button variant='outline' size='sm' onClick={() => setAddingMembers(true)}>
-                      <Plus className='mr-1 size-3' /> Add member
-                    </Button>
+                    <div className='flex flex-wrap gap-2'>
+                      <Button variant='outline' size='sm' onClick={() => setAddingMembers(true)}>
+                        <Plus className='mr-1 size-3' /> Add member
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='text-destructive hover:bg-destructive/10'
+                        onClick={() => setDeletingGroup(true)}
+                      >
+                        <Trash2 className='mr-1 size-3' /> Delete group
+                      </Button>
+                    </div>
                   }
                 >
                   <div className='flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-md border bg-muted/20 p-1'>
@@ -367,6 +382,27 @@ export function ChatThreadSheet({
                 onClose={() => {
                   setAddingMembers(false)
                   void thread.refetch()
+                }}
+              />
+            )}
+            {data?.is_group && (
+              <ConfirmDialog
+                open={deletingGroup}
+                onOpenChange={(open) => !open && setDeletingGroup(false)}
+                title={`Delete "${data.title || 'this group'}"?`}
+                description='The group disappears for every member. Its messages stay in the audit records.'
+                confirmText='Delete group'
+                destructive
+                loading={removeGroup.isPending}
+                onConfirm={async () => {
+                  try {
+                    await removeGroup.mutateAsync(data.id)
+                    alerts.success('Group deleted')
+                    setDeletingGroup(false)
+                    onClose()
+                  } catch (error) {
+                    alerts.error(toApiError(error).message)
+                  }
                 }}
               />
             )}

@@ -5577,6 +5577,56 @@ await TA(
   }
 )
 
+await TA(
+  'API-CHG-05',
+  'Group chat delete',
+  'DELETE',
+  '/mobile/parent/chat/groups/{id}',
+  'A member who did not create the group tries to delete it',
+  '403 NOT_GROUP_CREATOR (or 404 when not a member)',
+  async () => {
+    if (!groupThreadId) return 'Skipped: no group thread'
+    const res = await parent('DELETE', `/mobile/parent/chat/groups/${groupThreadId}`)
+    if (res.status !== 403 && res.status !== 404) throw new Error(`Got ${res.status}`)
+    return `${res.status} ${res.body.error}`
+  }
+)
+await TA(
+  'API-CHG-06',
+  'Group chat delete',
+  'DELETE',
+  '/mobile/teacher/chat/groups/{id}',
+  'The teacher who created the group deletes it',
+  '200; gone from the teacher list and from Chat audit',
+  async () => {
+    if (!groupThreadId) return 'Skipped: no group thread'
+    expectStatus(await teacher('DELETE', `/mobile/teacher/chat/groups/${groupThreadId}`), 200)
+    const mine = (await teacher('GET', '/mobile/teacher/chat/threads?limit=100')).body.data.items
+    if (mine.some((t) => t.id === groupThreadId)) throw new Error('Still in the teacher list')
+    const audit = (await admin('GET', '/admin/chat/threads?limit=100')).body.data.items
+    if (audit.some((t) => t.id === groupThreadId)) throw new Error('Still in Chat audit')
+    return '200; group removed for everyone'
+  }
+)
+await TA(
+  'API-CHG-07',
+  'Group chat delete',
+  'DELETE',
+  '/admin/chat/groups/{id}',
+  'Admin deletes a group from Chat audit',
+  '200; deleting again gives 404 GROUP_NOT_FOUND',
+  async () => {
+    const created = await admin('POST', '/admin/chat/groups', {
+      name: 'Regression delete group',
+      member_user_ids: [],
+    })
+    expectStatus(created, 201)
+    const id = created.body.data.id
+    expectStatus(await admin('DELETE', `/admin/chat/groups/${id}`), 200)
+    return expectStatus(await admin('DELETE', `/admin/chat/groups/${id}`), 404, 'GROUP_NOT_FOUND')
+  }
+)
+
 let testTeacherSigFileId = null
 let testParentSigFileId = null
 

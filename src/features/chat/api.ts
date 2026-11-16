@@ -135,6 +135,7 @@ export const chatApi = {
   addMembers: (id: number, dto: { user_ids: number[] }) =>
     api.post<ChatMember[]>(`/admin/chat/groups/${id}/members`, dto),
   members: (id: number) => api.get<ChatMember[]>(`/admin/chat/groups/${id}/members`),
+  deleteGroup: (id: number) => api.delete<null>(`/admin/chat/groups/${id}`),
   directory: (search?: string) => api.get<ChatDirectoryUser[]>('/admin/chat/directory', { search }),
 }
 
@@ -185,6 +186,15 @@ export function useCreateGroup() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: chatApi.createGroup,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
+  })
+}
+
+export function useDeleteGroup() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: chatApi.deleteGroup,
+    meta: { silent: true },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
   })
 }
