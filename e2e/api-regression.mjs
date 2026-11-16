@@ -5928,6 +5928,50 @@ await TA(
   }
 )
 
+await TA(
+  'API-CHDIR-01',
+  'Chat groups',
+  'GET',
+  '/admin/chat/directory',
+  'People to add to a group, searched by name or mobile',
+  '200; only teachers and parents, with labels',
+  async () => {
+    const all = await admin('GET', '/admin/chat/directory')
+    expectStatus(all, 200)
+    if (!all.body.data.length) throw new Error('Nobody listed')
+    if (all.body.data.some((user) => !['teacher', 'parent'].includes(user.role)))
+      throw new Error('Other roles listed')
+    const byMobile = (await admin('GET', '/admin/chat/directory?search=9000000006')).body.data
+    if (byMobile[0]?.label !== 'Teacher, parent') throw new Error(`Got ${JSON.stringify(byMobile)}`)
+    const wildcard = (await admin('GET', '/admin/chat/directory?search=50%25')).body.data
+    if (wildcard.length) throw new Error('Wildcard not escaped')
+    return `200; ${all.body.data.length} people, search by mobile works`
+  }
+)
+
+await TA(
+  'API-PUSH-T1',
+  'Push',
+  'POST',
+  '/me/notifications/test-push',
+  'App asks for a test push to its own phone',
+  '200; status with the reason and my external id; again at once is 429',
+  async () => {
+    const me = (await parent('GET', '/me')).body.data
+    const result = await parent('POST', '/me/notifications/test-push', {
+      title: 'Regression test push',
+    })
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (!['sent', 'skipped', 'failed'].includes(data.status))
+      throw new Error(`Status ${data.status}`)
+    if (data.external_id !== String(me.id))
+      throw new Error(`External id ${data.external_id} is not user ${me.id}`)
+    expectStatus(await parent('POST', '/me/notifications/test-push', {}), 429, 'TEST_PUSH_TOO_SOON')
+    return `200; ${data.status} via ${data.provider} to external id ${data.external_id}`
+  }
+)
+
 const feedbackBefore = (await admin('GET', '/admin/feedback/settings')).body?.data
 let ratedTeacher = null
 let ratingId = 0
