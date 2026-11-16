@@ -51,6 +51,7 @@ export type NavPath =
   | '/exams'
   | '/class-performance'
   | '/teacher-feedback'
+  | '/emergency'
   | '/activities'
   | '/transport'
   | '/notifications'
@@ -272,6 +273,15 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: BookOpenCheck,
         shortcut: 'nav.diary',
         permission: 'diary.view',
+      },
+      {
+        to: '/emergency',
+        label: 'Emergency broadcast',
+        description:
+          'Urgent message to all parents, staff or chosen classes by app, push and SMS, with read and acknowledged',
+        icon: Siren,
+        shortcut: 'nav.emergency',
+        permission: 'emergency.view',
       },
       {
         to: '/announcements',

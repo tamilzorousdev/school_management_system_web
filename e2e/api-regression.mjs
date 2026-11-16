@@ -5972,6 +5972,224 @@ await TA(
   }
 )
 
+let emergencyId = 0
+const waitForBroadcast = async (id) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const data = (await admin('GET', `/admin/emergency-broadcasts/${id}`)).body.data
+    if (data.status !== 'sending') return data
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+  return (await admin('GET', `/admin/emergency-broadcasts/${id}`)).body.data
+}
+await TA(
+  'API-EM-01',
+  'Emergency broadcast',
+  'GET',
+  '/admin/emergency-broadcasts/templates',
+  'Ready-made messages',
+  '200; English and Tamil templates',
+  async () => {
+    const result = await admin('GET', '/admin/emergency-broadcasts/templates')
+    expectStatus(result, 200)
+    if (!result.body.data.some((item) => item.key === 'rain_holiday' && item.message_ta))
+      throw new Error('No rain template')
+    return `200; ${result.body.data.length} templates`
+  }
+)
+await TA(
+  'API-EM-02',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/preview',
+  'Preview all parents and staff',
+  '200; recipients split into parents, staff, app and SMS',
+  async () => {
+    const result = await admin('POST', '/admin/emergency-broadcasts/preview', {
+      audience: 'everyone',
+    })
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (!data.recipients || !data.parents || !data.staff) throw new Error(JSON.stringify(data))
+    if (data.recipients !== data.with_app + data.sms_only + data.unreachable)
+      throw new Error('Counts do not add up')
+    return `200; ${data.recipients} people (${data.parents} parents, ${data.staff} staff, ${data.sms_only} SMS only)`
+  }
+)
+await TA(
+  'API-EM-03',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'Send with nothing filled',
+  '400 VALIDATION_FAILED on audience, title, message, category',
+  async () =>
+    expectFields(await admin('POST', '/admin/emergency-broadcasts', {}), [
+      'audience',
+      'title',
+      'message',
+      'category',
+    ])
+)
+await TA(
+  'API-EM-04',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'Classes audience with no class chosen',
+  '400 VALIDATION_FAILED on class_ids',
+  async () =>
+    expectFields(
+      await admin('POST', '/admin/emergency-broadcasts/preview', {
+        audience: 'classes',
+        class_ids: [],
+      }),
+      ['class_ids']
+    )
+)
+await TA(
+  'API-EM-05',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'Send to the parents of one student, and their teachers',
+  '201; delivered in the background; same client_id returns the same broadcast',
+  async () => {
+    const clientId = `regression-${Date.now()}`
+    const body = {
+      audience: 'students',
+      student_ids: [child.id],
+      include_teachers: true,
+      title: 'Regression emergency check',
+      message: 'This is a regression test of the emergency broadcast.',
+      message_ta: 'இது அவசர அறிவிப்பின் சோதனை.',
+      category: 'other',
+      severity: 'info',
+      client_id: clientId,
+    }
+    const result = await admin('POST', '/admin/emergency-broadcasts', body)
+    expectStatus(result, 201)
+    emergencyId = result.body.data.id
+    const again = await admin('POST', '/admin/emergency-broadcasts', body)
+    if (again.body.data.id !== emergencyId)
+      throw new Error('Double send created a second broadcast')
+    const done = await waitForBroadcast(emergencyId)
+    if (done.status === 'sending') throw new Error('Still sending after 20 seconds')
+    if (!done.counts.parents || !done.counts.staff)
+      throw new Error(`Counts ${JSON.stringify(done.counts)}`)
+    const open =
+      done.counts.push.pending +
+      done.counts.push.sending +
+      done.counts.sms.pending +
+      done.counts.sms.sending
+    if (open) throw new Error('Rows left waiting')
+    return `201; ${done.counts.total} people (${done.counts.parents} parents, ${done.counts.staff} staff), ${done.status}, label "${done.audience_label}"`
+  }
+)
+await TA(
+  'API-EM-06',
+  'Emergency broadcast',
+  'GET',
+  '/me/emergency-broadcasts',
+  'Parent sees it, in Tamil, then opens and acknowledges it',
+  '200; pending list has it; open marks read; acknowledge records it',
+  async () => {
+    if (!emergencyId) return 'Skipped: nothing sent'
+    const pending = (await parent('GET', '/me/emergency-broadcasts?pending=true')).body.data.items
+    const mine = pending.find((item) => item.id === emergencyId)
+    if (!mine) throw new Error('Not in my pending list')
+    if (!mine.students.some((student) => student.id === child.id))
+      throw new Error('Child not listed')
+    const opened = (await parent('GET', `/me/emergency-broadcasts/${emergencyId}`)).body.data
+    if (!opened.read_at) throw new Error('Not marked read')
+    const ack = await parent('POST', `/me/emergency-broadcasts/${emergencyId}/acknowledge`)
+    expectStatus(ack, 200)
+    if (!ack.body.data.acknowledged_at) throw new Error('Not acknowledged')
+    const after = (await parent('GET', '/me/emergency-broadcasts?pending=true')).body.data.items
+    if (after.some((item) => item.id === emergencyId))
+      throw new Error('Still pending after acknowledge')
+    const inbox = (await parent('GET', '/me/notifications?limit=20&category=alert')).body.data.items
+    if (!inbox.some((item) => item.title === mine.title)) throw new Error('No in-app notification')
+    return `200; "${mine.title}" read and acknowledged`
+  }
+)
+await TA(
+  'API-EM-07',
+  'Emergency broadcast',
+  'GET',
+  '/admin/emergency-broadcasts/{id}/recipients',
+  'Office sees who acknowledged and who has not',
+  '200; filters work',
+  async () => {
+    if (!emergencyId) return 'Skipped: nothing sent'
+    const all = (await admin('GET', `/admin/emergency-broadcasts/${emergencyId}/recipients`)).body
+      .data
+    const waiting = (
+      await admin(
+        'GET',
+        `/admin/emergency-broadcasts/${emergencyId}/recipients?filter=not_acknowledged`
+      )
+    ).body.data
+    if (waiting.total !== all.total - 1)
+      throw new Error(`${waiting.total} not acknowledged of ${all.total}`)
+    const detail = (await admin('GET', `/admin/emergency-broadcasts/${emergencyId}`)).body.data
+    if (detail.counts.acknowledged !== 1)
+      throw new Error(`Acknowledged ${detail.counts.acknowledged}`)
+    return `200; ${all.total} people, ${waiting.total} not acknowledged`
+  }
+)
+await TA(
+  'API-EM-08',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/{id}/resend',
+  'Send again to everyone who has not acknowledged',
+  '200; queued count; finishes again',
+  async () => {
+    if (!emergencyId) return 'Skipped: nothing sent'
+    const result = await admin('POST', `/admin/emergency-broadcasts/${emergencyId}/resend`, {
+      target: 'not_acknowledged',
+    })
+    expectStatus(result, 200)
+    if (!result.body.data.queued) throw new Error('Nothing queued')
+    const done = await waitForBroadcast(emergencyId)
+    if (done.status === 'sending') throw new Error('Resend did not finish')
+    return `200; ${result.body.data.queued} queued again, ${done.status}`
+  }
+)
+await TA(
+  'API-EM-09',
+  'Emergency broadcast',
+  'GET',
+  '/admin/emergency-broadcasts',
+  'History and insights',
+  '200; the broadcast is listed; insights count this month',
+  async () => {
+    const list = (await admin('GET', '/admin/emergency-broadcasts?search=Regression')).body.data
+    if (!list.items.some((item) => item.id === emergencyId)) throw new Error('Not in history')
+    const insights = (await admin('GET', '/admin/emergency-broadcasts/insights')).body.data
+    if (!insights.this_month || !insights.last) throw new Error('No insights')
+    return `200; ${list.total} in history, ${insights.this_month} this month`
+  }
+)
+await TA(
+  'API-EM-10',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'A teacher tries to send',
+  '403',
+  async () =>
+    expectStatus(
+      await teacher('POST', '/admin/emergency-broadcasts', {
+        audience: 'parents',
+        title: 'Not allowed',
+        message: 'Teachers cannot send this',
+        category: 'other',
+      }),
+      403
+    )
+)
+
 const feedbackBefore = (await admin('GET', '/admin/feedback/settings')).body?.data
 let ratedTeacher = null
 let ratingId = 0

@@ -2722,6 +2722,43 @@ await test(
 )
 await test(
   {
+    id: 'EMB-01',
+    module: 'Emergency broadcast',
+    type: 'View',
+    title: 'Emergency page with history, insight cards and the send form',
+    steps:
+      'Communication, Emergency broadcast, New emergency broadcast, pick the rain message, Review and send, then Cancel at the confirm step.',
+    expected:
+      'English and Tamil text filled, live "Goes to N people" count, confirm asks "Send to N people now?"',
+  },
+  async () => {
+    await go('/emergency')
+    await page.getByRole('heading', { name: 'Emergency broadcast' }).waitFor({ timeout: 10000 })
+    await see('Broadcasts this month')
+    await page.getByRole('button', { name: /New emergency broadcast/ }).click()
+    await dialog().getByRole('combobox', { name: 'Ready messages' }).click()
+    await page
+      .getByRole('option', { name: /heavy rain/ })
+      .first()
+      .click()
+    if (!(await dialog().getByLabel('Message in Tamil').inputValue()))
+      throw new Error('Tamil text not filled')
+    await see(/Goes to \d+ people/, dialog())
+    await dialog()
+      .getByRole('button', { name: /Review and send/ })
+      .click()
+    await page
+      .getByRole('alertdialog')
+      .or(page.getByRole('dialog').last())
+      .getByText(/Send to \d+ people now\?/)
+      .waitFor({ timeout: 8000 })
+    await page.screenshot({ path: path.join(SHOTS, 'EMB-01.png') })
+    await page.getByRole('button', { name: 'Cancel' }).last().click()
+    await page.keyboard.press('Escape')
+  }
+)
+await test(
+  {
     id: 'TF-01',
     module: 'Teacher feedback',
     type: 'View',

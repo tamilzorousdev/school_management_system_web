@@ -14,6 +14,7 @@ import { session } from '@/lib/auth/session'
 import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
 import { feedbackSearchSchema } from '@/features/feedback/search'
+import { emergencySearchSchema } from '@/features/emergency/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
@@ -297,6 +298,16 @@ const feedbackRoute = createRoute({
   ),
 })
 
+const emergencyRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/emergency',
+  validateSearch: emergencySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/emergency/pages/emergency-page'),
+    'EmergencyPage'
+  ),
+})
+
 const timetableRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/timetable',
@@ -424,6 +435,7 @@ const routeTree = rootRoute.addChildren([
     attendanceRoute,
     performanceRoute,
     feedbackRoute,
+    emergencyRoute,
     timetableRoute,
     substitutesRoute,
     payrollRoute,
