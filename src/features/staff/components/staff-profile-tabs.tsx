@@ -24,6 +24,7 @@ import { formatDate } from '@/lib/format'
 import { staffApi, useStaffBank, useStaffMutation, type StaffDetail } from '../api'
 import { GENDER_LABELS, LANGUAGE_OPTIONS, STAFF_DOCUMENT_TYPES, STAFF_TYPE_LABELS } from '../labels'
 import { TeacherSpecialClasses } from '@/features/performance/components/teacher-special-classes'
+import { SignaturePanel } from '@/features/signatures/signature-panel'
 import { LoadBar } from './load-bar'
 import { BankModal, QualificationsModal } from './staff-profile-modals'
 
@@ -69,51 +70,59 @@ export function ProfileTab({ staff, canManage }: { staff: StaffDetail; canManage
           ]}
         />
       </Section>
-      <Section
-        title='Qualifications'
-        action={
-          canManage && (
-            <Button size='sm' variant='outline' onClick={() => setEditing(true)}>
-              <Pencil />
-              Edit qualifications
-            </Button>
-          )
-        }
-      >
-        {staff.qualifications.length === 0 ? (
-          <EmptyState
-            icon={GraduationCap}
-            title='No qualifications added'
-            description='Add degrees and teacher training so they show on the profile.'
-            className='py-6'
-          />
-        ) : (
-          <ul className='grid gap-2'>
-            {staff.qualifications.map((item) => (
-              <li key={item.id} className='flex items-start gap-3 rounded-xl border p-3'>
-                <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
-                  <GraduationCap className='size-4' />
-                </span>
-                <span className='grid min-w-0 gap-0.5'>
-                  <span className='font-semibold'>
-                    {item.degree}
-                    {item.specialization && (
-                      <span className='font-normal text-muted-foreground'>
-                        {' '}
-                        · {item.specialization}
-                      </span>
-                    )}
+      <div className='grid content-start gap-6'>
+        <Section
+          title='Qualifications'
+          action={
+            canManage && (
+              <Button size='sm' variant='outline' onClick={() => setEditing(true)}>
+                <Pencil />
+                Edit qualifications
+              </Button>
+            )
+          }
+        >
+          {staff.qualifications.length === 0 ? (
+            <EmptyState
+              icon={GraduationCap}
+              title='No qualifications added'
+              description='Add degrees and teacher training so they show on the profile.'
+              className='py-6'
+            />
+          ) : (
+            <ul className='grid gap-2'>
+              {staff.qualifications.map((item) => (
+                <li key={item.id} className='flex items-start gap-3 rounded-xl border p-3'>
+                  <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
+                    <GraduationCap className='size-4' />
                   </span>
-                  <span className='text-xs text-muted-foreground'>
-                    {[item.institution, item.year_completed].filter(Boolean).join(' · ') ||
-                      'No college or year given'}
+                  <span className='grid min-w-0 gap-0.5'>
+                    <span className='font-semibold'>
+                      {item.degree}
+                      {item.specialization && (
+                        <span className='font-normal text-muted-foreground'>
+                          {' '}
+                          · {item.specialization}
+                        </span>
+                      )}
+                    </span>
+                    <span className='text-xs text-muted-foreground'>
+                      {[item.institution, item.year_completed].filter(Boolean).join(' · ') ||
+                        'No college or year given'}
+                    </span>
                   </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+        <Section
+          title='Teacher signature'
+          description='Used when this teacher signs report cards. Their Parent app signature is separate.'
+        >
+          <SignaturePanel owner='staff' ownerId={staff.id} canManage={canManage} />
+        </Section>
+      </div>
       <QualificationsModal staff={staff} open={editing} onOpenChange={setEditing} />
     </div>
   )

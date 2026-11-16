@@ -5979,6 +5979,113 @@ await TA(
 )
 
 await TA(
+  'API-DSIG-05',
+  'Digital signature',
+  'GET',
+  '/admin/staff/:id/signature',
+  'Admin sees a teacher signature with its change history',
+  '200; current signature and history list',
+  async () => {
+    const staffId = (await admin('GET', '/admin/staff?search=9000000004')).body.data.items[0]?.id
+    const result = await admin('GET', `/admin/staff/${staffId}/signature`)
+    expectStatus(result, 200)
+    if (result.body.data.side !== 'teacher' || !Array.isArray(result.body.data.history))
+      throw new Error(JSON.stringify(result.body.data))
+    return `200; ${result.body.data.history.length} changes`
+  }
+)
+await TA(
+  'API-DSIG-06',
+  'Digital signature',
+  'PUT',
+  '/admin/guardians/:id/signature',
+  'Admin sets and removes a parent signature; both are kept in the history as by the school office',
+  '200; history shows removed then added, by_admin',
+  async () => {
+    if (!signatureFileId) return 'Skipped: no signature uploaded'
+    const guardianId = (await parent('GET', '/mobile/parent/profile')).body.data.id
+    const before = (await admin('GET', `/admin/guardians/${guardianId}/signature`)).body.data
+    const set = await admin('PUT', `/admin/guardians/${guardianId}/signature`, {
+      signature_file_id: signatureFileId,
+    })
+    expectStatus(set, 200)
+    await admin('PUT', `/admin/guardians/${guardianId}/signature`, { signature_file_id: null })
+    const after = (await admin('GET', `/admin/guardians/${guardianId}/signature`)).body.data
+    const [last, previous] = after.history
+    if (last?.action !== 'removed' || !last.by_admin || previous?.new_url === null)
+      throw new Error(JSON.stringify(after.history.slice(0, 2)))
+    await admin('PUT', `/admin/guardians/${guardianId}/signature`, {
+      signature_file_id: before.signature_file_id,
+    })
+    return '200; added and removed recorded by the school office, then put back'
+  }
+)
+await TA(
+  'API-DSIG-07',
+  'Digital signature',
+  'PUT',
+  '/admin/guardians/:id/signature',
+  'Unknown parent',
+  '404 GUARDIAN_NOT_FOUND',
+  async () => {
+    const result = await admin('PUT', '/admin/guardians/999999/signature', {
+      signature_file_id: null,
+    })
+    expectStatus(result, 404)
+    if (result.body.error !== 'GUARDIAN_NOT_FOUND') throw new Error(result.body.error)
+    return '404 GUARDIAN_NOT_FOUND'
+  }
+)
+
+await TA(
+  'API-DSIG-08',
+  'Digital signature',
+  'POST',
+  '/mobile/parent/signature/history/{changeId}/use',
+  'Parent uses an earlier signature again from the history',
+  '200; the earlier signature is current; using it twice gives 400 SIGNATURE_ALREADY_IN_USE',
+  async () => {
+    if (!signatureFileId) return 'Skipped: no signature uploaded'
+    const before = (await parent('GET', '/mobile/parent/signature')).body.data.signature_file_id
+    const second = (await uploadPhoto(parentToken, 'signature-photo.jpg', 'signature')).body.data.id
+    await parent('PUT', '/mobile/parent/signature', { signature_file_id: signatureFileId })
+    await parent('PUT', '/mobile/parent/signature', { signature_file_id: second })
+    const history = (await parent('GET', '/mobile/parent/signature')).body.data.history
+    const earlier = history.find((change) => change.can_use_again && change.action !== 'removed')
+    if (!earlier) throw new Error('No earlier signature offered')
+    const used = await parent('POST', `/mobile/parent/signature/history/${earlier.id}/use`)
+    expectStatus(used, 200)
+    if (used.body.data.signature_file_id !== signatureFileId)
+      throw new Error(`Got ${used.body.data.signature_file_id}`)
+    const again = await parent('POST', `/mobile/parent/signature/history/${earlier.id}/use`)
+    expectStatus(again, 400)
+    if (again.body.error !== 'SIGNATURE_ALREADY_IN_USE') throw new Error(again.body.error)
+    await parent('PUT', '/mobile/parent/signature', { signature_file_id: before })
+    return '200; earlier signature in use again, second try 400, then put back'
+  }
+)
+await TA(
+  'API-DSIG-09',
+  'Digital signature',
+  'POST',
+  '/admin/staff/{id}/signature/history/{changeId}/use',
+  'A history row of another person cannot be used',
+  '404 SIGNATURE_CHANGE_NOT_FOUND',
+  async () => {
+    const parentHistory = (await parent('GET', '/mobile/parent/signature')).body.data.history
+    if (!parentHistory.length) return 'Skipped: no parent history'
+    const staffId = (await admin('GET', '/admin/staff?search=9000000004')).body.data.items[0]?.id
+    const result = await admin(
+      'POST',
+      `/admin/staff/${staffId}/signature/history/${parentHistory[0].id}/use`
+    )
+    expectStatus(result, 404)
+    if (result.body.error !== 'SIGNATURE_CHANGE_NOT_FOUND') throw new Error(result.body.error)
+    return '404 SIGNATURE_CHANGE_NOT_FOUND'
+  }
+)
+
+await TA(
   'API-CHDIR-01',
   'Chat groups',
   'GET',

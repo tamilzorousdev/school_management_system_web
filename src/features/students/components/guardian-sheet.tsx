@@ -22,6 +22,7 @@ import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { formatDate, timeAgo } from '@/lib/format'
 import { ParentMeetings } from '@/features/meetings/components/parent-meetings'
+import { SignaturePanel } from '@/features/signatures/signature-panel'
 import { studentsApi, useGuardian, useStudentMutation, type GuardianDetail } from '../api'
 import { RELATION_LABELS, yearsLabel } from '../labels'
 
@@ -162,6 +163,10 @@ export function GuardianSheet({
                   </ul>
                 </Block>
               )}
+
+              <Block title='Parent signature'>
+                <SignaturePanel owner='guardians' ownerId={data.id} canManage={canManage} />
+              </Block>
 
               {canSeeMeetings && (
                 <Block title='Video meetings'>

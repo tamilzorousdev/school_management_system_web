@@ -1897,11 +1897,11 @@ await TA(
     type: 'View',
     title: 'Exams page lists exams with tabs for marks and results',
     steps: 'Open Exams.',
-    expected: 'Exams, Marks entry and Results tabs',
+    expected: 'Exams, Student Marks and Results tabs',
   },
   async () => {
     await go('/exams')
-    await page.getByRole('tab', { name: 'Marks entry' }).waitFor({ timeout: 8000 })
+    await page.getByRole('tab', { name: 'Student Marks' }).waitFor({ timeout: 8000 })
     await page.getByRole('tab', { name: 'Results' }).waitFor()
   }
 )
@@ -2722,6 +2722,53 @@ await test(
 )
 await test(
   {
+    id: 'DSIG-02',
+    module: 'Staff',
+    type: 'Edit',
+    title: 'Admin signs for a teacher, sees the change history and uses an earlier signature again',
+    steps:
+      'Staff, open a teacher, Profile, Teacher signature, Add/Change signature, Sign here, draw, Save signature.',
+    expected: 'Signature saved; the history shows the change marked By school office',
+  },
+  async () => {
+    const staffId = (await api('GET', '/admin/staff?search=9000000004')).data.items[0].id
+    const before = (await api('GET', `/admin/staff/${staffId}/signature`)).data.signature_file_id
+    await page.goto(`${BASE}/staff/${staffId}?tab=profile`)
+    await page.getByRole('heading', { name: 'Teacher signature' }).waitFor({ timeout: 15000 })
+    await page.getByRole('button', { name: /^(Add|Change) signature$/ }).click()
+    await dialog().getByRole('radio', { name: 'Upload photo' }).waitFor({ timeout: 8000 })
+    const box = await dialog()
+      .getByRole('img', { name: /Signature pad/ })
+      .boundingBox()
+    await page.mouse.move(box.x + 60, box.y + 140)
+    await page.mouse.down()
+    for (const [x, y] of [
+      [110, 60],
+      [160, 150],
+      [220, 70],
+      [280, 140],
+    ])
+      await page.mouse.move(box.x + x, box.y + y, { steps: 6 })
+    await page.mouse.up()
+    await dialog().getByRole('button', { name: 'Save signature' }).click()
+    await page.getByText('By school office').first().waitFor({ timeout: 10000 })
+    const reuse = page.getByRole('button', { name: 'Use this again' })
+    let reused = 'no earlier signature to use'
+    if (await reuse.count()) {
+      await reuse.first().click()
+      await dialog().getByRole('button', { name: 'Use this again' }).click()
+      await see('Earlier signature is in use again')
+      await page.getByText('Used an earlier signature again').first().waitFor({ timeout: 10000 })
+      reused = 'earlier signature used again'
+    }
+    await page.getByRole('heading', { name: 'Teacher signature' }).scrollIntoViewIfNeeded()
+    await page.screenshot({ path: path.join(SHOTS, 'DSIG-02.png') })
+    await api('PUT', `/admin/staff/${staffId}/signature`, { signature_file_id: before })
+    return `Saved; history shows By school office; ${reused}`
+  }
+)
+await test(
+  {
     id: 'EMB-01',
     module: 'Emergency broadcast',
     type: 'View',
@@ -3079,7 +3126,7 @@ await test(
     ['RS-07', '/payroll', 'Payroll runs'],
     ['RS-08', '/transport', 'Buses and routes'],
     ['RS-09', '/fleet', 'Trips today'],
-    ['RS-10', '/exams', 'Marks entry'],
+    ['RS-10', '/exams', 'Student Marks'],
     ['RS-11', '/fees', 'Fee plans'],
     ['RS-12', '/activities', 'Leaderboard'],
     ['RS-13', '/fleet/alerts', 'SOS active'],
