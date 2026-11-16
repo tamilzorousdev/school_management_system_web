@@ -105,6 +105,9 @@ export interface MarksSheet {
   exam: ExamRef
   section: SectionRef
   subject: MarkSubject
+
+  teacher?: { id: number; name: string } | null
+  class_teacher?: { id: number; name: string } | null
   editable: boolean
   entered: number
   total: number

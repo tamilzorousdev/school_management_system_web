@@ -1,5 +1,5 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { ClipboardCheck, PencilLine, Trophy } from 'lucide-react'
+import { ClipboardCheck, ClipboardList, Trophy } from 'lucide-react'
 import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { can, useMe } from '@/features/auth/api'
@@ -31,7 +31,7 @@ export function ExamsPage() {
       <PageHeader
         eyebrow='Academics'
         title='Exams'
-        description='Exams for each class, marks entry by section and subject, ranked results with grades and the top rank holders.'
+        description='Exams for each class, student marks by section and subject, ranked results with grades and the top rank holders.'
       />
       <PageTabs
         label='Exam sections'
@@ -39,7 +39,7 @@ export function ExamsPage() {
         onChange={(tab: ExamTab) => open(tab)}
         tabs={[
           { value: 'exams', label: 'Exams', icon: ClipboardCheck },
-          { value: 'marks', label: 'Marks entry', icon: PencilLine },
+          { value: 'marks', label: 'Student Marks', icon: ClipboardList },
           { value: 'results', label: 'Results', icon: Trophy },
         ]}
       />

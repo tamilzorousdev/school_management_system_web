@@ -203,7 +203,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: '/exams',
         label: 'Exams',
-        description: 'Exams, marks entry, ranked results and top rank holders',
+        description: 'Exams, student marks, ranked results and top rank holders',
         icon: ClipboardCheck,
         shortcut: 'nav.exams',
         permission: 'exams.view',

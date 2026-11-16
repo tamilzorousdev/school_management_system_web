@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ClipboardCheck, PencilLine, RotateCcw, Save } from 'lucide-react'
+import { ClipboardCheck, Lock, PencilLine, RotateCcw, Save } from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
@@ -66,7 +66,7 @@ export function MarksTab({
         <EmptyState
           icon={ClipboardCheck}
           title='No exams yet'
-          description='Create an exam in the Exams tab, then enter marks here.'
+          description='Create an exam in the Exams tab, then view student marks here.'
         />
       </Card>
     )
@@ -157,7 +157,7 @@ function MarksGrid({ sheet, canManage }: { sheet: MarksSheet; canManage: boolean
     examsApi.saveMarks(sheet.exam.id, sheet.section.id, sheet.subject.id, items)
   )
   const max = sheet.subject.max_marks
-  const editable = canManage && sheet.editable
+  const editable = sheet.editable
 
   const changed = sheet.students.filter((row) => {
     const draft = drafts[row.student_id]
@@ -243,12 +243,26 @@ function MarksGrid({ sheet, canManage }: { sheet: MarksSheet; canManage: boolean
           <span className='text-xs text-muted-foreground'>
             Max {max} · Pass {sheet.subject.pass_marks}
             {sheet.subject.exam_date && ` · ${formatDate(sheet.subject.exam_date)}`}
+            {(sheet.teacher || sheet.class_teacher) && (
+              <span>
+                {' · '}
+                {sheet.teacher ? `Subject Teacher: ${sheet.teacher.name}` : ''}
+                {sheet.teacher && sheet.class_teacher ? ' · ' : ''}
+                {sheet.class_teacher ? `Class Teacher: ${sheet.class_teacher.name}` : ''}
+              </span>
+            )}
           </span>
         </div>
         <div className='flex flex-wrap items-center gap-2'>
           <Badge tone={entered === sheet.total ? 'success' : 'warning'}>
             {entered} of {sheet.total} entered
           </Badge>
+          {!editable && (
+            <Badge tone='neutral' className='flex items-center gap-1 font-medium'>
+              <Lock className='size-3 text-muted-foreground' />
+              View only
+            </Badge>
+          )}
           {editable && (
             <>
               <Button
@@ -271,6 +285,25 @@ function MarksGrid({ sheet, canManage }: { sheet: MarksSheet; canManage: boolean
           )}
         </div>
       </div>
+      {!editable && (
+        <div className='flex items-center gap-2.5 border-b bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-900 dark:text-amber-200'>
+          <Lock className='size-4 shrink-0 text-amber-600 dark:text-amber-400' />
+          <span>
+            <strong>Marks entry is restricted to staff:</strong> Only the assigned class teacher or subject teacher can enter marks.
+            {sheet.teacher || sheet.class_teacher ? (
+              <span className='ml-1 font-normal opacity-90'>
+                (Assigned staff: {sheet.teacher ? `Subject Teacher: ${sheet.teacher.name}` : ''}
+                {sheet.teacher && sheet.class_teacher ? ' · ' : ''}
+                {sheet.class_teacher ? `Class Teacher: ${sheet.class_teacher.name}` : ''})
+              </span>
+            ) : (
+              <span className='ml-1 font-normal opacity-90'>
+                (No teacher is assigned to this subject/class yet. Assign a teacher in <strong>Staff → Teacher assignments</strong> to enable marks entry.)
+              </span>
+            )}
+          </span>
+        </div>
+      )}
       {sheet.exam.status === 'published' && (
         <p className='border-b bg-info/5 px-4 py-2 text-xs text-info'>
           Results are published. {canManage ? 'Changes here update the results parents see.' : ''}
@@ -287,8 +320,8 @@ function MarksGrid({ sheet, canManage }: { sheet: MarksSheet; canManage: boolean
           <div className='hidden grid-cols-[3rem_minmax(0,1fr)_7rem_6rem] gap-3 border-b bg-muted/40 px-4 py-2 text-[11px] font-bold tracking-wide text-muted-foreground uppercase sm:grid'>
             <span>Roll</span>
             <span>Student</span>
-            <span>Marks</span>
-            <span>Absent</span>
+            <span className={cn(!editable && 'text-right')}>Marks</span>
+            <span>{editable ? 'Absent' : 'Status'}</span>
           </div>
           <ul className='divide-y' aria-label={`Marks for ${sheet.subject.name}`}>
             {sheet.students.map((row, index) => {
@@ -319,62 +352,94 @@ function MarksGrid({ sheet, canManage }: { sheet: MarksSheet; canManage: boolean
                       {row.admission_no}
                     </span>
                   </label>
-                  <div className='grid w-24 shrink-0 gap-0.5 sm:w-auto'>
-                    <Input
-                      id={`mark-input-${index}`}
-                      inputMode='decimal'
-                      autoComplete='off'
-                      placeholder={draft.absent ? 'AB' : '—'}
-                      value={draft.absent ? '' : draft.marks}
-                      disabled={!editable || draft.absent}
-                      aria-invalid={Boolean(error)}
-                      aria-describedby={error ? `mark-error-${index}` : undefined}
-                      aria-label={`Marks for ${row.full_name}`}
-                      onChange={(event) => setDraft(row.student_id, { marks: event.target.value })}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === 'ArrowDown') {
-                          event.preventDefault()
-                          focusRow(index + 1)
-                        }
-                        if (event.key === 'ArrowUp') {
-                          event.preventDefault()
-                          focusRow(index - 1)
-                        }
-                      }}
-                      onFocus={(event) => event.currentTarget.select()}
-                      className={cn('tabular h-9 text-right', below && 'text-destructive')}
-                    />
-                    {error && (
-                      <span
-                        id={`mark-error-${index}`}
-                        role='alert'
-                        className='text-[11px] font-medium text-destructive'
-                      >
-                        {error}
-                      </span>
-                    )}
-                  </div>
-                  <label className='flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-semibold text-muted-foreground'>
-                    <input
-                      type='checkbox'
-                      className='size-4 accent-primary'
-                      checked={draft.absent}
-                      disabled={!editable}
-                      aria-label={`${row.full_name} was absent`}
-                      onChange={(event) =>
-                        setDraft(row.student_id, { absent: event.target.checked })
-                      }
-                    />
-                    <span className='hidden sm:inline'>Absent</span>
-                    <span className='sm:hidden'>AB</span>
-                  </label>
+                  {editable ? (
+                    <>
+                      <div className='grid w-24 shrink-0 gap-0.5 sm:w-auto'>
+                        <Input
+                          id={`mark-input-${index}`}
+                          inputMode='decimal'
+                          autoComplete='off'
+                          placeholder={draft.absent ? 'AB' : '—'}
+                          value={draft.absent ? '' : draft.marks}
+                          disabled={draft.absent}
+                          aria-invalid={Boolean(error)}
+                          aria-describedby={error ? `mark-error-${index}` : undefined}
+                          aria-label={`Marks for ${row.full_name}`}
+                          onChange={(event) => setDraft(row.student_id, { marks: event.target.value })}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === 'ArrowDown') {
+                              event.preventDefault()
+                              focusRow(index + 1)
+                            }
+                            if (event.key === 'ArrowUp') {
+                              event.preventDefault()
+                              focusRow(index - 1)
+                            }
+                          }}
+                          onFocus={(event) => event.currentTarget.select()}
+                          className={cn('tabular h-9 text-right', below && 'text-destructive')}
+                        />
+                        {error && (
+                          <span
+                            id={`mark-error-${index}`}
+                            role='alert'
+                            className='text-[11px] font-medium text-destructive'
+                          >
+                            {error}
+                          </span>
+                        )}
+                      </div>
+                      <label className='flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-semibold text-muted-foreground'>
+                        <input
+                          type='checkbox'
+                          className='size-4 accent-primary'
+                          checked={draft.absent}
+                          aria-label={`${row.full_name} was absent`}
+                          onChange={(event) =>
+                            setDraft(row.student_id, { absent: event.target.checked })
+                          }
+                        />
+                        <span className='hidden sm:inline'>Absent</span>
+                        <span className='sm:hidden'>AB</span>
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      <div className='text-right'>
+                        {row.is_absent ? (
+                          <span className='text-xs font-medium text-muted-foreground'>—</span>
+                        ) : row.marks !== null ? (
+                          <div className='flex items-baseline justify-end gap-1'>
+                            <span className={cn('tabular text-sm font-bold', below && 'text-destructive')}>
+                              {row.marks}
+                            </span>
+                            <span className='text-xs font-normal text-muted-foreground'>/ {max}</span>
+                          </div>
+                        ) : (
+                          <span className='text-xs italic text-muted-foreground'>Not entered</span>
+                        )}
+                      </div>
+                      <div className='flex items-center'>
+                        {row.is_absent ? (
+                          <Badge tone='danger' className='text-[11px] font-medium'>
+                            Absent
+                          </Badge>
+                        ) : row.marks !== null ? (
+                          <span className='text-xs text-muted-foreground'>Present</span>
+                        ) : (
+                          <span className='text-xs text-muted-foreground'>—</span>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </li>
               )
             })}
           </ul>
           <p className='border-t px-4 py-2 text-xs text-muted-foreground'>
-            Press Enter or ↓ to move to the next student. Leave a box empty to clear it.
-            {` Marks below ${sheet.subject.pass_marks} show in red.`}
+            {editable
+              ? `Press Enter or ↓ to move to the next student. Leave a box empty to clear it. Marks below ${sheet.subject.pass_marks} show in red.`
+              : 'Marks entered by the assigned class staff are displayed above. Administrators have read-only access to prevent unauthorized mark changes.'}
           </p>
         </>
       )}
