@@ -2,7 +2,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { ComboboxOption } from '@/components/common/combobox'
 import { api, type Paginated } from '@/lib/api/client'
 
-export type ExpiryKind = 'insurance' | 'fitness' | 'puc' | 'permit' | 'licence'
+export type ExpiryKind =
+  'insurance' | 'fitness' | 'puc' | 'permit' | 'licence' | 'badge' | 'medical' | 'police'
+export type DutyStatus = 'pending' | 'approved' | 'blocked'
 export type ExpiryStateCode = 'ok' | 'due_soon' | 'expired' | 'missing'
 export type VehicleStatus = 'active' | 'inactive'
 export type TransportMode = 'both' | 'pickup' | 'drop'
@@ -79,11 +81,7 @@ export interface Crew {
   licence_expiry: string | null
   licence: ExpiryState | null
   vehicle: Ref | null
-}
-
-export interface LicenceInput {
-  licence_no: string | null
-  licence_expiry: string | null
+  duty_status: DutyStatus
 }
 
 export interface RouteBus {
@@ -173,6 +171,7 @@ export interface Expiry {
   subject: string
   ref_id: number
   vehicle_id: number | null
+  staff_id: number | null
   date: string
   days_left: number
 }
@@ -217,8 +216,6 @@ export const transportApi = {
   removeBus: (id: number) => api.delete<null>(`${base}/vehicles/${id}`),
   trackers: () => api.get<Tracker[]>(`${base}/devices`),
   crew: () => api.get<Crew[]>(`${base}/drivers`),
-  saveLicence: (userId: number, input: LicenceInput) =>
-    api.put<Crew>(`${base}/drivers/${userId}/licence`, input),
   expiries: (days: number) => api.get<Expiry[]>(`${base}/expiries`, { days }),
   checkExpiries: () => api.post<ExpiryRun>(`${base}/expiries/check`),
   routes: () => api.get<BusRoute[]>(`${base}/routes`),

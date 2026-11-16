@@ -54,6 +54,8 @@ export const STAFF_DOCUMENT_TYPES: Record<StaffDocumentType, string> = {
   experience_letter: 'Experience letter',
   police_verification: 'Police verification',
   medical_fitness: 'Medical fitness',
+  driving_licence: 'Driving licence',
+  psv_badge: 'PSV badge',
   photo: 'Photo',
   other: 'Other',
 }

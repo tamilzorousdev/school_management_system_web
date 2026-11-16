@@ -28,6 +28,7 @@ import {
   staffProfileSearchSchema,
   staffSearchSchema,
 } from '@/features/staff/search'
+import { crewProfileSearchSchema, crewSearchSchema } from '@/features/crew/search'
 import {
   admissionsSearchSchema,
   guardiansSearchSchema,
@@ -248,6 +249,23 @@ const staffRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/staff/pages/staff-page'), 'StaffPage'),
 })
 
+const crewRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/crew',
+  validateSearch: crewSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/crew/pages/crew-page'), 'CrewPage'),
+})
+
+const crewProfileRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/crew/$staffId',
+  validateSearch: crewProfileSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/crew/pages/crew-profile-page'),
+    'CrewProfilePage'
+  ),
+})
+
 const staffAssignmentsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/staff/assignments',
@@ -432,6 +450,8 @@ const routeTree = rootRoute.addChildren([
     staffRoute,
     staffAssignmentsRoute,
     staffProfileRoute,
+    crewRoute,
+    crewProfileRoute,
     attendanceRoute,
     performanceRoute,
     feedbackRoute,

@@ -22,6 +22,8 @@ export type StaffDocumentType =
   | 'experience_letter'
   | 'police_verification'
   | 'medical_fitness'
+  | 'driving_licence'
+  | 'psv_badge'
   | 'photo'
   | 'other'
 
