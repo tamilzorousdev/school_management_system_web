@@ -250,21 +250,23 @@ export function DocumentList({
   )
 }
 
-function AddDocumentModal({
+export function AddDocumentModal({
   types,
   purpose,
   parentVisibility,
+  initialType,
   onClose,
   onAdd,
 }: {
   types: Record<string, string>
   purpose: string
   parentVisibility?: boolean
+  initialType?: string
   onClose: () => void
   onAdd: (input: NewDocument) => Promise<unknown>
 }) {
   const input = useRef<HTMLInputElement>(null)
-  const [type, setType] = useState(Object.keys(types)[0])
+  const [type, setType] = useState(initialType ?? Object.keys(types)[0])
   const [title, setTitle] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [visible, setVisible] = useState(true)

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { BellRing, Bus, IdCard, ShieldCheck } from 'lucide-react'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { Badge } from '@/components/ui/badge'
@@ -37,8 +38,8 @@ export function ExpiriesTab({ canManage }: { canManage: boolean }) {
         <div className='grid gap-0.5'>
           <h2 className='font-bold'>Documents ending in the next 30 days</h2>
           <p className='text-xs text-muted-foreground'>
-            Insurance, fitness, PUC, permit and driving licences. Alerts go out every day at 07:00
-            at 30, 7 and 1 days left and on the last day.
+            Bus insurance, fitness, PUC and permit, and crew licences, badges, medical and police
+            checks. Alerts go out every day at 07:00 at 30, 7 and 1 days left and on the last day.
           </p>
         </div>
         {canManage && (
@@ -70,12 +71,13 @@ export function ExpiriesTab({ canManage }: { canManage: boolean }) {
         <EmptyState
           icon={ShieldCheck}
           title='Nothing ends in the next 30 days'
-          description='Every bus document and driving licence is valid for at least a month.'
+          description='Every bus document and crew document is valid for at least a month.'
         />
       ) : (
         <ul className='grid divide-y'>
           {rows.map((item) => {
-            const Icon = item.kind === 'licence' ? IdCard : Bus
+            const person = item.staff_id !== null
+            const Icon = person ? IdCard : Bus
             return (
               <li
                 key={`${item.kind}-${item.ref_id}`}
@@ -87,9 +89,18 @@ export function ExpiriesTab({ canManage }: { canManage: boolean }) {
                 <span className='grid min-w-0 flex-1'>
                   <span className='truncate font-semibold'>{item.label}</span>
                   <span className='truncate text-xs text-muted-foreground'>
-                    <span className={item.kind === 'licence' ? '' : 'font-mono'}>
-                      {item.subject}
-                    </span>{' '}
+                    {person ? (
+                      <Link
+                        to='/crew/$staffId'
+                        params={{ staffId: String(item.staff_id) }}
+                        search={{ tab: 'clearance' }}
+                        className='font-semibold text-primary hover:underline'
+                      >
+                        {item.subject}
+                      </Link>
+                    ) : (
+                      <span className='font-mono'>{item.subject}</span>
+                    )}{' '}
                     · ends {formatDate(item.date)}
                   </span>
                 </span>

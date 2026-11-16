@@ -1,13 +1,13 @@
-import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import { Bus, CalendarClock, IdCard, Route as RouteIcon, UsersRound } from 'lucide-react'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
+import { Button } from '@/components/ui/button'
 import { can, useMe } from '@/features/auth/api'
 import { useBusRoutes, useBuses, useExpiries } from '../api'
 import { BusesTab } from '../components/buses-tab'
-import { DriversTab } from '../components/drivers-tab'
 import { ExpiriesTab } from '../components/expiries-tab'
 import { RoutesTab } from '../components/routes-tab'
 import { StudentsTab } from '../components/students-tab'
@@ -82,6 +82,14 @@ export function TransportPage() {
         eyebrow='Fleet'
         title='Buses and routes'
         description='School buses with their tracker, crew and documents, the routes and stops they run, and the students at each stop.'
+        actions={
+          <Button variant='outline' asChild>
+            <Link to='/crew' search={{ page: 1 }}>
+              <IdCard />
+              Drivers and attendants
+            </Link>
+          </Button>
+        }
       />
       <InsightCards items={cards} loading={fleet.isPending || routes.isPending} />
       <PageTabs
@@ -92,7 +100,6 @@ export function TransportPage() {
         }
         tabs={[
           { value: 'buses', label: 'Buses', icon: Bus },
-          { value: 'drivers', label: 'Drivers', icon: IdCard },
           { value: 'routes', label: 'Routes', icon: RouteIcon },
           { value: 'students', label: 'Students', icon: UsersRound },
           {
@@ -112,7 +119,6 @@ export function TransportPage() {
           onPage={(page) => setSearch({ page })}
         />
       )}
-      {search.tab === 'drivers' && <DriversTab canManage={canManage} />}
       {search.tab === 'routes' && <RoutesTab canManage={canManage} />}
       {search.tab === 'students' && (
         <StudentsTab

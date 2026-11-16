@@ -14,7 +14,7 @@ import {
   type Crew,
   type VehicleStatus,
 } from '../api'
-import { formErrors } from '../labels'
+import { DUTY_HINT, formErrors } from '../labels'
 
 const REGISTRATION = /^[A-Z]{2}[ -]?\d{1,2}[ -]?[A-Z]{0,3}[ -]?\d{1,4}$/
 
@@ -39,7 +39,11 @@ const crewOptions = (crew: Crew[], role: Crew['role'], busId?: number) =>
       value: String(person.user_id),
       label: person.name,
       hint:
-        person.vehicle && person.vehicle.id !== busId ? `On ${person.vehicle.name}` : person.mobile,
+        person.duty_status !== 'approved'
+          ? DUTY_HINT[person.duty_status]
+          : person.vehicle && person.vehicle.id !== busId
+            ? `On ${person.vehicle.name}`
+            : person.mobile,
     }))
 
 export function BusFormModal({ bus, onClose }: { bus?: Bus; onClose: () => void }) {

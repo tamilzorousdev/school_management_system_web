@@ -11,6 +11,7 @@ import {
   Route,
   Wallet,
   GraduationCap,
+  IdCard,
   Grid3x3,
   IndianRupee,
   // HeartHandshake,
@@ -43,6 +44,7 @@ export type NavPath =
   | '/guardians'
   | '/staff'
   | '/staff/assignments'
+  | '/crew'
   | '/attendance'
   | '/timetable'
   | '/substitutes'
@@ -160,6 +162,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Grid3x3,
         shortcut: 'nav.assignments',
         permission: 'staff.view',
+      },
+      {
+        to: '/crew',
+        label: 'Drivers & attendants',
+        description: 'Bus crew, licence expiry and clearance for duty',
+        icon: IdCard,
+        shortcut: 'nav.crew',
+        permission: 'fleet.view',
       },
     ],
   },

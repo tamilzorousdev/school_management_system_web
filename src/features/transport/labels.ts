@@ -1,7 +1,14 @@
 import type { BadgeTone } from '@/components/ui/badge'
 import { toApiError } from '@/lib/api/errors'
 import { alerts } from '@/lib/alerts'
-import type { CrewRole, ExpiryKind, ExpiryState, ExpiryStateCode, TransportMode } from './api'
+import type {
+  CrewRole,
+  DutyStatus,
+  ExpiryKind,
+  ExpiryState,
+  ExpiryStateCode,
+  TransportMode,
+} from './api'
 
 export const MODE_LABELS: Record<TransportMode, string> = {
   both: 'Both ways',
@@ -25,6 +32,17 @@ export const SHORT_KIND: Record<ExpiryKind, string> = {
   puc: 'PUC',
   permit: 'Permit',
   licence: 'Licence',
+  badge: 'Badge',
+  medical: 'Medical',
+  police: 'Police',
+}
+
+export const CREW_KINDS: ExpiryKind[] = ['licence', 'badge', 'medical', 'police']
+
+export const DUTY_HINT: Record<DutyStatus, string> = {
+  approved: 'Approved for duty',
+  pending: 'Not approved yet',
+  blocked: 'Documents need renewal',
 }
 
 const RANK: Record<ExpiryStateCode, number> = { expired: 0, due_soon: 1, ok: 2, missing: 3 }
