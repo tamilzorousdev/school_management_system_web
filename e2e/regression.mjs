@@ -2769,6 +2769,33 @@ await test(
 )
 await test(
   {
+    id: 'VM-01',
+    module: 'Vehicle master',
+    type: 'View',
+    title: 'Bus list shows road-worthiness and documents with valid-till dates',
+    steps:
+      'Fleet, Buses and routes, Buses tab, open Documents of a bus, Add document, upload without a date.',
+    expected:
+      'Not road-worthy card and filter; documents list; renewal asks for the valid-till date',
+  },
+  async () => {
+    await page.goto(`${BASE}/transport?tab=buses`)
+    await page.getByText('Not road-worthy').first().waitFor({ timeout: 15000 })
+    await page
+      .getByRole('button', { name: /^Documents of / })
+      .first()
+      .click()
+    await dialog().getByRole('button', { name: 'Add document' }).click({ timeout: 10000 })
+    await dialog().getByRole('button', { name: 'Upload' }).click()
+    await see('Give the date this document is valid till')
+    await page.screenshot({ path: path.join(SHOTS, 'VM-01.png') })
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Escape')
+    return 'Road-worthiness shown; renewal needs the valid-till date'
+  }
+)
+await test(
+  {
     id: 'EMB-01',
     module: 'Emergency broadcast',
     type: 'View',

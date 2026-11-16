@@ -7,7 +7,12 @@ import type {
   ExpiryKind,
   ExpiryState,
   ExpiryStateCode,
+  BusDocumentType,
+  BusFlag,
+  FuelType,
+  Ownership,
   TransportMode,
+  VehicleType,
 } from './api'
 
 export const MODE_LABELS: Record<TransportMode, string> = {
@@ -31,6 +36,11 @@ export const SHORT_KIND: Record<ExpiryKind, string> = {
   fitness: 'Fitness',
   puc: 'PUC',
   permit: 'Permit',
+  rc: 'RC',
+  road_tax: 'Road tax',
+  speed_governor: 'Speed governor',
+  fire_extinguisher: 'Extinguisher',
+  first_aid: 'First aid',
   licence: 'Licence',
   badge: 'Badge',
   medical: 'Medical',
@@ -38,6 +48,49 @@ export const SHORT_KIND: Record<ExpiryKind, string> = {
 }
 
 export const CREW_KINDS: ExpiryKind[] = ['licence', 'badge', 'medical', 'police']
+
+export const BUS_DOCUMENT_TYPES: Record<BusDocumentType, string> = {
+  insurance: 'Insurance',
+  fitness: 'Fitness certificate',
+  permit: 'Permit',
+  puc: 'PUC certificate',
+  rc: 'Registration certificate (RC)',
+  road_tax: 'Road tax',
+  speed_governor: 'Speed governor certificate',
+  fire_extinguisher: 'Fire extinguisher refill',
+  first_aid: 'First aid kit',
+  other: 'Other document',
+}
+
+export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
+  bus: 'Bus',
+  mini_bus: 'Mini bus',
+  van: 'Van',
+  car: 'Car',
+}
+
+export const FUEL_LABELS: Record<FuelType, string> = {
+  diesel: 'Diesel',
+  petrol: 'Petrol',
+  cng: 'CNG',
+  electric: 'Electric',
+}
+
+export const OWNERSHIP_LABELS: Record<Ownership, string> = {
+  school: 'School owned',
+  contractor: 'Hired from a contractor',
+}
+
+export const FLAG_LABELS: Record<BusFlag, string> = {
+  not_road_worthy: 'Not road-worthy',
+  expired: 'Any document expired',
+  due_soon: 'Documents due in 30 days',
+  nearly_full: 'Nearly full (90%+)',
+  contractor: 'Contractor buses',
+}
+
+export const toOptions = <T extends string>(labels: Record<T, string>) =>
+  (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }))
 
 export const DUTY_HINT: Record<DutyStatus, string> = {
   approved: 'Approved for duty',

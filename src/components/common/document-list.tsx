@@ -31,6 +31,9 @@ export interface VerifiableDoc {
   id: number
   type: string
   title: string
+  number?: string | null
+  expiry_date?: string | null
+  current?: boolean
   status: VerificationStatus
   remarks: string | null
   visible_to_parent?: boolean
@@ -45,6 +48,13 @@ export interface NewDocument {
   title: string
   file_id: number
   visible_to_parent?: boolean
+  number?: string | null
+  expiry_date?: string | null
+}
+
+export interface ExpiryFields {
+  numberLabel: string
+  noExpiryTypes: string[]
 }
 
 const STATUS: Record<VerificationStatus, { label: string; tone: BadgeTone }> = {
@@ -59,6 +69,7 @@ interface DocumentListProps {
   canManage: boolean
   purpose: string
   parentVisibility?: boolean
+  expiry?: ExpiryFields
   onAdd: (input: NewDocument) => Promise<unknown>
   onVerify: (
     id: number,
@@ -74,6 +85,7 @@ export function DocumentList({
   canManage,
   purpose,
   parentVisibility,
+  expiry,
   onAdd,
   onVerify,
   onDelete,
@@ -154,6 +166,7 @@ export function DocumentList({
                       <Badge tone={STATUS[document.status].tone} dot>
                         {STATUS[document.status].label}
                       </Badge>
+                      {document.current === false && <Badge tone='neutral'>Older copy</Badge>}
                       {parentVisibility && document.visible_to_parent === false && (
                         <Badge tone='neutral'>
                           <EyeOff className='size-3' />
@@ -163,6 +176,10 @@ export function DocumentList({
                     </span>
                     <span className='truncate text-xs text-muted-foreground'>
                       {types[document.type] ?? document.type}
+                      {document.number ? ` · ${document.number}` : ''}
+                      {document.expiry_date
+                        ? ` · Valid till ${formatDate(document.expiry_date)}`
+                        : ''}
                       {document.file ? ` · ${formatBytes(document.file.size_bytes)}` : ''} · Added{' '}
                       {formatDate(document.created_at.slice(0, 10))}
                       {document.verified_by && document.status !== 'pending'
@@ -217,6 +234,7 @@ export function DocumentList({
           types={types}
           purpose={purpose}
           parentVisibility={parentVisibility}
+          expiry={expiry}
           onClose={() => setAdding(false)}
           onAdd={onAdd}
         />
@@ -254,6 +272,7 @@ export function AddDocumentModal({
   types,
   purpose,
   parentVisibility,
+  expiry,
   initialType,
   onClose,
   onAdd,
@@ -261,6 +280,7 @@ export function AddDocumentModal({
   types: Record<string, string>
   purpose: string
   parentVisibility?: boolean
+  expiry?: ExpiryFields
   initialType?: string
   onClose: () => void
   onAdd: (input: NewDocument) => Promise<unknown>
@@ -270,8 +290,12 @@ export function AddDocumentModal({
   const [title, setTitle] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [visible, setVisible] = useState(true)
+  const [number, setNumber] = useState('')
+  const [validTill, setValidTill] = useState('')
+  const [dateError, setDateError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const needsDate = Boolean(expiry && !expiry.noExpiryTypes.includes(type))
 
   return (
     <AppModal
@@ -289,10 +313,10 @@ export function AddDocumentModal({
         className='grid gap-4'
         onSubmit={async (event) => {
           event.preventDefault()
-          if (!file) {
-            setError('Choose a file to upload')
-            return
-          }
+          const missingDate = needsDate && !validTill
+          setDateError(missingDate ? 'Give the date this document is valid till' : null)
+          if (!file) setError('Choose a file to upload')
+          if (!file || missingDate) return
           setSaving(true)
           setError(null)
           try {
@@ -302,6 +326,9 @@ export function AddDocumentModal({
               title: title.trim() || types[type],
               file_id: uploaded.id,
               ...(parentVisibility ? { visible_to_parent: visible } : {}),
+              ...(expiry
+                ? { number: number.trim() || null, expiry_date: needsDate ? validTill : null }
+                : {}),
             })
             alerts.success('Document added')
             onClose()
@@ -332,6 +359,37 @@ export function AddDocumentModal({
             onChange={(event) => setTitle(event.target.value)}
           />
         </FormField>
+        {expiry && (
+          <div className='grid gap-4 sm:grid-cols-2'>
+            <FormField id='document-number' label={expiry.numberLabel}>
+              <Input
+                id='document-number'
+                value={number}
+                maxLength={40}
+                onChange={(event) => setNumber(event.target.value)}
+              />
+            </FormField>
+            {needsDate && (
+              <FormField
+                id='document-valid-till'
+                label='Valid till'
+                required
+                error={dateError ?? undefined}
+              >
+                <Input
+                  id='document-valid-till'
+                  type='date'
+                  value={validTill}
+                  aria-invalid={Boolean(dateError) || undefined}
+                  onChange={(event) => {
+                    setValidTill(event.target.value)
+                    setDateError(null)
+                  }}
+                />
+              </FormField>
+            )}
+          </div>
+        )}
         <FormField id='document-file' label='File' required error={error ?? undefined}>
           <button
             type='button'

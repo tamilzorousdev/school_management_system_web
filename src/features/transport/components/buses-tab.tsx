@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import { Bus as BusIcon, CircleOff, Pencil, Plus, Radio, Trash2 } from 'lucide-react'
+import {
+  Bus as BusIcon,
+  CircleOff,
+  FileText,
+  Pencil,
+  Plus,
+  Radio,
+  ShieldAlert,
+  Trash2,
+} from 'lucide-react'
+import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -8,19 +18,51 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { run } from '@/features/setup/form-actions'
 import { cn } from '@/lib/utils'
-import { transportApi, useBuses, useTransportMutation, type Bus } from '../api'
+import { formatDateTime } from '@/lib/format'
+import { transportApi, useBuses, useTransportMutation, type Bus, type BusFlag } from '../api'
+import { FLAG_LABELS, toOptions, VEHICLE_TYPE_LABELS } from '../labels'
+import { AllowTodayModal } from './allow-today-modal'
+import { BusDocumentsModal } from './bus-documents-modal'
 import { BusFormModal } from './bus-form-modal'
 import { ExpiryBadges } from './expiry-badges'
 
 const LIMIT = 20
 
 function Seats({ bus }: { bus: Bus }) {
-  const full = bus.students >= bus.capacity
   return (
-    <span className={cn('tabular font-semibold', full && 'text-destructive')}>
-      {bus.students}/{bus.capacity}
-      <span className='font-normal text-muted-foreground'> seats used</span>
+    <span className='grid'>
+      <span
+        className={cn(
+          'tabular font-semibold',
+          bus.over_capacity && 'text-destructive',
+          bus.nearly_full && 'text-warning'
+        )}
+      >
+        {bus.students}/{bus.capacity}
+        <span className='font-normal text-muted-foreground'> seats used</span>
+      </span>
+      {(bus.nearly_full || bus.over_capacity) && (
+        <span className='text-xs text-muted-foreground'>
+          {bus.over_capacity ? 'More students than seats' : `${bus.occupancy_percent}% full`}
+        </span>
+      )}
     </span>
+  )
+}
+
+export function RoadStatus({ bus }: { bus: Bus }) {
+  if (bus.road_worthy) return null
+  return bus.allowed_today ? (
+    <Badge
+      tone='warning'
+      title={`${bus.allowed_today.reason} · ${bus.allowed_today.by?.name ?? ''} · ${formatDateTime(bus.allowed_today.at)}`}
+    >
+      Allowed today
+    </Badge>
+  ) : (
+    <Badge tone='danger' title={`${bus.road_blockers.join(', ')} expired`}>
+      Not road-worthy
+    </Badge>
   )
 }
 
@@ -48,25 +90,56 @@ const person = (value: Bus['driver']) =>
 export function BusesTab({
   search,
   page,
+  flag,
   canManage,
   onSearch,
+  onFlag,
   onPage,
 }: {
   search?: string
   page: number
+  flag?: BusFlag
   canManage: boolean
   onSearch: (search: string | undefined) => void
+  onFlag: (flag: BusFlag | undefined) => void
   onPage: (page: number) => void
 }) {
-  const buses = useBuses({ page, limit: LIMIT, search })
+  const buses = useBuses({ page, limit: LIMIT, search, flag })
   const [editing, setEditing] = useState<Bus | 'new' | null>(null)
   const [removing, setRemoving] = useState<Bus | null>(null)
+  const [documents, setDocuments] = useState<Bus | null>(null)
+  const [allowing, setAllowing] = useState<Bus | null>(null)
   const remove = useTransportMutation((id: number) => transportApi.removeBus(id))
+  const allow = useTransportMutation((input: { id: number; reason: string }) =>
+    transportApi.allowBusToday(input.id, input.reason)
+  )
+  const filtered = Boolean(search || flag)
   const rows = buses.data?.items ?? []
 
-  const actions = (bus: Bus) =>
-    canManage && (
-      <span className='flex justify-end'>
+  const actions = (bus: Bus) => (
+    <span className='flex justify-end'>
+      {canManage && !bus.road_worthy && !bus.allowed_today && (
+        <Button
+          size='icon-sm'
+          variant='ghost'
+          aria-label={`Allow ${bus.registration_no} today`}
+          title='Allow for today'
+          className='text-warning hover:bg-warning/10'
+          onClick={() => setAllowing(bus)}
+        >
+          <ShieldAlert />
+        </Button>
+      )}
+      <Button
+        size='icon-sm'
+        variant='ghost'
+        aria-label={`Documents of ${bus.registration_no}`}
+        title='Documents'
+        onClick={() => setDocuments(bus)}
+      >
+        <FileText />
+      </Button>
+      {canManage && (
         <Button
           size='icon-sm'
           variant='ghost'
@@ -75,6 +148,8 @@ export function BusesTab({
         >
           <Pencil />
         </Button>
+      )}
+      {canManage && (
         <Button
           size='icon-sm'
           variant='ghost'
@@ -84,8 +159,9 @@ export function BusesTab({
         >
           <Trash2 />
         </Button>
-      </span>
-    )
+      )}
+    </span>
+  )
 
   const columns: Column<Bus>[] = [
     {
@@ -93,13 +169,15 @@ export function BusesTab({
       header: 'Bus',
       cell: (bus) => (
         <span className='grid'>
-          <span className='flex items-center gap-1.5 font-mono font-bold'>
+          <span className='flex flex-wrap items-center gap-1.5 font-mono font-bold'>
             {bus.registration_no}
             {bus.status === 'inactive' && <Badge>Off the road</Badge>}
+            <RoadStatus bus={bus} />
           </span>
           <span className='text-xs text-muted-foreground'>
-            {bus.name}
+            {bus.name} · {VEHICLE_TYPE_LABELS[bus.vehicle_type]}
             {bus.make_model ? ` · ${bus.make_model}` : ''}
+            {bus.ownership === 'contractor' ? ` · ${bus.contractor_name ?? 'Contractor'}` : ''}
           </span>
         </span>
       ),
@@ -116,7 +194,7 @@ export function BusesTab({
     {
       key: 'documents',
       header: 'Documents',
-      cell: (bus) => <ExpiryBadges items={bus.expiries} />,
+      cell: (bus) => <ExpiryBadges items={bus.expiries} attentionOnly />,
       className: 'max-w-72',
     },
     { key: 'actions', header: '', align: 'right', cell: actions },
@@ -130,6 +208,15 @@ export function BusesTab({
           onChange={(value) => onSearch(value || undefined)}
           placeholder='Registration, name or model'
           label='Search buses'
+        />
+        <Combobox
+          id='bus-flag'
+          label='Show buses'
+          value={flag}
+          options={toOptions(FLAG_LABELS)}
+          allLabel='All buses'
+          placeholder='All buses'
+          onChange={(value) => onFlag(value as BusFlag | undefined)}
         />
         {canManage && (
           <Button onClick={() => setEditing('new')}>
@@ -146,12 +233,12 @@ export function BusesTab({
         error={buses.isError ? buses.error.message : null}
         onRetry={() => buses.refetch()}
         empty={{
-          icon: search ? CircleOff : BusIcon,
-          title: search ? 'No buses match this search' : 'No buses yet',
-          description: search
-            ? 'Try another registration or name.'
+          icon: filtered ? CircleOff : BusIcon,
+          title: filtered ? 'No buses match' : 'No buses yet',
+          description: filtered
+            ? 'Try another registration, name or filter.'
             : 'Add the school buses with their seats, tracker, driver and documents.',
-          action: !search && canManage && (
+          action: !filtered && canManage && (
             <Button onClick={() => setEditing('new')}>
               <Plus />
               Add bus
@@ -162,9 +249,12 @@ export function BusesTab({
           <div className='grid gap-2'>
             <div className='flex items-start justify-between gap-2'>
               <span className='grid min-w-0'>
-                <span className='font-mono font-bold'>{bus.registration_no}</span>
+                <span className='flex flex-wrap items-center gap-1.5 font-mono font-bold'>
+                  {bus.registration_no}
+                  <RoadStatus bus={bus} />
+                </span>
                 <span className='truncate text-xs text-muted-foreground'>
-                  {bus.name}
+                  {bus.name} · {VEHICLE_TYPE_LABELS[bus.vehicle_type]}
                   {bus.make_model ? ` · ${bus.make_model}` : ''}
                 </span>
               </span>
@@ -184,7 +274,7 @@ export function BusesTab({
                 {bus.attendant?.name ?? 'Not assigned'}
               </span>
             </span>
-            <ExpiryBadges items={bus.expiries} />
+            <ExpiryBadges items={bus.expiries} attentionOnly />
           </div>
         )}
         pagination={{
@@ -195,6 +285,21 @@ export function BusesTab({
           onPageChange: onPage,
         }}
       />
+      {documents && (
+        <BusDocumentsModal
+          bus={documents}
+          canManage={canManage}
+          onClose={() => setDocuments(null)}
+        />
+      )}
+      {allowing && (
+        <AllowTodayModal
+          title={`Let ${allowing.registration_no} run today?`}
+          description={`${allowing.road_blockers.join(', ')} expired. Trips can start until midnight; renew the document to clear it for good.`}
+          onAllow={(reason) => allow.mutateAsync({ id: allowing.id, reason })}
+          onClose={() => setAllowing(null)}
+        />
+      )}
       {editing && (
         <BusFormModal
           bus={editing === 'new' ? undefined : editing}

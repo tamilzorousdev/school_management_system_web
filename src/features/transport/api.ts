@@ -1,9 +1,24 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ComboboxOption } from '@/components/common/combobox'
+import type { VerifiableDoc } from '@/components/common/document-list'
 import { api, type Paginated } from '@/lib/api/client'
 
-export type ExpiryKind =
-  'insurance' | 'fitness' | 'puc' | 'permit' | 'licence' | 'badge' | 'medical' | 'police'
+export type BusExpiryKind =
+  | 'insurance'
+  | 'fitness'
+  | 'permit'
+  | 'puc'
+  | 'rc'
+  | 'road_tax'
+  | 'speed_governor'
+  | 'fire_extinguisher'
+  | 'first_aid'
+export type ExpiryKind = BusExpiryKind | 'licence' | 'badge' | 'medical' | 'police'
+export type BusDocumentType = BusExpiryKind | 'other'
+export type VehicleType = 'bus' | 'mini_bus' | 'van' | 'car'
+export type FuelType = 'diesel' | 'petrol' | 'cng' | 'electric'
+export type Ownership = 'school' | 'contractor'
+export type BusFlag = 'not_road_worthy' | 'expired' | 'due_soon' | 'nearly_full' | 'contractor'
 export type DutyStatus = 'pending' | 'approved' | 'blocked'
 export type ExpiryStateCode = 'ok' | 'due_soon' | 'expired' | 'missing'
 export type VehicleStatus = 'active' | 'inactive'
@@ -29,38 +44,85 @@ export interface ExpiryState {
   state: ExpiryStateCode
 }
 
-export interface Bus {
+export interface AllowedToday {
+  on_date: string
+  reason: string
+  by: Ref | null
+  at: string
+}
+
+export type BusDates = Record<`${BusExpiryKind}_expiry`, string | null>
+
+export interface Bus extends BusDates {
   id: number
   registration_no: string
   name: string
   make_model: string | null
   capacity: number
+  vehicle_type: VehicleType
+  fuel_type: FuelType | null
+  manufacture_year: number | null
+  chassis_no: string | null
+  engine_no: string | null
+  ownership: Ownership
+  contractor_name: string | null
+  contractor_mobile: string | null
+  road_worthy: boolean
+  road_blockers: string[]
+  allowed_today: AllowedToday | null
+  occupancy_percent: number
+  nearly_full: boolean
+  over_capacity: boolean
   device: { id: number; imei: string | null } | null
   driver: PersonContact | null
   attendant: PersonContact | null
-  insurance_expiry: string | null
-  fitness_expiry: string | null
-  puc_expiry: string | null
-  permit_expiry: string | null
   expiries: ExpiryState[]
   routes: Ref[]
   students: number
   status: VehicleStatus
 }
 
-export interface BusInput {
+export interface BusInput extends Partial<BusDates> {
   registration_no: string
   name: string
   make_model?: string | null
   capacity?: number
+  vehicle_type?: VehicleType
+  fuel_type?: FuelType | null
+  manufacture_year?: number | null
+  chassis_no?: string | null
+  engine_no?: string | null
+  ownership?: Ownership
+  contractor_name?: string | null
+  contractor_mobile?: string | null
   device_id?: number | null
   driver_user_id?: number | null
   attendant_user_id?: number | null
-  insurance_expiry?: string | null
-  fitness_expiry?: string | null
-  puc_expiry?: string | null
-  permit_expiry?: string | null
   status?: VehicleStatus
+}
+
+export interface BusInsights {
+  total: number
+  not_road_worthy: number
+  expired: number
+  due_soon: number
+  nearly_full: number
+  contractor: number
+}
+
+export interface BusDocument extends VerifiableDoc {
+  type: BusDocumentType
+  number: string | null
+  expiry_date: string | null
+  current: boolean
+}
+
+export interface BusDocumentInput {
+  type: string
+  title: string
+  file_id: number
+  number?: string | null
+  expiry_date?: string | null
 }
 
 export interface Tracker {
@@ -185,6 +247,7 @@ export interface BusListParams {
   page: number
   limit: number
   search?: string
+  flag?: BusFlag
 }
 
 export interface RiderListParams {
@@ -198,6 +261,8 @@ export interface RiderListParams {
 export const transportKeys = {
   all: ['transport'] as const,
   buses: (params: BusListParams) => [...transportKeys.all, 'buses', params] as const,
+  busInsights: () => [...transportKeys.all, 'bus-insights'] as const,
+  busDocuments: (id: number) => [...transportKeys.all, 'bus-documents', id] as const,
   trackers: () => [...transportKeys.all, 'trackers'] as const,
   crew: () => [...transportKeys.all, 'crew'] as const,
   expiries: (days: number) => [...transportKeys.all, 'expiries', days] as const,
@@ -214,6 +279,24 @@ export const transportApi = {
   updateBus: (id: number, input: Partial<BusInput>) =>
     api.patch<Bus>(`${base}/vehicles/${id}`, input),
   removeBus: (id: number) => api.delete<null>(`${base}/vehicles/${id}`),
+  busInsights: () => api.get<BusInsights>(`${base}/vehicles/insights`),
+  busDocuments: (id: number) => api.get<BusDocument[]>(`${base}/vehicles/${id}/documents`),
+  addBusDocument: (id: number, input: BusDocumentInput) =>
+    api.post<BusDocument>(`${base}/vehicles/${id}/documents`, input),
+  verifyBusDocument: (
+    id: number,
+    documentId: number,
+    status: 'verified' | 'rejected',
+    remarks: string | null
+  ) =>
+    api.post<BusDocument>(`${base}/vehicles/${id}/documents/${documentId}/verify`, {
+      status,
+      ...(remarks ? { remarks } : {}),
+    }),
+  removeBusDocument: (id: number, documentId: number) =>
+    api.delete<{ id: number }>(`${base}/vehicles/${id}/documents/${documentId}`),
+  allowBusToday: (id: number, reason: string) =>
+    api.post<AllowedToday>(`${base}/vehicles/${id}/allow-today`, { reason }),
   trackers: () => api.get<Tracker[]>(`${base}/devices`),
   crew: () => api.get<Crew[]>(`${base}/drivers`),
   expiries: (days: number) => api.get<Expiry[]>(`${base}/expiries`, { days }),
@@ -243,6 +326,17 @@ export function useBuses(params: BusListParams) {
     queryKey: transportKeys.buses(params),
     queryFn: () => transportApi.buses(params),
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useBusInsights() {
+  return useQuery({ queryKey: transportKeys.busInsights(), queryFn: transportApi.busInsights })
+}
+
+export function useBusDocuments(id: number) {
+  return useQuery({
+    queryKey: transportKeys.busDocuments(id),
+    queryFn: () => transportApi.busDocuments(id),
   })
 }
 

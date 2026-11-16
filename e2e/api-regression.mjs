@@ -6085,6 +6085,251 @@ await TA(
   }
 )
 
+const fleetBuses =
+  (await admin('GET', '/admin/transport/vehicles?limit=100')).body.data?.items ?? []
+await TA(
+  'API-VM-01',
+  'Vehicle master',
+  'GET',
+  '/admin/transport/vehicles/insights',
+  'Bus insight cards',
+  '200; total, not road-worthy, expired, due soon, nearly full, contractor',
+  async () => {
+    const result = await admin('GET', '/admin/transport/vehicles/insights')
+    expectStatus(result, 200)
+    const keys = ['total', 'not_road_worthy', 'expired', 'due_soon', 'nearly_full', 'contractor']
+    if (keys.some((key) => typeof result.body.data[key] !== 'number'))
+      throw new Error(JSON.stringify(result.body.data))
+    return `200; ${JSON.stringify(result.body.data)}`
+  }
+)
+await TA(
+  'API-VM-02',
+  'Vehicle master',
+  'GET',
+  '/admin/transport/vehicles?flag=not_road_worthy',
+  'Only buses with expired insurance, fitness or permit',
+  '200; every row has road_worthy false and its blockers',
+  async () => {
+    const result = await admin('GET', '/admin/transport/vehicles?flag=not_road_worthy')
+    expectStatus(result, 200)
+    if (result.body.data.items.some((bus) => bus.road_worthy || !bus.road_blockers.length))
+      throw new Error('A road-worthy bus came back')
+    const bad = await admin('GET', '/admin/transport/vehicles?flag=everything')
+    expectStatus(bad, 400)
+    return `200; ${result.body.data.total} not road-worthy; unknown flag 400`
+  }
+)
+await TA(
+  'API-VM-03',
+  'Vehicle master',
+  'PATCH',
+  '/admin/transport/vehicles/:id',
+  'Seats lowered below the students on its routes',
+  '400 CAPACITY_BELOW_ASSIGNED',
+  async () => {
+    const bus = fleetBuses.find((item) => item.students > 1)
+    if (!bus) return 'Skipped: no bus with students'
+    const result = await admin('PATCH', `/admin/transport/vehicles/${bus.id}`, {
+      capacity: bus.students - 1,
+    })
+    expectStatus(result, 400)
+    if (result.body.error !== 'CAPACITY_BELOW_ASSIGNED') throw new Error(result.body.error)
+    return `400 CAPACITY_BELOW_ASSIGNED (${bus.students} students)`
+  }
+)
+await TA(
+  'API-VM-04',
+  'Vehicle master',
+  'PATCH',
+  '/admin/transport/vehicles/:id',
+  'Contractor bus with a wrong mobile and a bad year',
+  '400 VALIDATION_FAILED on contractor_mobile, manufacture_year',
+  async () => {
+    if (!fleetBuses.length) return 'Skipped: no bus'
+    return expectFields(
+      await admin('PATCH', `/admin/transport/vehicles/${fleetBuses[0].id}`, {
+        ownership: 'contractor',
+        contractor_mobile: '12345',
+        manufacture_year: 1950,
+      }),
+      ['contractor_mobile', 'manufacture_year']
+    )
+  }
+)
+await TA(
+  'API-VM-05',
+  'Vehicle master',
+  'GET',
+  '/admin/transport/vehicles/:id/documents',
+  'Bus documents with the newest copy of each type marked current',
+  '200; one current copy per type',
+  async () => {
+    if (!fleetBuses.length) return 'Skipped: no bus'
+    const result = await admin('GET', `/admin/transport/vehicles/${fleetBuses[0].id}/documents`)
+    expectStatus(result, 200)
+    const current = result.body.data.filter((document) => document.current)
+    if (new Set(current.map((document) => document.type)).size !== current.length)
+      throw new Error('Two current copies of one type')
+    return `200; ${result.body.data.length} documents, ${current.length} current`
+  }
+)
+await TA(
+  'API-VM-06',
+  'Vehicle master',
+  'POST',
+  '/admin/transport/vehicles/:id/documents',
+  'Renewal without the valid-till date',
+  '400 VALIDATION_FAILED on expiry_date',
+  async () => {
+    if (!fleetBuses.length || !signatureFileId) return 'Skipped: no bus or file'
+    return expectFields(
+      await admin('POST', `/admin/transport/vehicles/${fleetBuses[0].id}/documents`, {
+        type: 'insurance',
+        file_id: signatureFileId,
+      }),
+      ['expiry_date']
+    )
+  }
+)
+await TA(
+  'API-VM-07',
+  'Vehicle master',
+  'POST',
+  '/admin/transport/vehicles/:id/allow-today',
+  'Allow a bus for today without a proper reason',
+  '400 VALIDATION_FAILED on reason',
+  async () => {
+    if (!fleetBuses.length) return 'Skipped: no bus'
+    return expectFields(
+      await admin('POST', `/admin/transport/vehicles/${fleetBuses[0].id}/allow-today`, {
+        reason: 'ok',
+      }),
+      ['reason']
+    )
+  }
+)
+await TA(
+  'API-VM-08',
+  'Vehicle master',
+  'POST',
+  '/admin/crew/:id/allow-today',
+  'Allow an unknown crew member for today',
+  '404 CREW_NOT_FOUND',
+  async () => {
+    const result = await admin('POST', '/admin/crew/999999/allow-today', {
+      reason: 'Renewal on the way',
+    })
+    expectStatus(result, 404)
+    if (result.body.error !== 'CREW_NOT_FOUND') throw new Error(result.body.error)
+    return '404 CREW_NOT_FOUND'
+  }
+)
+
+const parentMe = (await parent('GET', '/me')).body?.data
+const memberGroup = async () =>
+  (
+    await teacher('POST', '/mobile/teacher/chat/groups', {
+      name: `Membership check ${Date.now()}`,
+      member_user_ids: [parentMe.id],
+    })
+  ).body.data?.id
+await TA(
+  'API-CHG-08',
+  'Group chat members',
+  'DELETE',
+  '/mobile/teacher/chat/groups/{id}/members/{userId}',
+  'The group admin removes a parent',
+  '200; the parent sees "… removed you from this group" and cannot send (403 NOT_GROUP_MEMBER)',
+  async () => {
+    const id = await memberGroup()
+    if (!id) throw new Error('Group not created')
+    try {
+      const removed = await teacher(
+        'DELETE',
+        `/mobile/teacher/chat/groups/${id}/members/${parentMe.id}`
+      )
+      expectStatus(removed, 200)
+      const seen = (await parent('GET', `/mobile/parent/chat/threads/${id}/messages?limit=1`)).body
+        .data.items[0]
+      if (seen?.kind !== 'system' || !/removed you from this group/.test(seen.body))
+        throw new Error(`Parent sees ${seen?.body}`)
+      const send = await parent('POST', `/mobile/parent/chat/threads/${id}/messages`, {
+        body: 'Hello',
+      })
+      expectStatus(send, 403)
+      if (send.body.error !== 'NOT_GROUP_MEMBER') throw new Error(send.body.error)
+      return `200; "${seen.body}"`
+    } finally {
+      await teacher('DELETE', `/mobile/teacher/chat/groups/${id}`)
+    }
+  }
+)
+await TA(
+  'API-CHG-09',
+  'Group chat members',
+  'POST',
+  '/mobile/parent/chat/groups/{id}/leave',
+  'A parent leaves a group',
+  '200; others see "… left the group"; leaving again gives 403 NOT_GROUP_MEMBER',
+  async () => {
+    const id = await memberGroup()
+    if (!id) throw new Error('Group not created')
+    try {
+      const left = await parent('POST', `/mobile/parent/chat/groups/${id}/leave`)
+      expectStatus(left, 200)
+      if (left.body.data.is_member !== false) throw new Error('Still a member')
+      const seen = (await teacher('GET', `/mobile/teacher/chat/threads/${id}/messages?limit=1`))
+        .body.data.items[0]
+      if (!/left the group$/.test(seen?.body ?? '')) throw new Error(`Teacher sees ${seen?.body}`)
+      const again = await parent('POST', `/mobile/parent/chat/groups/${id}/leave`)
+      expectStatus(again, 403)
+      return `200; "${seen.body}"`
+    } finally {
+      await teacher('DELETE', `/mobile/teacher/chat/groups/${id}`)
+    }
+  }
+)
+await TA(
+  'API-CHG-10',
+  'Group chat members',
+  'DELETE',
+  '/mobile/parent/chat/groups/{id}/members/{userId}',
+  'A member who is not the group admin tries to remove someone',
+  '403 NOT_GROUP_ADMIN',
+  async () => {
+    const id = await memberGroup()
+    if (!id) throw new Error('Group not created')
+    try {
+      const result = await parent(
+        'DELETE',
+        `/mobile/parent/chat/groups/${id}/members/${teacherMe.id}`
+      )
+      expectStatus(result, 403)
+      if (result.body.error !== 'NOT_GROUP_ADMIN') throw new Error(result.body.error)
+      return '403 NOT_GROUP_ADMIN'
+    } finally {
+      await teacher('DELETE', `/mobile/teacher/chat/groups/${id}`)
+    }
+  }
+)
+await TA(
+  'API-CHDIR-02',
+  'Chat groups',
+  'GET',
+  '/mobile/parent/chat/directory',
+  'Directory shows each parent’s children with class and each teacher’s classes',
+  '200; children, classes and a detail line',
+  async () => {
+    const result = await parent('GET', '/mobile/parent/chat/directory?search=9000000006')
+    expectStatus(result, 200)
+    const row = result.body.data[0]
+    if (!Array.isArray(row?.children) || !Array.isArray(row?.classes) || !row.detail)
+      throw new Error(JSON.stringify(row))
+    return `200; "${row.detail}"`
+  }
+)
+
 await TA(
   'API-CHDIR-01',
   'Chat groups',

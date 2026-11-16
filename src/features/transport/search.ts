@@ -7,6 +7,10 @@ export const transportSearchSchema = z.object({
   tab: z.enum(TRANSPORT_TABS).catch('buses'),
   search: z.string().optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
+  flag: z
+    .enum(['not_road_worthy', 'expired', 'due_soon', 'nearly_full', 'contractor'])
+    .optional()
+    .catch(undefined),
   route_id: z.coerce.number().int().min(1).optional().catch(undefined),
   stop_id: z.coerce.number().int().min(1).optional().catch(undefined),
 })

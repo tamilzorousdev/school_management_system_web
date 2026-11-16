@@ -12,6 +12,7 @@ import {
   Pencil,
   Phone,
   SearchX,
+  ShieldAlert,
   ShieldCheck,
   Smartphone,
   Trash2,
@@ -37,12 +38,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
 import type { StaffStatus } from '@/features/staff/api'
 import { STAFF_STATUS } from '@/features/staff/labels'
+import { AllowTodayModal } from '@/features/transport/components/allow-today-modal'
 import { ExpiryBadges } from '@/features/transport/components/expiry-badges'
 import { ROLE_BADGE } from '@/features/transport/labels'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
-import { formatDate, timeAgo } from '@/lib/format'
+import { formatDate, formatDateTime, timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { crewApi, useCrewMember, useCrewMutation, type CrewDetail } from '../api'
 import { CrewFormModal } from '../components/crew-form-modal'
@@ -85,6 +87,8 @@ export function CrewProfilePage() {
   const [editing, setEditing] = useState(false)
   const [approving, setApproving] = useState(false)
   const [reminding, setReminding] = useState(false)
+  const [allowing, setAllowing] = useState(false)
+  const allow = useCrewMutation((reason: string) => crewApi.allowToday(id, reason))
 
   useShortcut('app.refresh', () => void member.refetch())
 
@@ -142,7 +146,22 @@ export function CrewProfilePage() {
         onEdit={() => setEditing(true)}
         onApprove={() => setApproving(true)}
         onRemind={() => setReminding(true)}
+        onAllow={() => setAllowing(true)}
       />
+
+      {data.allowed_today && (
+        <div className='flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm'>
+          <ShieldAlert className='mt-0.5 size-4 shrink-0 text-warning' />
+          <span className='grid gap-0.5'>
+            <span className='font-semibold'>Allowed on duty today only</span>
+            <span className='text-muted-foreground'>
+              {data.allowed_today.reason}
+              {data.allowed_today.by ? ` · ${data.allowed_today.by.name}` : ''} ·{' '}
+              {formatDateTime(data.allowed_today.at)}
+            </span>
+          </span>
+        </div>
+      )}
 
       <PageTabs
         label='Crew profile sections'
@@ -180,6 +199,14 @@ export function CrewProfilePage() {
 
       {editing && <CrewFormModal open={editing} onOpenChange={setEditing} member={data} />}
       <ApproveDialog member={data} open={approving} onOpenChange={setApproving} />
+      {allowing && (
+        <AllowTodayModal
+          title={`Allow ${data.name} on duty today?`}
+          description='Use this only when the renewal is on its way. Trips can start with them until midnight; renew and verify the document to clear it for good.'
+          onAllow={(reason) => allow.mutateAsync(reason)}
+          onClose={() => setAllowing(false)}
+        />
+      )}
       <RemindDialog
         member={data}
         due={due.map((check) => check.label)}
@@ -197,6 +224,7 @@ function ProfileHeader({
   onEdit,
   onApprove,
   onRemind,
+  onAllow,
 }: {
   member: CrewDetail
   canManage: boolean
@@ -204,6 +232,7 @@ function ProfileHeader({
   onEdit: () => void
   onApprove: () => void
   onRemind: () => void
+  onAllow: () => void
 }) {
   const navigate = useNavigate()
   const [nextStatus, setNextStatus] = useState<StaffStatus | null>(null)
@@ -313,6 +342,12 @@ function ProfileHeader({
               <Button onClick={onApprove} disabled={!member.clear}>
                 <ShieldCheck />
                 Approve for duty
+              </Button>
+            )}
+            {member.duty_status !== 'approved' && !member.allowed_today && (
+              <Button variant='outline' onClick={onAllow}>
+                <ShieldAlert />
+                Allow today
               </Button>
             )}
             {hasDue && (

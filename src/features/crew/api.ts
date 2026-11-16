@@ -1,3 +1,4 @@
+import type { AllowedToday } from '@/features/transport/api'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { NewDocument, VerifiableDoc } from '@/components/common/document-list'
 import type { Language } from '@/features/auth/api'
@@ -74,6 +75,7 @@ export interface CrewDetail extends CrewListItem {
   last_reminded_at: string | null
   last_reminded_by: Ref | null
   documents: VerifiableDoc[]
+  allowed_today: AllowedToday | null
 }
 
 export interface CrewInsights {
@@ -144,6 +146,8 @@ export const crewApi = {
   remove: (id: number) => api.delete<{ id: number }>(`${base}/${id}`),
   approve: (id: number) => api.post<CrewDetail>(`${base}/${id}/approve`),
   remind: (id: number) => api.post<CrewDetail>(`${base}/${id}/remind`),
+  allowToday: (id: number, reason: string) =>
+    api.post<AllowedToday>(`${base}/${id}/allow-today`, { reason }),
   remindMany: (staffIds: number[]) =>
     api.post<{ sent: number; skipped: number }>(`${base}/remind`, { staff_ids: staffIds }),
   addDocument: (id: number, input: NewDocument) =>

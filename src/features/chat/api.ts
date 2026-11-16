@@ -71,7 +71,9 @@ export interface AuditMessage {
   flag_resolved_at: string | null
   hidden_by: Ref | null
   hidden_reason: string | null
-  kind: 'text' | 'image' | 'file' | 'voice' | 'video'
+  kind: 'text' | 'image' | 'file' | 'voice' | 'video' | 'system'
+  event: 'member_added' | 'member_removed' | 'member_left' | 'admin_changed' | null
+  event_user: Ref | null
   duration_seconds: number | null
   edited: boolean
   edited_at: string | null
@@ -136,6 +138,8 @@ export const chatApi = {
     api.post<ChatMember[]>(`/admin/chat/groups/${id}/members`, dto),
   members: (id: number) => api.get<ChatMember[]>(`/admin/chat/groups/${id}/members`),
   deleteGroup: (id: number) => api.delete<null>(`/admin/chat/groups/${id}`),
+  removeMember: (id: number, userId: number) =>
+    api.delete<ChatMember[]>(`/admin/chat/groups/${id}/members/${userId}`),
   directory: (search?: string) => api.get<ChatDirectoryUser[]>('/admin/chat/directory', { search }),
 }
 
@@ -194,6 +198,16 @@ export function useDeleteGroup() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: chatApi.deleteGroup,
+    meta: { silent: true },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
+  })
+}
+
+export function useRemoveGroupMember() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ threadId, userId }: { threadId: number; userId: number }) =>
+      chatApi.removeMember(threadId, userId),
     meta: { silent: true },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all }),
   })

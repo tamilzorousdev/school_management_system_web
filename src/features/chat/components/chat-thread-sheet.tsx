@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Trash2,
   Users,
+  X,
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { ErrorState } from '@/components/common/display'
@@ -32,7 +33,15 @@ import { toApiError } from '@/lib/api/errors'
 import { formatDateTime, formatTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
-import { chatApi, useChatAction, useChatThread, useDeleteGroup, type AuditMessage } from '../api'
+import {
+  chatApi,
+  useChatAction,
+  useChatThread,
+  useDeleteGroup,
+  useRemoveGroupMember,
+  type AuditMessage,
+  type ChatMember,
+} from '../api'
 import { AddGroupMembersModal } from './chat-group-modal'
 
 const AUDIT_ACTION: Record<string, string> = {
@@ -66,6 +75,8 @@ export function ChatThreadSheet({
   const [addingMembers, setAddingMembers] = useState(false)
   const [deletingGroup, setDeletingGroup] = useState(false)
   const removeGroup = useDeleteGroup()
+  const [removingMember, setRemovingMember] = useState<ChatMember | null>(null)
+  const removeMember = useRemoveGroupMember()
   const unhide = useChatAction((id: number) => chatApi.unhide(id))
   const dismiss = useChatAction((id: number) => chatApi.dismiss(id))
 
@@ -156,8 +167,17 @@ export function ChatThreadSheet({
                   <div className='flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-md border bg-muted/20 p-1'>
                     {data.members && data.members.length > 0 ? (
                       data.members.map((m) => (
-                        <Badge key={m.id} tone='neutral' className='text-xs'>
-                          {m.name} {m.is_creator ? '★' : ''} ({m.role})
+                        <Badge key={m.id} tone='neutral' className='gap-1 text-xs'>
+                          {m.name}
+                          {m.is_creator ? ' · group admin' : ''}
+                          <button
+                            type='button'
+                            aria-label={`Remove ${m.name}`}
+                            className='-mr-1 rounded p-0.5 hover:bg-destructive/10 hover:text-destructive'
+                            onClick={() => setRemovingMember(m)}
+                          >
+                            <X className='size-3' />
+                          </button>
                         </Badge>
                       ))
                     ) : (
@@ -171,6 +191,16 @@ export function ChatThreadSheet({
                 <ol className='grid gap-2'>
                   {data.messages.map((message) => {
                     const fromTeacher = message.sender_party === 'teacher'
+                    if (message.kind === 'system') {
+                      return (
+                        <li
+                          key={message.id}
+                          className='justify-self-center rounded-full bg-muted px-3 py-1 text-center text-xs text-muted-foreground'
+                        >
+                          {message.body} · {formatDateTime(message.sent_at)}
+                        </li>
+                      )
+                    }
                     return (
                       <li
                         key={message.id}
@@ -382,6 +412,30 @@ export function ChatThreadSheet({
                 onClose={() => {
                   setAddingMembers(false)
                   void thread.refetch()
+                }}
+              />
+            )}
+            {data?.is_group && (
+              <ConfirmDialog
+                open={Boolean(removingMember)}
+                onOpenChange={(open) => !open && setRemovingMember(null)}
+                title={`Remove ${removingMember?.name ?? ''} from this group?`}
+                description='They keep the messages up to now, can no longer send or receive messages here, and see that the school removed them.'
+                confirmText='Remove'
+                destructive
+                loading={removeMember.isPending}
+                onConfirm={async () => {
+                  if (!removingMember) return
+                  try {
+                    await removeMember.mutateAsync({
+                      threadId: data.id,
+                      userId: removingMember.user_id,
+                    })
+                    alerts.success(`${removingMember.name} removed`)
+                    setRemovingMember(null)
+                  } catch (error) {
+                    alerts.error(toApiError(error).message)
+                  }
                 }}
               />
             )}
