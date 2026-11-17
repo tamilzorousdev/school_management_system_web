@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { useClasses, useSections } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
+import { uniqueId } from '@/lib/utils'
 import {
   emergencyApi,
   useEmergencyMutation,
@@ -89,7 +90,7 @@ export function ComposeModal({
   const [draft, setDraft] = useState<Draft>(() =>
     prefill?.follow_up_of ? fromPrevious(prefill.follow_up_of) : emptyDraft
   )
-  const [clientId] = useState(() => crypto.randomUUID())
+  const [clientId] = useState(() => uniqueId())
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [confirming, setConfirming] = useState(false)
   const templates = useEmergencyTemplates()

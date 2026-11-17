@@ -6330,6 +6330,62 @@ await TA(
   }
 )
 
+const driver = client(await sessionFor('.auth-driver.json', '9000000007', 'mobile'))
+await TA(
+  'API-DRV-01',
+  'Driver profile',
+  'GET',
+  '/mobile/driver/profile',
+  'Driver opens My profile',
+  '200; licence and checks, duty message and my bus details',
+  async () => {
+    const result = await driver('GET', '/mobile/driver/profile')
+    expectStatus(result, 200)
+    const { me, vehicle } = result.body.data
+    if (me.role !== 'driver' || me.checks.length !== 4) throw new Error(JSON.stringify(me.checks))
+    if (vehicle && (!vehicle.registration_no || !Array.isArray(vehicle.expiries)))
+      throw new Error('Vehicle details missing')
+    return `200; ${me.name}, ${me.duty_status}, bus ${vehicle?.registration_no ?? 'none'}`
+  }
+)
+await TA(
+  'API-DRV-02',
+  'Driver profile',
+  'PATCH',
+  '/mobile/driver/profile',
+  'Driver edits address and emergency contact; wrong values and office-only fields are refused',
+  '200 then 400 on emergency_contact_mobile and 400 for licence_no',
+  async () => {
+    const before = (await driver('GET', '/mobile/driver/profile')).body.data.me
+    const saved = await driver('PATCH', '/mobile/driver/profile', {
+      address: `${before.address ?? 'Chennai'} `.trim() + ' ',
+      emergency_contact_mobile: '+91 98400 10185',
+    })
+    expectStatus(saved, 200)
+    if (saved.body.data.me.emergency_contact_mobile !== '9840010185')
+      throw new Error('Mobile not cleaned')
+    await expectFields(
+      await driver('PATCH', '/mobile/driver/profile', { emergency_contact_mobile: '123' }),
+      ['emergency_contact_mobile']
+    )
+    expectStatus(await driver('PATCH', '/mobile/driver/profile', { licence_no: 'TN01' }), 400)
+    await driver('PATCH', '/mobile/driver/profile', {
+      address: before.address,
+      emergency_contact_mobile: before.emergency_contact_mobile,
+    })
+    return '200; bad mobile and licence edits refused; put back'
+  }
+)
+await TA(
+  'API-DRV-03',
+  'Driver profile',
+  'GET',
+  '/mobile/driver/profile',
+  'Parent token',
+  '403',
+  async () => expectStatus(await parent('GET', '/mobile/driver/profile'), 403)
+)
+
 await TA(
   'API-CHDIR-01',
   'Chat groups',
