@@ -131,6 +131,10 @@ export function TransportPage() {
             flag: undefined,
             route_id: undefined,
             stop_id: undefined,
+            class_id: undefined,
+            mode: undefined,
+            sort: undefined,
+            order: undefined,
           })
         }
         tabs={[
@@ -164,6 +168,10 @@ export function TransportPage() {
             page: search.page ?? 1,
             route_id: search.route_id,
             stop_id: search.stop_id,
+            class_id: search.class_id,
+            mode: search.mode,
+            sort: search.sort,
+            order: search.order,
           }}
           canManage={canManage}
           onChange={(patch) => setSearch(patch)}

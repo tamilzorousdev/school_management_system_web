@@ -390,6 +390,19 @@ const transportRoute = createRoute({
   ),
 })
 
+const routeRosterRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/routes/$routeId/students',
+  params: {
+    parse: (raw) => ({ routeId: z.coerce.number().int().min(1).parse(raw.routeId) }),
+    stringify: (params) => ({ routeId: String(params.routeId) }),
+  },
+  component: lazyRouteComponent(
+    () => import('@/features/transport/pages/route-roster-page'),
+    'RouteRosterPage'
+  ),
+})
+
 const routeBuilderRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/transport/routes/$routeId',
@@ -464,6 +477,7 @@ const routeTree = rootRoute.addChildren([
     activitiesRoute,
     transportRoute,
     routeBuilderRoute,
+    routeRosterRoute,
     setupRoute,
     schoolsRoute,
     parentPreviewRoute,

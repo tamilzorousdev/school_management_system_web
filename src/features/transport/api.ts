@@ -203,11 +203,26 @@ export interface StopInput {
   monthly_fee?: number
 }
 
+export interface RiderStop {
+  id: number
+  name: string
+  pickup_time: string | null
+  drop_time: string | null
+}
+
+export interface RiderStudent {
+  id: number
+  full_name: string
+  admission_no: string
+  class_section: string | null
+}
+
 export interface Rider {
   id: number
-  student: { id: number; full_name: string; admission_no: string; class_section: string | null }
+  student: RiderStudent
   route: Ref
-  stop: { id: number; name: string; pickup_time: string | null; drop_time: string | null }
+  stop: RiderStop
+  drop_stop: RiderStop | null
   mode: TransportMode
   start_date: string
   passenger_ref: string
@@ -217,8 +232,56 @@ export interface Rider {
 export interface RiderInput {
   route_id: number
   stop_id: number
+  drop_stop_id?: number | null
   mode?: TransportMode
   start_date?: string
+}
+
+export interface RosterStudent extends RiderStudent {
+  mode: TransportMode
+  guardian_name: string | null
+  guardian_mobile: string | null
+}
+
+export interface RosterStop {
+  id: number
+  sequence: number
+  name: string
+  landmark: string | null
+  pickup_time: string | null
+  drop_time: string | null
+  pickup_students: RosterStudent[]
+  drop_students: RosterStudent[]
+}
+
+export interface RouteRoster {
+  id: number
+  code: string
+  name: string
+  vehicle: RouteBus | null
+  morning_riders: number
+  evening_riders: number
+  bus_morning_riders: number
+  bus_evening_riders: number
+  stops: RosterStop[]
+}
+
+export type TransportChangeAction = 'assigned' | 'moved' | 'removed'
+
+export interface TransportChangePlace {
+  route: Ref
+  stop: Ref
+  drop_stop: Ref | null
+}
+
+export interface TransportChange {
+  id: number
+  action: TransportChangeAction
+  from: TransportChangePlace | null
+  to: TransportChangePlace | null
+  mode: TransportMode | null
+  by: Ref | null
+  at: string
 }
 
 export interface AssignResult {
@@ -250,12 +313,18 @@ export interface BusListParams {
   flag?: BusFlag
 }
 
+export type RiderSort = 'name' | 'admission_no' | 'class' | 'stop' | 'created_at'
+
 export interface RiderListParams {
   page: number
   limit: number
   search?: string
   route_id?: number
   stop_id?: number
+  class_id?: number
+  mode?: TransportMode
+  sort?: RiderSort
+  order?: 'asc' | 'desc'
 }
 
 export const transportKeys = {
@@ -269,6 +338,9 @@ export const transportKeys = {
   routes: () => [...transportKeys.all, 'routes'] as const,
   route: (id: number) => [...transportKeys.all, 'route', id] as const,
   riders: (params: RiderListParams) => [...transportKeys.all, 'riders', params] as const,
+  roster: (routeId: number) => [...transportKeys.all, 'roster', routeId] as const,
+  student: (studentId: number) => [...transportKeys.all, 'student', studentId] as const,
+  history: (studentId: number) => [...transportKeys.all, 'history', studentId] as const,
 }
 
 const base = '/admin/transport'
@@ -319,6 +391,11 @@ export const transportApi = {
   setRider: (studentId: number, input: RiderInput) =>
     api.put<Rider>(`/admin/students/${studentId}/transport`, input),
   removeRider: (studentId: number) => api.delete<null>(`/admin/students/${studentId}/transport`),
+  studentTransport: (studentId: number) =>
+    api.get<Rider | null>(`/admin/students/${studentId}/transport`),
+  history: (studentId: number) =>
+    api.get<TransportChange[]>(`/admin/students/${studentId}/transport/history`),
+  roster: (routeId: number) => api.get<RouteRoster>(`${base}/routes/${routeId}/roster`),
 }
 
 export function useBuses(params: BusListParams) {
@@ -388,6 +465,28 @@ export function useRiders(params: RiderListParams, enabled = true) {
     queryFn: () => transportApi.riders(params),
     placeholderData: keepPreviousData,
     enabled,
+  })
+}
+
+export function useRouteRoster(routeId: number | undefined) {
+  return useQuery({
+    queryKey: transportKeys.roster(routeId ?? 0),
+    queryFn: () => transportApi.roster(routeId!),
+    enabled: Boolean(routeId),
+  })
+}
+
+export function useStudentTransport(studentId: number) {
+  return useQuery({
+    queryKey: transportKeys.student(studentId),
+    queryFn: () => transportApi.studentTransport(studentId),
+  })
+}
+
+export function useTransportHistory(studentId: number) {
+  return useQuery({
+    queryKey: transportKeys.history(studentId),
+    queryFn: () => transportApi.history(studentId),
   })
 }
 

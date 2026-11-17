@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Map as MapIcon, Pencil, Plus, Radio, Route as RouteIcon, Trash2 } from 'lucide-react'
+import {
+  Map as MapIcon,
+  Pencil,
+  Plus,
+  Radio,
+  Route as RouteIcon,
+  Trash2,
+  UsersRound,
+} from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { ListToolbar } from '@/components/common/list-toolbar'
@@ -65,6 +73,17 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
         <Button size='sm' variant='outline' onClick={() => openBuilder(route.id)}>
           <MapIcon />
           Open builder
+        </Button>
+        <Button
+          size='sm'
+          variant='outline'
+          aria-label={`Student list for route ${route.code}`}
+          onClick={() =>
+            navigate({ to: '/transport/routes/$routeId/students', params: { routeId: route.id } })
+          }
+        >
+          <UsersRound />
+          Students
         </Button>
         {canManage && (
           <>

@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useBlocker, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, ListOrdered, Pencil, RotateCcw, Save, Route as RouteIcon } from 'lucide-react'
+import {
+  ArrowLeft,
+  ListOrdered,
+  Pencil,
+  RotateCcw,
+  Save,
+  Route as RouteIcon,
+  UsersRound,
+} from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { ErrorState } from '@/components/common/display'
@@ -287,6 +295,20 @@ export function RouteBuilderPage() {
               <ArrowLeft />
               All routes
             </Button>
+            {data && (
+              <Button
+                variant='outline'
+                onClick={() =>
+                  navigate({
+                    to: '/transport/routes/$routeId/students',
+                    params: { routeId: data.id },
+                  })
+                }
+              >
+                <UsersRound />
+                Student list
+              </Button>
+            )}
             {canManage && data && (
               <Button variant='outline' onClick={() => setEditingRoute(true)}>
                 <Pencil />
