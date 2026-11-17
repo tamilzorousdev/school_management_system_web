@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { BellRing, CheckCheck, Loader, Plus, Siren, UsersRound } from 'lucide-react'
+import { BellRing, CheckCheck, ListChecks, Loader, Plus, Siren, UsersRound } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -14,13 +14,20 @@ import { formatDate, formatDateTime } from '@/lib/format'
 import {
   useEmergencyInsights,
   useEmergencyList,
-  type BroadcastStatus,
+  type BroadcastState,
   type EmergencyBroadcast,
   type EmergencyCategory,
 } from '../api'
 import { BroadcastSheet } from '../components/broadcast-sheet'
 import { ComposeModal, type ComposePrefill } from '../components/compose-modal'
-import { BROADCAST_STATUS, CATEGORY_LABEL, SEVERITY } from '../labels'
+import { ReadyMessagesModal } from '../components/ready-messages-modal'
+import {
+  BROADCAST_STATE,
+  BROADCAST_STATUS,
+  CATEGORY_LABEL,
+  SEVERITY,
+  STATE_OPTIONS,
+} from '../labels'
 import type { EmergencySearch } from '../search'
 
 const route = getRouteApi('/_app/emergency')
@@ -32,7 +39,9 @@ const pct = (value: number | null | undefined) =>
 export function EmergencyPage() {
   const search = route.useSearch()
   const navigate = useNavigate({ from: '/emergency' })
-  const canSend = can(useMe().data, 'emergency.send')
+  const me = useMe().data
+  const canSend = can(me, 'emergency.send')
+  const canApprove = can(me, 'emergency.approve')
   const setSearch = (patch: Partial<EmergencySearch>) =>
     navigate({ search: (prev) => ({ ...prev, page: 1, ...patch }), replace: true })
   const list = useEmergencyList({
@@ -40,10 +49,11 @@ export function EmergencyPage() {
     limit: LIMIT,
     search: search.search,
     category: search.category,
-    status: search.status,
+    state: search.state,
   })
   const insights = useEmergencyInsights()
   const [composing, setComposing] = useState<ComposePrefill | null>(null)
+  const [managing, setManaging] = useState(false)
 
   useShortcut('app.refresh', () => void list.refetch())
 
@@ -76,11 +86,7 @@ export function EmergencyPage() {
     {
       key: 'last',
       label: insights.data?.sending ? 'Sending now' : 'Last broadcast',
-      value: insights.data?.sending
-        ? insights.data.sending
-        : last
-          ? formatDate(last.sent_at)
-          : '—',
+      value: insights.data?.sending ? insights.data.sending : last ? formatDate(last.sent_at) : '—',
       hint: last ? last.title : 'None yet',
       icon: insights.data?.sending ? Loader : UsersRound,
       tone: insights.data?.sending ? 'warning' : 'neutral',
@@ -133,15 +139,11 @@ export function EmergencyPage() {
     {
       key: 'status',
       header: 'Status',
-      cell: (row) => (
-        <Badge tone={BROADCAST_STATUS[row.status].tone} dot>
-          {BROADCAST_STATUS[row.status].label}
-        </Badge>
-      ),
+      cell: (row) => <StateBadges row={row} />,
     },
   ]
 
-  const filtered = Boolean(search.search || search.category || search.status)
+  const filtered = Boolean(search.search || search.category || search.state)
   return (
     <Page>
       <PageHeader
@@ -150,10 +152,16 @@ export function EmergencyPage() {
         description='Send an urgent message to all parents, staff or chosen classes at once, by app, push and SMS, and see who has read and acknowledged it.'
         actions={
           canSend ? (
-            <Button variant='destructive' onClick={() => setComposing({})}>
-              <Plus />
-              New emergency broadcast
-            </Button>
+            <>
+              <Button variant='outline' onClick={() => setManaging(true)}>
+                <ListChecks />
+                Ready messages
+              </Button>
+              <Button variant='destructive' onClick={() => setComposing({})}>
+                <Plus />
+                New emergency broadcast
+              </Button>
+            </>
           ) : undefined
         }
       />
@@ -163,7 +171,7 @@ export function EmergencyPage() {
           summary={list.data ? `${list.data.total} broadcasts` : ''}
           onClear={
             filtered
-              ? () => setSearch({ search: undefined, category: undefined, status: undefined })
+              ? () => setSearch({ search: undefined, category: undefined, state: undefined })
               : undefined
           }
         >
@@ -185,12 +193,9 @@ export function EmergencyPage() {
             id='emergency-status'
             label='Status'
             allLabel='All statuses'
-            value={search.status}
-            options={Object.entries(BROADCAST_STATUS).map(([value, item]) => ({
-              value,
-              label: item.label,
-            }))}
-            onChange={(value) => setSearch({ status: value as BroadcastStatus | undefined })}
+            value={search.state}
+            options={STATE_OPTIONS}
+            onChange={(value) => setSearch({ state: value as BroadcastState | undefined })}
           />
         </ListToolbar>
         <DataTable
@@ -212,9 +217,7 @@ export function EmergencyPage() {
             <div className='grid gap-1'>
               <div className='flex items-center justify-between gap-2'>
                 <span className='font-semibold'>{row.title}</span>
-                <Badge tone={BROADCAST_STATUS[row.status].tone} dot>
-                  {BROADCAST_STATUS[row.status].label}
-                </Badge>
+                <StateBadges row={row} />
               </div>
               <span className='text-xs text-muted-foreground'>
                 {formatDateTime(row.sent_at)} · {row.counts.total} people · reached{' '}
@@ -240,6 +243,7 @@ export function EmergencyPage() {
       <BroadcastSheet
         broadcastId={search.id}
         canSend={canSend}
+        canApprove={canApprove}
         onClose={() => setSearch({ id: undefined })}
         onAllClear={(broadcast) => setComposing({ follow_up_of: broadcast })}
       />
@@ -253,6 +257,21 @@ export function EmergencyPage() {
           }}
         />
       )}
+      <ReadyMessagesModal open={managing} onOpenChange={setManaging} />
     </Page>
+  )
+}
+
+function StateBadges({ row }: { row: EmergencyBroadcast }) {
+  const delivery = row.status === 'sending' || row.status === 'partly_failed'
+  return (
+    <span className='flex flex-wrap gap-1'>
+      <Badge tone={BROADCAST_STATE[row.state].tone} dot>
+        {BROADCAST_STATE[row.state].label}
+      </Badge>
+      {delivery && (
+        <Badge tone={BROADCAST_STATUS[row.status].tone}>{BROADCAST_STATUS[row.status].label}</Badge>
+      )}
+    </span>
   )
 }

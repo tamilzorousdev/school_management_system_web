@@ -16,6 +16,7 @@ import { ErrorState } from '@/components/common/display'
 import { Page, PageHeader } from '@/components/common/page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
@@ -114,6 +115,7 @@ export function RouteBuilderPage() {
   const [confirmOrder, setConfirmOrder] = useState(false)
   const [editingRoute, setEditingRoute] = useState(false)
   const [busy, setBusy] = useState<'save' | 'order' | 'bus' | null>(null)
+  const [reason, setReason] = useState('')
 
   const data = detail.data
   const baseline = useMemo(() => (data ? toDraft(data) : []), [data])
@@ -161,8 +163,13 @@ export function RouteBuilderPage() {
   const saveStops = async () => {
     setBusy('save')
     try {
-      const result = await transportApi.saveStops(routeId, toInput(draft))
+      const result = await transportApi.saveStops(
+        routeId,
+        toInput(draft),
+        reason.trim() || undefined
+      )
       applyDetail(result)
+      setReason('')
       alerts.success('Stops saved')
       return result
     } catch (error) {
@@ -395,6 +402,15 @@ export function RouteBuilderPage() {
               <span className='font-bold text-foreground'>{distance} km</span>
             </p>
             {data && <RouteTimingsPanel route={data} />}
+            {canManage && dirty && (
+              <Input
+                aria-label='Reason for the change'
+                placeholder='Reason for the change (optional, parents see it)'
+                maxLength={200}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
             {canManage && (
               <div className='flex flex-wrap gap-2'>
                 <Button

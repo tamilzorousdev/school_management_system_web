@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
+  ArrowLeftRight,
   Map as MapIcon,
   Pencil,
   Plus,
   Radio,
   Route as RouteIcon,
   Trash2,
+  Undo2,
   UsersRound,
 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -29,6 +31,7 @@ import {
 } from '../api'
 import { ROUTE_FLAG_LABELS, routeWindow, toOptions } from '../labels'
 import { RouteFormModal } from './route-form-modal'
+import { SwapBusModal } from './swap-bus-modal'
 
 function TripSeats({
   label,
@@ -71,6 +74,8 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
   const routes = useBusRoutes(flag)
   const [editing, setEditing] = useState<BusRoute | 'new' | null>(null)
   const [removing, setRemoving] = useState<BusRoute | null>(null)
+  const [swapping, setSwapping] = useState<BusRoute | null>(null)
+  const undoSwap = useTransportMutation((id: number) => transportApi.clearSwap(id))
   const remove = useTransportMutation((id: number) => transportApi.removeRoute(id))
   const rows = routes.data ?? []
   const activeTrips = useTrips({ page: 1, limit: 50, date: today(), status: 'active' }, false)
@@ -112,6 +117,25 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
           <UsersRound />
           Students
         </Button>
+        {canManage && route.is_active && route.vehicle && !route.swap_today && (
+          <Button size='sm' variant='outline' onClick={() => setSwapping(route)}>
+            <ArrowLeftRight />
+            Bus for a day
+          </Button>
+        )}
+        {canManage && route.swap_today && (
+          <Button
+            size='sm'
+            variant='outline'
+            loading={undoSwap.isPending && undoSwap.variables === route.id}
+            onClick={() =>
+              void run(() => undoSwap.mutateAsync(route.id), `${route.code} back to its usual bus`)
+            }
+          >
+            <Undo2 />
+            Usual bus today
+          </Button>
+        )}
         {canManage && (
           <>
             <Button
@@ -157,12 +181,27 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
     {
       key: 'bus',
       header: 'Bus',
-      cell: (route) =>
-        route.vehicle ? (
-          <span className='font-mono text-xs font-semibold'>{route.vehicle.registration_no}</span>
-        ) : (
-          <span className='text-muted-foreground'>No bus</span>
-        ),
+      cell: (route) => (
+        <span className='grid gap-1'>
+          {route.vehicle ? (
+            <span
+              className={cn(
+                'font-mono text-xs font-semibold',
+                route.swap_today && 'text-muted-foreground line-through'
+              )}
+            >
+              {route.vehicle.registration_no}
+            </span>
+          ) : (
+            <span className='text-muted-foreground'>No bus</span>
+          )}
+          {route.swap_today && (
+            <Badge tone='warning' title={route.swap_today.reason ?? undefined}>
+              Today: {route.swap_today.vehicle.name}
+            </Badge>
+          )}
+        </span>
+      ),
     },
     {
       key: 'stops',
@@ -240,6 +279,7 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
           </div>
         )}
       />
+      {swapping && <SwapBusModal route={swapping} onClose={() => setSwapping(null)} />}
       {editing && (
         <RouteFormModal
           route={editing === 'new' ? undefined : editing}

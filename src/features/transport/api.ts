@@ -204,6 +204,7 @@ export interface BusRoute {
   first_pickup: string | null
   timings: RouteTimings
   problems: number
+  swap_today: { vehicle: RouteBus; reason: string | null } | null
 }
 
 export interface Stop {
@@ -233,6 +234,19 @@ export interface RouteInput {
   name: string
   vehicle_id?: number | null
   is_active?: boolean
+  reason?: string
+}
+
+export interface BusSwap {
+  id: number
+  route: { id: number; name: string }
+  date: string
+  vehicle: RouteBus
+  usual_vehicle: RouteBus | null
+  reason: string | null
+  by: { id: number; name: string } | null
+  parents_told: number
+  warning: string | null
 }
 
 export interface StopInput {
@@ -504,8 +518,14 @@ export const transportApi = {
   updateRoute: (id: number, input: Partial<RouteInput>) =>
     api.patch<RouteDetail>(`${base}/routes/${id}`, input),
   removeRoute: (id: number) => api.delete<null>(`${base}/routes/${id}`),
-  saveStops: (id: number, items: StopInput[]) =>
-    api.put<RouteDetail>(`${base}/routes/${id}/stops`, { items }),
+  saveStops: (id: number, items: StopInput[], reason?: string) =>
+    api.put<RouteDetail>(`${base}/routes/${id}/stops`, { items, ...(reason ? { reason } : {}) }),
+  swapBus: (
+    id: number,
+    input: { vehicle_id: number; date?: string; reason?: string; force?: boolean }
+  ) => api.put<BusSwap>(`${base}/routes/${id}/swap`, input),
+  clearSwap: (id: number, date?: string) =>
+    api.delete<null>(`${base}/routes/${id}/swap${date ? `?date=${date}` : ''}`),
   autoSequence: (id: number) => api.post<RouteDetail>(`${base}/routes/${id}/auto-sequence`),
   assignStop: (routeId: number, stopId: number, studentIds: number[], mode: TransportMode) =>
     api.post<AssignResult>(`${base}/routes/${routeId}/stops/${stopId}/students`, {

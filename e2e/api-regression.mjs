@@ -6675,6 +6675,86 @@ await TA(
   }
 )
 await TA(
+  'API-SWP-01',
+  'Routes and stops',
+  'PUT',
+  '/admin/transport/routes/:id/swap',
+  'Bus for a day: checks before it changes anything',
+  '400 SAME_BUS; 400 on a past day; swaps list 200; undo with nothing set 404',
+  async () => {
+    const route = (await admin('GET', '/admin/transport/routes')).body.data.find(
+      (item) => item.vehicle
+    )
+    if (!route) return 'Skipped: no route with a bus'
+    const same = await admin('PUT', `/admin/transport/routes/${route.id}/swap`, {
+      vehicle_id: route.vehicle.id,
+    })
+    expectStatus(same, 400)
+    if (same.body.error !== 'SAME_BUS') throw new Error(`Got ${same.body.error}`)
+    expectFields(
+      await admin('PUT', `/admin/transport/routes/${route.id}/swap`, {
+        vehicle_id: route.vehicle.id,
+        date: '2020-01-01',
+      }),
+      ['date']
+    )
+    expectStatus(await admin('GET', '/admin/transport/bus-swaps'), 200)
+    expectStatus(
+      await admin('DELETE', `/admin/transport/routes/${route.id}/swap?date=2099-01-01`),
+      404
+    )
+    expectStatus(
+      await parent('PUT', `/admin/transport/routes/${route.id}/swap`, { vehicle_id: 1 }),
+      403
+    )
+    return `400 SAME_BUS on ${route.code}; past day 400; list 200`
+  }
+)
+await TA(
+  'API-HO-01',
+  'Routes and stops',
+  'POST',
+  '/admin/transport/trips/:id/handover',
+  'Breakdown hand-over: checks',
+  '404 unknown trip; 400 without a bus; 409 on an ended trip; parent 403',
+  async () => {
+    expectStatus(
+      await admin('POST', '/admin/transport/trips/999999/handover', { vehicle_id: 1 }),
+      404
+    )
+    expectFields(await admin('POST', '/admin/transport/trips/999999/handover', {}), ['vehicle_id'])
+    const ended = (await admin('GET', '/admin/transport/trips?status=ended&limit=1')).body.data
+      .items[0]
+    if (ended) {
+      const refused = await admin('POST', `/admin/transport/trips/${ended.id}/handover`, {
+        vehicle_id: 999,
+      })
+      expectStatus(refused, 409)
+    }
+    expectStatus(
+      await parent('POST', '/admin/transport/trips/999999/handover', { vehicle_id: 1 }),
+      403
+    )
+    return `404, 400 and 403 as expected${ended ? '; ended trip 409' : ''}`
+  }
+)
+await TA(
+  'API-DLY-01',
+  'Routes and stops',
+  'POST',
+  '/mobile/driver/trips/:id/delay',
+  'Driver reports the bus is late: checks',
+  '400 under 5 minutes; 404 unknown trip; parent 403',
+  async () => {
+    expectFields(await driver('POST', '/mobile/driver/trips/999999/delay', { minutes: 2 }), [
+      'minutes',
+    ])
+    expectStatus(await driver('POST', '/mobile/driver/trips/999999/delay', { minutes: 20 }), 404)
+    expectStatus(await parent('POST', '/mobile/driver/trips/999999/delay', { minutes: 20 }), 403)
+    return '400, 404 and 403 as expected'
+  }
+)
+await TA(
   'API-RT-05',
   'Routes and stops',
   'GET',
@@ -6791,7 +6871,7 @@ await TA(
   async () => {
     const result = await admin('GET', '/admin/emergency-broadcasts/templates')
     expectStatus(result, 200)
-    if (!result.body.data.some((item) => item.key === 'rain_holiday' && item.message_ta))
+    if (!result.body.data.some((item) => item.category === 'weather' && item.message_ta))
       throw new Error('No rain template')
     return `200; ${result.body.data.length} templates`
   }
@@ -6988,6 +7068,166 @@ await TA(
       }),
       403
     )
+)
+
+const emergencyBody = (extra = {}) => ({
+  audience: 'students',
+  student_ids: [child.id],
+  title: 'Regression scheduled check',
+  message: 'This is a regression test of a scheduled emergency broadcast.',
+  category: 'other',
+  severity: 'info',
+  channels: ['push'],
+  ...extra,
+})
+await TA(
+  'API-EM-11',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'Schedule for tomorrow with a 10 minute expiry, cancel it, remove it',
+  '201 scheduled with expiry; cancel 200; remove 200; gone from the list',
+  async () => {
+    const sendAt = new Date(Date.now() + 86400000).toISOString()
+    const created = await admin(
+      'POST',
+      '/admin/emergency-broadcasts',
+      emergencyBody({ send_at: sendAt, expires_in: { value: 10, unit: 'minutes' } })
+    )
+    expectStatus(created, 201)
+    const data = created.body.data
+    if (data.state !== 'scheduled' || data.expiry?.label !== '10 minutes')
+      throw new Error(`state ${data.state}, expiry ${JSON.stringify(data.expiry)}`)
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${data.id}`), 409)
+    const cancelled = await admin('POST', `/admin/emergency-broadcasts/${data.id}/cancel`)
+    expectStatus(cancelled, 200)
+    if (cancelled.body.data.state !== 'cancelled') throw new Error('Not cancelled')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${data.id}`), 200)
+    expectStatus(await admin('GET', `/admin/emergency-broadcasts/${data.id}`), 404)
+    return '201 scheduled, cancelled and removed'
+  }
+)
+await TA(
+  'API-EM-12',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'Expiry and send time limits',
+  '400 on expires_in under 5 seconds or a bad unit, and on send_at in the past',
+  async () => {
+    expectFields(
+      await admin(
+        'POST',
+        '/admin/emergency-broadcasts',
+        emergencyBody({ expires_in: { value: 3, unit: 'seconds' } })
+      ),
+      ['expires_in']
+    )
+    expectStatus(
+      await admin(
+        'POST',
+        '/admin/emergency-broadcasts',
+        emergencyBody({ expires_in: { value: 1, unit: 'weeks' } })
+      ),
+      400
+    )
+    expectFields(
+      await admin(
+        'POST',
+        '/admin/emergency-broadcasts',
+        emergencyBody({ send_at: '2020-01-01T00:00:00Z' })
+      ),
+      ['send_at']
+    )
+    return '400 for each'
+  }
+)
+await TA(
+  'API-EM-13',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/{id}/end',
+  'End now takes it off the parent app, then remove it from the history',
+  '200 ended; parent no longer lists it unless include_ended; removed',
+  async () => {
+    if (!emergencyId) return 'Skipped: nothing sent'
+    const ended = await admin('POST', `/admin/emergency-broadcasts/${emergencyId}/end`)
+    expectStatus(ended, 200)
+    if (ended.body.data.state !== 'ended') throw new Error(`state ${ended.body.data.state}`)
+    expectStatus(await admin('POST', `/admin/emergency-broadcasts/${emergencyId}/end`), 409)
+    const onScreen = (await parent('GET', '/me/emergency-broadcasts')).body.data.items
+    if (onScreen.some((item) => item.id === emergencyId))
+      throw new Error('Still on the parent screen')
+    const history = (await parent('GET', '/me/emergency-broadcasts?include_ended=true')).body.data
+      .items
+    const old = history.find((item) => item.id === emergencyId)
+    if (!old || old.is_active) throw new Error('Not in history as ended')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${emergencyId}`), 200)
+    return '200; ended, hidden from the parent and removed from the history'
+  }
+)
+await TA(
+  'API-EM-14',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/{id}/reject',
+  'An office user without approval sends to all parents: it waits for the principal',
+  '201 pending_approval; reject needs a note; rejected; removed',
+  async () => {
+    const created = await ao(
+      'POST',
+      '/admin/emergency-broadcasts',
+      emergencyBody({
+        audience: 'parents',
+        student_ids: undefined,
+        title: 'Regression approval check',
+      })
+    )
+    if (created.status === 403) return 'Skipped: this office user cannot send'
+    expectStatus(created, 201)
+    const id = created.body.data.id
+    if (created.body.data.state !== 'pending_approval')
+      throw new Error(`state ${created.body.data.state}`)
+    expectStatus(await ao('POST', `/admin/emergency-broadcasts/${id}/approve`, {}), 403)
+    expectFields(await admin('POST', `/admin/emergency-broadcasts/${id}/reject`, {}), ['note'])
+    const rejected = await admin('POST', `/admin/emergency-broadcasts/${id}/reject`, {
+      note: 'Regression: not needed',
+    })
+    expectStatus(rejected, 200)
+    if (rejected.body.data.state !== 'rejected') throw new Error('Not rejected')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${id}`), 200)
+    return '201 waiting; rejected with a note; removed'
+  }
+)
+await TA(
+  'API-EM-15',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/templates',
+  'School adds, switches off and removes its own ready message',
+  '201; hidden when off; listed with all=true; removed',
+  async () => {
+    const before = (await admin('GET', '/admin/emergency-broadcasts/templates')).body.data
+    if (before.length < 6) throw new Error(`Only ${before.length} ready messages`)
+    const added = await admin('POST', '/admin/emergency-broadcasts/templates', {
+      category: 'transport',
+      title: 'Regression ready message',
+      message: 'Buses leave 15 minutes late today.',
+      title_ta: 'சோதனை',
+    })
+    expectStatus(added, 201)
+    const id = added.body.data.id
+    const off = await admin('PATCH', `/admin/emergency-broadcasts/templates/${id}`, {
+      is_active: false,
+    })
+    expectStatus(off, 200)
+    const active = (await admin('GET', '/admin/emergency-broadcasts/templates')).body.data
+    if (active.some((item) => item.id === id)) throw new Error('Switched-off message still offered')
+    const all = (await admin('GET', '/admin/emergency-broadcasts/templates?all=true')).body.data
+    if (!all.some((item) => item.id === id)) throw new Error('Missing from the manage list')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/templates/${id}`), 200)
+    return `201; ${before.length} ready messages; added, switched off and removed`
+  }
 )
 
 const feedbackBefore = (await admin('GET', '/admin/feedback/settings')).body?.data

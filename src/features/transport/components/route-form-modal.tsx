@@ -29,6 +29,7 @@ export function RouteFormModal({
   const [name, setName] = useState(route?.name ?? '')
   const [busId, setBusId] = useState(route?.vehicle ? String(route.vehicle.id) : undefined)
   const [active, setActive] = useState(route?.is_active ?? true)
+  const [reason, setReason] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useTransportMutation((input: RouteInput) =>
     route ? transportApi.updateRoute(route.id, input) : transportApi.createRoute(input)
@@ -64,6 +65,7 @@ export function RouteFormModal({
               name: name.trim(),
               vehicle_id: busId ? Number(busId) : null,
               ...(route ? { is_active: active } : {}),
+              ...(route && reason.trim() ? { reason: reason.trim() } : {}),
             })
             alerts.success(route ? `Route ${cleanCode} updated` : `Route ${cleanCode} created`)
             onClose()
@@ -115,6 +117,22 @@ export function RouteFormModal({
             onChange={setBusId}
           />
         </FormField>
+        {route && String(route.vehicle?.id ?? '') !== (busId ?? '') && (
+          <FormField
+            id='route-reason'
+            label='Reason for the bus change'
+            hint='Optional. Parents see it in their note. For one day only, use Bus for a day instead.'
+            className='sm:col-span-2'
+          >
+            <Input
+              id='route-reason'
+              maxLength={200}
+              placeholder='e.g. Bus 2 needs a new engine'
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </FormField>
+        )}
         {route && (
           <div className='flex items-center justify-between gap-3 rounded-lg border p-3 sm:col-span-2'>
             <span className='grid gap-0.5'>

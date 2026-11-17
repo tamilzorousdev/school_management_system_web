@@ -128,6 +128,18 @@ export interface Trip {
   stops_done: number
   stops_total: number
   flags?: TripFlagCounts | null
+  delay?: { minutes: number; reason: string | null; at: string } | null
+  handover_of?: number | null
+  replaced_by?: number | null
+}
+
+export interface HandoverResult {
+  old_trip: Trip
+  new_trip: Trip
+  on_board: number
+  waiting: number
+  parents_told: number
+  warning: string | null
 }
 
 export type TripFlag = 'not_boarded' | 'not_alighted'
@@ -407,6 +419,8 @@ export const fleetApi = {
     api.get<Paginated<StudentTrip>>(`/admin/students/${studentId}/bus-history`, { page, limit }),
   startTrip: (input: StartTripInput) => api.post<TripDetail>(trips, input),
   endTrip: (id: number) => api.post<TripDetail>(`${trips}/${id}/end`),
+  handover: (id: number, input: { vehicle_id: number; reason?: string; keep_for_today: boolean }) =>
+    api.post<HandoverResult>(`${trips}/${id}/handover`, input),
   playback: (id: number, maxPoints = 1500) =>
     api.get<TripPlayback>(`/admin/fleet/trips/${id}/playback`, { max_points: maxPoints }),
   health: (busId: number) => api.get<BusHealth>(`/admin/fleet/buses/${busId}/health`),

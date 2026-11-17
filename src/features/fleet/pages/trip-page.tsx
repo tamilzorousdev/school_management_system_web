@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Link, getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
+  ArrowLeftRight,
   Bell,
   CircleStop,
   ClipboardCheck,
@@ -19,6 +20,7 @@ import {
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { ErrorState } from '@/components/common/display'
 import { Page, PageHeader } from '@/components/common/page'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -32,6 +34,7 @@ import { fleetApi, fleetKeys, useTrip, useTripMutation, type TripDetail } from '
 import { LiveBadge } from '../components/live-badge'
 import { TripMap } from '../components/trip-map'
 import { BoardingLog } from '../components/boarding-log'
+import { HandoverModal } from '../components/handover-modal'
 import { TripChecklistModal } from '../components/trip-checklist-modal'
 import { EventLog, NotBoarded, StopTimeline } from '../components/trip-timeline'
 import { TripStatusBadge } from '../components/trips-panel'
@@ -99,6 +102,7 @@ export function TripPage() {
   const live = useLiveSubscription('trip.subscribe', { trip_id: tripId })
   const [confirmEnd, setConfirmEnd] = useState(false)
   const [showChecklist, setShowChecklist] = useState(false)
+  const [handingOver, setHandingOver] = useState(false)
   const detail = useTrip(tripId, !live.live)
   const now = useNow(1000)
   const end = useTripMutation((id: number) => fleetApi.endTrip(id))
@@ -189,6 +193,25 @@ export function TripPage() {
                 {TRIP_KIND[trip.kind]}
               </span>
               <TripStatusBadge trip={trip} />
+              {trip.handover_of && (
+                <Badge tone='info'>
+                  <Link to='/fleet/trips/$tripId' params={{ tripId: trip.handover_of }}>
+                    Took over a broken-down bus
+                  </Link>
+                </Badge>
+              )}
+              {trip.replaced_by && (
+                <Badge tone='warning'>
+                  <Link to='/fleet/trips/$tripId' params={{ tripId: trip.replaced_by }}>
+                    Handed over after a breakdown
+                  </Link>
+                </Badge>
+              )}
+              {trip.delay && (
+                <Badge tone='warning' title={trip.delay.reason ?? undefined}>
+                  About {trip.delay.minutes} min late
+                </Badge>
+              )}
               {active && <LiveBadge status={live.status} state={live.state} />}
             </span>
           ) : undefined
@@ -211,6 +234,12 @@ export function TripPage() {
                   <PlayCircle />
                   Replay
                 </Link>
+              </Button>
+            )}
+            {canManage && active && trip && (
+              <Button variant='outline' onClick={() => setHandingOver(true)}>
+                <ArrowLeftRight />
+                Hand over to another bus
               </Button>
             )}
             {canManage && active && (
@@ -337,6 +366,16 @@ export function TripPage() {
         loading={end.isPending}
         onConfirm={() => void endTrip()}
       />
+      {handingOver && trip && (
+        <HandoverModal
+          trip={trip}
+          onClose={() => setHandingOver(false)}
+          onDone={(result) => {
+            setHandingOver(false)
+            void navigate({ to: '/fleet/trips/$tripId', params: { tripId: result.new_trip.id } })
+          }}
+        />
+      )}
       <TripChecklistModal tripId={showChecklist ? tripId : null} onOpenChange={setShowChecklist} />
     </Page>
   )

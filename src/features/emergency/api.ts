@@ -12,7 +12,12 @@ export type EmergencySeverity = 'info' | 'warning' | 'critical'
 export type EmergencyAudience =
   'everyone' | 'parents' | 'staff' | 'classes' | 'sections' | 'students'
 export type EmergencyChannel = 'push' | 'sms'
-export type BroadcastStatus = 'sending' | 'sent' | 'partly_failed'
+export type BroadcastStatus =
+  'pending_approval' | 'scheduled' | 'sending' | 'sent' | 'partly_failed' | 'rejected' | 'cancelled'
+export type BroadcastState =
+  'pending_approval' | 'scheduled' | 'active' | 'expired' | 'ended' | 'rejected' | 'cancelled'
+export type ExpiryUnit = 'seconds' | 'minutes' | 'hours' | 'days' | 'months' | 'years'
+export type EndReason = 'expired' | 'ended' | 'all_clear'
 export type DeliveryStatus = 'pending' | 'sending' | 'sent' | 'failed' | 'skipped' | 'none'
 export type RecipientFilter =
   'all' | 'failed' | 'not_read' | 'not_acknowledged' | 'sms_only' | 'unreachable'
@@ -35,6 +40,8 @@ export interface EmergencyInput extends AudienceInput {
   channels: EmergencyChannel[]
   client_id: string
   follow_up_of?: number
+  expires_in?: { value: number; unit: ExpiryUnit }
+  send_at?: string
 }
 
 export interface EmergencyPreview {
@@ -85,6 +92,16 @@ export interface EmergencyBroadcast {
   include_teachers: boolean
   channels: EmergencyChannel[]
   status: BroadcastStatus
+  state: BroadcastState
+  send_at: string | null
+  expiry: { value: number; unit: ExpiryUnit; label: string } | null
+  expires_at: string | null
+  ended_at: string | null
+  end_reason: EndReason | null
+  ended_by: Ref | null
+  reviewed_by: Ref | null
+  reviewed_at: string | null
+  review_note: string | null
   sent_by: Ref | null
   sent_at: string
   completed_at: string | null
@@ -108,13 +125,26 @@ export interface EmergencyRecipient {
 }
 
 export interface EmergencyTemplate {
+  id: number
   key: string
+  is_active: boolean
+  sort_order: number
+  category: EmergencyCategory
+  severity: EmergencySeverity
+  title: string
+  message: string
+  title_ta: string | null
+  message_ta: string | null
+}
+
+export interface TemplateInput {
   category: EmergencyCategory
   severity: EmergencySeverity
   title: string
   message: string
   title_ta: string
   message_ta: string
+  is_active?: boolean
 }
 
 export interface EmergencyInsights {
@@ -131,7 +161,7 @@ export interface EmergencyListParams {
   limit: number
   search?: string
   category?: EmergencyCategory
-  status?: BroadcastStatus
+  state?: BroadcastState
 }
 
 export interface RecipientParams {
@@ -148,7 +178,7 @@ export const emergencyKeys = {
   recipients: (id: number, params: RecipientParams) =>
     [...emergencyKeys.all, 'recipients', id, params] as const,
   insights: () => [...emergencyKeys.all, 'insights'] as const,
-  templates: () => [...emergencyKeys.all, 'templates'] as const,
+  templates: (all = false) => [...emergencyKeys.all, 'templates', all] as const,
   preview: (input: AudienceInput) => [...emergencyKeys.all, 'preview', input] as const,
 }
 
@@ -161,13 +191,29 @@ export const emergencyApi = {
       ...params,
     }),
   insights: () => api.get<EmergencyInsights>('/admin/emergency-broadcasts/insights'),
-  templates: () => api.get<EmergencyTemplate[]>('/admin/emergency-broadcasts/templates'),
+  templates: (all = false) =>
+    api.get<EmergencyTemplate[]>('/admin/emergency-broadcasts/templates', all ? { all: true } : {}),
+  addTemplate: (input: TemplateInput) =>
+    api.post<EmergencyTemplate>('/admin/emergency-broadcasts/templates', input),
+  updateTemplate: (id: number, input: Partial<TemplateInput>) =>
+    api.patch<EmergencyTemplate>(`/admin/emergency-broadcasts/templates/${id}`, input),
+  removeTemplate: (id: number) => api.delete<null>(`/admin/emergency-broadcasts/templates/${id}`),
+  approve: (id: number, note?: string) =>
+    api.post<EmergencyBroadcast>(`/admin/emergency-broadcasts/${id}/approve`, note ? { note } : {}),
+  reject: (id: number, note: string) =>
+    api.post<EmergencyBroadcast>(`/admin/emergency-broadcasts/${id}/reject`, { note }),
+  cancel: (id: number) => api.post<EmergencyBroadcast>(`/admin/emergency-broadcasts/${id}/cancel`),
+  end: (id: number) => api.post<EmergencyBroadcast>(`/admin/emergency-broadcasts/${id}/end`),
+  remove: (id: number) => api.delete<null>(`/admin/emergency-broadcasts/${id}`),
   preview: (input: AudienceInput) =>
     api.post<EmergencyPreview>('/admin/emergency-broadcasts/preview', input),
   send: (input: EmergencyInput) =>
     api.post<EmergencyBroadcast>('/admin/emergency-broadcasts', input),
-  resend: (id: number, target: 'failed' | 'not_acknowledged') =>
-    api.post<{ queued: number }>(`/admin/emergency-broadcasts/${id}/resend`, { target }),
+  resend: (id: number, target: 'failed' | 'not_acknowledged', channels?: EmergencyChannel[]) =>
+    api.post<{ queued: number }>(`/admin/emergency-broadcasts/${id}/resend`, {
+      target,
+      ...(channels ? { channels } : {}),
+    }),
 }
 
 const refreshWhileSending = (status?: BroadcastStatus) => (status === 'sending' ? 2000 : false)
@@ -187,7 +233,15 @@ export function useEmergency(id: number | undefined) {
     queryKey: emergencyKeys.detail(id ?? 0),
     queryFn: () => emergencyApi.detail(id!),
     enabled: Boolean(id),
-    refetchInterval: (query) => refreshWhileSending(query.state.data?.status),
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (refreshWhileSending(data?.status)) return 2000
+      if (data?.state === 'active' && data.expires_at) {
+        const left = new Date(data.expires_at).getTime() - Date.now()
+        if (left < 120_000) return 3000
+      }
+      return false
+    },
   })
 }
 
@@ -213,11 +267,10 @@ export function useEmergencyInsights() {
   })
 }
 
-export function useEmergencyTemplates() {
+export function useEmergencyTemplates(all = false) {
   return useQuery({
-    queryKey: emergencyKeys.templates(),
-    queryFn: emergencyApi.templates,
-    staleTime: Infinity,
+    queryKey: emergencyKeys.templates(all),
+    queryFn: () => emergencyApi.templates(all),
   })
 }
 
