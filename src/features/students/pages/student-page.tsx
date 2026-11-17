@@ -31,7 +31,7 @@ import {
 import { Avatar, ImagePreviewModal } from '@/components/common/avatar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DocumentList } from '@/components/common/document-list'
-import { EmptyState, ErrorState } from '@/components/common/display'
+import { ErrorState } from '@/components/common/display'
 import { Page } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { Badge } from '@/components/ui/badge'
@@ -64,6 +64,7 @@ import { AchievementsTab } from '../components/achievements-tab'
 import { BehaviourTab } from '../components/behaviour-tab'
 import { ExitModal } from '../components/exit-modal'
 import { HealthTab } from '../components/health-tab'
+import { TransportTab } from '../components/transport-tab'
 import {
   Block,
   EditStudentModal,
@@ -95,7 +96,8 @@ export function StudentPage() {
   const { tab } = route.useSearch()
   const id = Number(studentId)
   const navigate = useNavigate()
-  const canManage = can(useMe().data, 'students.manage')
+  const me = useMe().data
+  const canManage = can(me, 'students.manage')
   const canSeeResults = can(useMe().data, 'exams.view')
   const canSeeFees = can(useMe().data, 'fees.view')
   const student = useStudent(id)
@@ -390,13 +392,12 @@ export function StudentPage() {
       {tab === 'behaviour' && <BehaviourTab studentId={id} canManage={canManage} />}
       {tab === 'achievements' && <AchievementsTab studentId={id} canManage={canManage} />}
       {tab === 'transport' && (
-        <Card className='p-4 sm:p-6'>
-          <EmptyState
-            icon={Bus}
-            title='No bus stop yet'
-            description='Bus routes and stops are set up in Fleet. Once this student has a stop, the route, pickup time and boarding history show here.'
-          />
-        </Card>
+        <TransportTab
+          studentId={id}
+          studentName={data.full_name}
+          canView={can(me, 'fleet.view')}
+          canManage={can(me, 'fleet.manage') && active}
+        />
       )}
 
       {tab === 'results' && canSeeResults && <StudentResults studentId={id} />}
