@@ -6,7 +6,7 @@ import type { IdCardDesign } from '@/lib/id-card-design'
 import type { Ref } from './api'
 import { studentKeys } from './api'
 
-export type BehaviourCategory = 'appreciation' | 'concern' | 'incident'
+export type BehaviourCategory = 'appreciation' | 'concern' | 'incident' | 'disciplinary'
 export type ExitType = 'transferred' | 'withdrawn'
 
 export interface RecordCounts {

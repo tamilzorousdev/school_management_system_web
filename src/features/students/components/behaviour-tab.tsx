@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Award,
   EyeOff,
+  Gavel,
   MessageSquareWarning,
   NotebookPen,
   Pencil,
@@ -53,6 +54,12 @@ const CATEGORIES: Record<
     label: 'Incident',
     tone: 'danger',
     icon: AlertTriangle,
+    ring: 'bg-destructive/10 text-destructive',
+  },
+  disciplinary: {
+    label: 'Disciplinary',
+    tone: 'danger',
+    icon: Gavel,
     ring: 'bg-destructive/10 text-destructive',
   },
 }
