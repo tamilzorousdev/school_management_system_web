@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid } from 'lucide-react'
+import { CalendarRange, LayoutGrid, MapPin, Sparkles } from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
@@ -103,17 +103,49 @@ export function BuilderTab({
       ) : (
         <Card
           className={cn(
-            'min-w-0 overflow-hidden transition-opacity',
+            'min-w-0 overflow-hidden transition-opacity shadow-xs',
             timetable.isFetching && 'opacity-70'
           )}
         >
-          <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-            <h2 className='font-bold'>Class {data.section.name}</h2>
-            <span className='text-xs text-muted-foreground'>
-              {canManage
-                ? 'Click a period to set the subject. Add special class slots in the Bell schedule.'
-                : `${data.slots.length} periods a week`}
-            </span>
+          <div className='flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-5'>
+            <div className='flex items-center gap-3'>
+              <div className='grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20'>
+                <CalendarRange className='size-5' />
+              </div>
+              <div className='grid gap-0.5'>
+                <div className='flex items-center gap-2'>
+                  <h2 className='text-sm font-bold tracking-tight text-foreground sm:text-base'>
+                    Class {data.section.name} Timetable
+                  </h2>
+                  <span className='rounded-md bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground'>
+                    {data.slots.length} periods / week
+                  </span>
+                </div>
+                <p className='text-xs text-muted-foreground'>
+                  {canManage
+                    ? 'Click any period to set subject and teacher. Add special class slots in the Bell schedule.'
+                    : `${data.slots.length} periods scheduled for this section.`}
+                </p>
+              </div>
+            </div>
+            <div className='flex flex-wrap items-center gap-2'>
+              {data.room && (
+                <span className='inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2.5 py-1 text-xs font-semibold text-foreground shadow-2xs'>
+                  <MapPin className='size-3 text-muted-foreground' />
+                  Room {data.room}
+                </span>
+              )}
+              {canManage ? (
+                <span className='inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary'>
+                  <Sparkles className='size-3' />
+                  Builder active
+                </span>
+              ) : (
+                <span className='inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground'>
+                  View only
+                </span>
+              )}
+            </div>
           </div>
           <WeekGrid
             label={`Timetable of ${data.section.name}`}
