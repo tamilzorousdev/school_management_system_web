@@ -1,6 +1,6 @@
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check } from 'lucide-react'
+import { Check, CheckCircle2, UserCheck, XCircle } from 'lucide-react'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
@@ -13,7 +13,7 @@ import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { cn } from '@/lib/utils'
 import { useRoles, useSaveUser, type Role, type UserListItem } from '../api'
-import { APP_LABELS } from '../labels'
+import { APP_LABELS, getRoleMeta } from '../labels'
 
 const FORM_ID = 'user-form'
 const LANGUAGE_OPTIONS = [
@@ -318,11 +318,18 @@ function RoleOption({
   checked: boolean
   onToggle: (checked: boolean) => void
 }) {
+  const meta = getRoleMeta(role.code)
+  const canDoItems = checked ? (meta?.canDo ?? []) : (meta?.canDo.slice(0, 2) ?? [])
+  const cannotDoItems = checked ? (meta?.cannotDo ?? []) : (meta?.cannotDo?.slice(0, 1) ?? [])
+  const remainingCount = (meta?.canDo.length ?? 0) - canDoItems.length
+
   return (
     <label
       className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30',
-        checked ? 'border-primary/60 bg-primary/5' : 'hover:bg-muted/60'
+        'group relative flex cursor-pointer flex-col justify-between rounded-xl border p-3.5 transition-all select-none has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30',
+        checked
+          ? 'border-primary/80 bg-primary/5 ring-1 ring-primary/30 shadow-xs'
+          : 'border-border/80 bg-card hover:border-primary/40 hover:bg-muted/40'
       )}
     >
       <input
@@ -331,20 +338,62 @@ function RoleOption({
         checked={checked}
         onChange={(event) => onToggle(event.target.checked)}
       />
-      <span
-        className={cn(
-          'mt-0.5 grid size-4 shrink-0 place-items-center rounded border',
-          checked ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card'
+      <div>
+        <div className='flex items-start gap-2.5'>
+          <span
+            className={cn(
+              'mt-0.5 grid size-4 shrink-0 place-items-center rounded border transition-colors',
+              checked
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-input bg-card group-hover:border-primary/50'
+            )}
+          >
+            {checked && <Check className='size-3' strokeWidth={3} />}
+          </span>
+          <div className='grid min-w-0 gap-0.5 flex-1'>
+            <span className='text-sm font-bold text-foreground'>{role.name}</span>
+            {role.description && (
+              <span className='text-xs leading-snug text-muted-foreground'>{role.description}</span>
+            )}
+          </div>
+        </div>
+
+        {meta && (
+          <div
+            className={cn(
+              'mt-3 rounded-lg border p-2.5 text-xs transition-colors',
+              checked
+                ? 'border-primary/30 bg-background/80'
+                : 'border-border/70 bg-muted/40'
+            )}
+          >
+            <div className='flex items-center gap-1.5 font-semibold text-primary text-[11px]'>
+              <UserCheck className='size-3.5 shrink-0' />
+              <span className='truncate'>{meta.suitablePerson}</span>
+            </div>
+
+            <div className='mt-1.5 border-t border-border/60 pt-1.5 space-y-1 text-[11px]'>
+              {canDoItems.map((item, idx) => (
+                <div key={idx} className='flex items-start gap-1.5 leading-snug text-foreground/90'>
+                  <CheckCircle2 className='mt-0.5 size-3 shrink-0 text-emerald-600 dark:text-emerald-400' />
+                  <span>{item}</span>
+                </div>
+              ))}
+              {cannotDoItems.map((item, idx) => (
+                <div key={idx} className='flex items-start gap-1.5 leading-snug text-amber-700 dark:text-amber-400'>
+                  <XCircle className='mt-0.5 size-3 shrink-0 text-amber-600 dark:text-amber-400' />
+                  <span>{item}</span>
+                </div>
+              ))}
+              {!checked && remainingCount > 0 && (
+                <span className='inline-block pt-0.5 text-[10px] font-medium text-muted-foreground'>
+                  + {remainingCount} more (select to expand)
+                </span>
+              )}
+            </div>
+          </div>
         )}
-      >
-        {checked && <Check className='size-3' strokeWidth={3} />}
-      </span>
-      <span className='grid gap-0.5'>
-        <span className='text-sm font-semibold'>{role.name}</span>
-        {role.description && (
-          <span className='text-xs leading-snug text-muted-foreground'>{role.description}</span>
-        )}
-      </span>
+      </div>
     </label>
   )
 }

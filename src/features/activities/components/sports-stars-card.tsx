@@ -9,20 +9,24 @@ export function SportsStarsCard() {
   const board = useLeaderboard({ category: 'sports', limit: 3 })
   return (
     <Card className='overflow-hidden'>
-      <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 sm:px-5'>
-        <div className='grid'>
-          <h2 className='flex items-center gap-2 font-bold'>
-            <Trophy className='size-4 text-warning' />
-            Sports stars
-          </h2>
-          <p className='text-xs text-muted-foreground'>
-            Top 3 in sports this academic year, by points
-          </p>
+      <div className='flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-5'>
+        <div className='flex items-center gap-3'>
+          <div className='grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20'>
+            <Trophy className='size-5' />
+          </div>
+          <div className='grid gap-0.5'>
+            <h2 className='text-sm font-bold tracking-tight text-foreground sm:text-base'>
+              Sports stars
+            </h2>
+            <p className='text-xs text-muted-foreground'>
+              Top 3 in sports this academic year, by points
+            </p>
+          </div>
         </div>
         <Link
           to='/activities'
           search={{ tab: 'leaderboard', category: 'sports', page: 1 }}
-          className='inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline'
+          className='inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-muted'
         >
           View leaderboard
           <ArrowRight className='size-3.5' />
