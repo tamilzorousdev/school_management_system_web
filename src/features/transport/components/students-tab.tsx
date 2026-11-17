@@ -1,6 +1,20 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ArrowRightLeft, CircleOff, ListOrdered, Plus, UserMinus, UsersRound } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  CircleOff,
+  ListOrdered,
+  PauseCircle,
+  PlayCircle,
+  Plus,
+  UserMinus,
+  UsersRound,
+} from 'lucide-react'
+import { AppModal } from '@/components/common/app-modal'
+import { FormField } from '@/components/common/form-field'
+import { Textarea } from '@/components/ui/input'
+import { alerts } from '@/lib/alerts'
+import { toApiError } from '@/lib/api/errors'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -51,7 +65,20 @@ export function StudentsTab({
   const [editing, setEditing] = useState<Rider | null>(null)
   const [adding, setAdding] = useState(false)
   const [removing, setRemoving] = useState<Rider | null>(null)
+  const [holding, setHolding] = useState<Rider | null>(null)
   const remove = useTransportMutation((studentId: number) => transportApi.removeRider(studentId))
+  const pass = useTransportMutation(
+    (input: { studentId: number; status: 'active' | 'on_hold'; note: string | null }) =>
+      transportApi.setPass(input.studentId, input.status, input.note)
+  )
+  const activate = async (rider: Rider) => {
+    try {
+      await pass.mutateAsync({ studentId: rider.student.id, status: 'active', note: null })
+      alerts.success(`${rider.student.full_name}'s bus pass is active again`)
+    } catch (error) {
+      alerts.error(toApiError(error).message)
+    }
+  }
   const rows = riders.data?.items ?? []
   const filtered = Boolean(
     filters.search || filters.route_id || filters.stop_id || filters.class_id || filters.mode
@@ -60,6 +87,27 @@ export function StudentsTab({
   const actions = (rider: Rider) =>
     canManage && (
       <span className='flex flex-wrap justify-end gap-1 lg:flex-nowrap'>
+        {rider.pass_status === 'on_hold' ? (
+          <Button
+            size='sm'
+            variant='outline'
+            aria-label={`Make ${rider.student.full_name}'s bus pass active`}
+            onClick={() => void activate(rider)}
+          >
+            <PlayCircle className='text-success' />
+            Activate pass
+          </Button>
+        ) : (
+          <Button
+            size='sm'
+            variant='outline'
+            aria-label={`Put ${rider.student.full_name}'s bus pass on hold`}
+            onClick={() => setHolding(rider)}
+          >
+            <PauseCircle className='text-warning' />
+            Hold pass
+          </Button>
+        )}
         <Button
           size='sm'
           variant='outline'
@@ -84,7 +132,14 @@ export function StudentsTab({
 
   const student = (rider: Rider) => (
     <span className='grid min-w-0'>
-      <span className='truncate font-bold'>{rider.student.full_name}</span>
+      <span className='flex min-w-0 items-center gap-1.5'>
+        <span className='truncate font-bold'>{rider.student.full_name}</span>
+        {rider.pass_status === 'on_hold' && (
+          <Badge tone='warning' title={rider.pass_note ?? undefined}>
+            Pass on hold
+          </Badge>
+        )}
+      </span>
       <span className='truncate font-mono text-xs text-muted-foreground'>
         {rider.student.admission_no}
       </span>
@@ -307,6 +362,72 @@ export function StudentsTab({
           setRemoving(null)
         }}
       />
+      {holding && (
+        <HoldPassModal
+          rider={holding}
+          onHold={(note) =>
+            pass.mutateAsync({ studentId: holding.student.id, status: 'on_hold', note })
+          }
+          onClose={() => setHolding(null)}
+        />
+      )}
     </Card>
+  )
+}
+
+function HoldPassModal({
+  rider,
+  onHold,
+  onClose,
+}: {
+  rider: Rider
+  onHold: (note: string | null) => Promise<unknown>
+  onClose: () => void
+}) {
+  const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  return (
+    <AppModal
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={`Put ${rider.student.full_name}'s bus pass on hold?`}
+      description='The driver sees only "Bus pass on hold – contact office", never fees, and must not leave the child behind. Parents get an in-app note.'
+      formId='hold-pass-form'
+      submitText='Hold pass'
+      loading={saving}
+    >
+      <form
+        id='hold-pass-form'
+        noValidate
+        onSubmit={async (event) => {
+          event.preventDefault()
+          setSaving(true)
+          try {
+            await onHold(note.trim() || null)
+            alerts.success(`${rider.student.full_name}'s bus pass is on hold`)
+            onClose()
+          } catch (error) {
+            alerts.error(toApiError(error).message)
+          } finally {
+            setSaving(false)
+          }
+        }}
+      >
+        <FormField
+          id='hold-note'
+          label='Note for the parents'
+          hint='Optional. The driver does not see it.'
+        >
+          <Textarea
+            id='hold-note'
+            rows={3}
+            maxLength={255}
+            value={note}
+            placeholder='Transport fee due since October'
+            onChange={(event) => setNote(event.target.value)}
+          />
+        </FormField>
+      </form>
+    </AppModal>
   )
 }

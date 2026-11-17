@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Bell,
   CircleStop,
+  ClipboardCheck,
   Clock,
   Flag,
   Gauge,
@@ -31,6 +32,7 @@ import { fleetApi, fleetKeys, useTrip, useTripMutation, type TripDetail } from '
 import { LiveBadge } from '../components/live-badge'
 import { TripMap } from '../components/trip-map'
 import { BoardingLog } from '../components/boarding-log'
+import { TripChecklistModal } from '../components/trip-checklist-modal'
 import { EventLog, NotBoarded, StopTimeline } from '../components/trip-timeline'
 import { TripStatusBadge } from '../components/trips-panel'
 import {
@@ -96,6 +98,7 @@ export function TripPage() {
   const canManage = can(useMe().data, 'fleet.manage')
   const live = useLiveSubscription('trip.subscribe', { trip_id: tripId })
   const [confirmEnd, setConfirmEnd] = useState(false)
+  const [showChecklist, setShowChecklist] = useState(false)
   const detail = useTrip(tripId, !live.live)
   const now = useNow(1000)
   const end = useTripMutation((id: number) => fleetApi.endTrip(id))
@@ -196,6 +199,12 @@ export function TripPage() {
               <ArrowLeft />
               Bus tracking
             </Button>
+            {trip && (
+              <Button variant='outline' onClick={() => setShowChecklist(true)}>
+                <ClipboardCheck />
+                Boarding checklist
+              </Button>
+            )}
             {trip?.status === 'ended' && (
               <Button variant='outline' asChild>
                 <Link to='/fleet/trips/$tripId/playback' params={{ tripId }}>
@@ -328,6 +337,7 @@ export function TripPage() {
         loading={end.isPending}
         onConfirm={() => void endTrip()}
       />
+      <TripChecklistModal tripId={showChecklist ? tripId : null} onOpenChange={setShowChecklist} />
     </Page>
   )
 }

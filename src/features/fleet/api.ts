@@ -127,6 +127,76 @@ export interface Trip {
   destination_eta_seconds: number | null
   stops_done: number
   stops_total: number
+  flags?: TripFlagCounts | null
+}
+
+export type TripFlag = 'not_boarded' | 'not_alighted'
+export type TripFlagFilter = 'any' | TripFlag
+export type RiderStatus = 'away' | 'waiting' | 'on_bus' | 'off_bus'
+export type BoardingMethod = 'qr' | 'manual'
+
+export interface TripFlagCounts {
+  not_boarded: number
+  not_alighted: number
+}
+
+export interface BoardingMark {
+  id: number
+  at: string
+  method: BoardingMethod
+  stop: TripRef | null
+  recorded_by: TripRef | null
+}
+
+export interface ChecklistSummary {
+  total: number
+  away: number
+  waiting: number
+  on_bus: number
+  off_bus: number
+  not_boarded: number
+  not_alighted: number
+}
+
+export interface ChecklistParent {
+  name: string
+  relation: string
+  mobile: string
+  is_primary: boolean
+}
+
+export interface ChecklistStudent {
+  student_id: number
+  full_name: string
+  class_section: string | null
+  stop: TripRef | null
+  status: RiderStatus
+  flag: TripFlag | null
+  boarded: BoardingMark | null
+  alighted: BoardingMark | null
+  away_note: string | null
+  photo_url: string | null
+  parents: ChecklistParent[]
+  pass_status: 'active' | 'on_hold'
+}
+
+export interface TripChecklist {
+  trip: Trip
+  summary: ChecklistSummary
+  students: ChecklistStudent[]
+}
+
+export interface StudentTrip {
+  trip_id: number
+  trip_date: string
+  kind: TripKind
+  trip_status: TripStatus
+  route: TripRef
+  status: RiderStatus
+  flag: TripFlag | null
+  boarded: BoardingMark | null
+  alighted: BoardingMark | null
+  away_note: string | null
 }
 
 export interface TripStop {
@@ -164,6 +234,7 @@ export interface TripRider {
   boarded: boolean
   alighted: boolean
   away_today: boolean
+  away_note: string | null
 }
 
 export interface TripBoarding {
@@ -195,6 +266,7 @@ export interface TripListParams {
   status?: TripStatus
   route_id?: number
   vehicle_id?: number
+  flag?: TripFlagFilter
 }
 
 export type HealthStatus = 'good' | 'warning' | 'critical' | 'unknown'
@@ -314,6 +386,9 @@ export const fleetKeys = {
   positions: (id: number) => [...fleetKeys.all, 'positions', id] as const,
   trips: (params: TripListParams) => [...fleetKeys.all, 'trips', params] as const,
   trip: (id: number) => [...fleetKeys.all, 'trip', id] as const,
+  checklist: (id: number) => [...fleetKeys.all, 'checklist', id] as const,
+  studentTrips: (studentId: number, page: number) =>
+    [...fleetKeys.all, 'student-trips', studentId, page] as const,
   playback: (id: number) => [...fleetKeys.all, 'playback', id] as const,
   health: (busId: number) => [...fleetKeys.all, 'health', busId] as const,
   obd: (busId: number, params: ObdParams) => [...fleetKeys.all, 'obd', busId, params] as const,
@@ -327,6 +402,9 @@ export const fleetApi = {
     api.get<Paginated<PositionRow>>(`/admin/fleet/vehicles/${id}/positions`, { page: 1, limit }),
   trips: (params: TripListParams) => api.get<Paginated<Trip>>(trips, { ...params }),
   trip: (id: number) => api.get<TripDetail>(`${trips}/${id}`),
+  checklist: (id: number) => api.get<TripChecklist>(`${trips}/${id}/checklist`),
+  studentTrips: (studentId: number, page: number, limit = 10) =>
+    api.get<Paginated<StudentTrip>>(`/admin/students/${studentId}/bus-history`, { page, limit }),
   startTrip: (input: StartTripInput) => api.post<TripDetail>(trips, input),
   endTrip: (id: number) => api.post<TripDetail>(`${trips}/${id}/end`),
   playback: (id: number, maxPoints = 1500) =>
@@ -371,6 +449,24 @@ export function useTrip(id: number, poll: boolean) {
     queryFn: () => fleetApi.trip(id),
     refetchInterval: (query) =>
       poll && query.state.data?.status !== 'ended' ? config.refreshIntervalMs : false,
+  })
+}
+
+export function useTripChecklist(id: number | null, poll: boolean) {
+  return useQuery({
+    queryKey: fleetKeys.checklist(id ?? 0),
+    queryFn: () => fleetApi.checklist(id!),
+    enabled: Boolean(id),
+    refetchInterval: (query) =>
+      poll && query.state.data?.trip.status !== 'ended' ? config.refreshIntervalMs : false,
+  })
+}
+
+export function useStudentTrips(studentId: number, page: number) {
+  return useQuery({
+    queryKey: fleetKeys.studentTrips(studentId, page),
+    queryFn: () => fleetApi.studentTrips(studentId, page),
+    placeholderData: keepPreviousData,
   })
 }
 

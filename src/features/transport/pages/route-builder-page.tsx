@@ -34,6 +34,7 @@ import { AssignStudentsModal } from '../components/assign-students-modal'
 import { RouteFormModal } from '../components/route-form-modal'
 import { RouteMap, type MapStop } from '../components/route-map'
 import { StopFormModal, type DraftStop } from '../components/stop-form-modal'
+import { RouteHistory, RouteTimingsPanel } from '../components/route-insights'
 import { StopList } from '../components/stop-list'
 
 const route = getRouteApi('/_app/transport/routes/$routeId')
@@ -90,7 +91,8 @@ const stopError = (error: unknown, stops: DraftStop[]) => {
   if (!first) return apiError.message
   const index = Number(/items\.(\d+)/.exec(first.field)?.[1])
   const stop = Number.isInteger(index) ? stops[index] : undefined
-  return stop ? `Stop ${index + 1} (${stop.name}): ${first.message}` : first.message
+  if (!stop || first.message.includes(stop.name)) return first.message
+  return `Stop ${index + 1} (${stop.name}): ${first.message}`
 }
 
 let nextKey = 0
@@ -392,6 +394,7 @@ export function RouteBuilderPage() {
               Distance through every stop to school{' '}
               <span className='font-bold text-foreground'>{distance} km</span>
             </p>
+            {data && <RouteTimingsPanel route={data} />}
             {canManage && (
               <div className='flex flex-wrap gap-2'>
                 <Button
@@ -443,6 +446,11 @@ export function RouteBuilderPage() {
                 {Array.from({ length: 4 }, (_, index) => (
                   <Skeleton key={index} className='h-20' />
                 ))}
+              </div>
+            )}
+            {data && (
+              <div className='mt-4 border-t pt-3'>
+                <RouteHistory routeId={routeId} />
               </div>
             )}
           </div>

@@ -5,6 +5,7 @@ import {
   IdCard,
   Route as RouteIcon,
   ShieldAlert,
+  Star,
   UsersRound,
 } from 'lucide-react'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { can, useMe } from '@/features/auth/api'
 import { useBusInsights, useBusRoutes, useBuses, useExpiries, type BusFlag } from '../api'
 import { BusesTab } from '../components/buses-tab'
+import { DriverRatingsTab } from '../components/driver-ratings-tab'
 import { ExpiriesTab } from '../components/expiries-tab'
 import { RoutesTab } from '../components/routes-tab'
 import { StudentsTab } from '../components/students-tab'
@@ -147,6 +149,7 @@ export function TransportPage() {
             icon: CalendarClock,
             count: due.length || undefined,
           },
+          { value: 'ratings', label: 'Driver ratings', icon: Star },
         ]}
       />
       {search.tab === 'buses' && (
@@ -178,6 +181,7 @@ export function TransportPage() {
         />
       )}
       {search.tab === 'expiries' && <ExpiriesTab canManage={canManage} />}
+      {search.tab === 'ratings' && <DriverRatingsTab />}
     </Page>
   )
 }

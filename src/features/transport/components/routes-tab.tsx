@@ -19,29 +19,56 @@ import { today } from '@/features/attendance/labels'
 import { useTrips } from '@/features/fleet/api'
 import { run } from '@/features/setup/form-actions'
 import { cn } from '@/lib/utils'
-import { transportApi, useBusRoutes, useTransportMutation, type BusRoute } from '../api'
+import { Combobox } from '@/components/common/combobox'
+import {
+  transportApi,
+  useBusRoutes,
+  useTransportMutation,
+  type BusRoute,
+  type RouteFlag,
+} from '../api'
+import { ROUTE_FLAG_LABELS, routeWindow, toOptions } from '../labels'
 import { RouteFormModal } from './route-form-modal'
 
-function Riders({ route }: { route: BusRoute }) {
-  const capacity = route.vehicle?.capacity
+function TripSeats({
+  label,
+  riders,
+  capacity,
+}: {
+  label: string
+  riders: number
+  capacity?: number
+}) {
   return (
     <span
       className={cn(
         'tabular font-semibold',
-        capacity !== undefined && route.students > capacity && 'text-destructive'
+        capacity !== undefined && riders > capacity && 'text-destructive'
       )}
     >
-      {route.students}
+      <span className='font-normal text-muted-foreground'>{label} </span>
+      {riders}
       {capacity !== undefined && (
-        <span className='font-normal text-muted-foreground'>/{capacity} seats</span>
+        <span className='font-normal text-muted-foreground'>/{capacity}</span>
       )}
+    </span>
+  )
+}
+
+function Riders({ route }: { route: BusRoute }) {
+  const capacity = route.vehicle?.capacity
+  return (
+    <span className='grid gap-0.5 text-sm whitespace-nowrap'>
+      <TripSeats label='Morning' riders={route.morning_riders} capacity={capacity} />
+      <TripSeats label='Evening' riders={route.evening_riders} capacity={capacity} />
     </span>
   )
 }
 
 export function RoutesTab({ canManage }: { canManage: boolean }) {
   const navigate = useNavigate()
-  const routes = useBusRoutes()
+  const [flag, setFlag] = useState<RouteFlag>()
+  const routes = useBusRoutes(flag)
   const [editing, setEditing] = useState<BusRoute | 'new' | null>(null)
   const [removing, setRemoving] = useState<BusRoute | null>(null)
   const remove = useTransportMutation((id: number) => transportApi.removeRoute(id))
@@ -117,6 +144,11 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
       </Badge>
       <span className='truncate font-bold'>{route.name}</span>
       {!route.is_active && <Badge>Not running</Badge>}
+      {route.problems > 0 && (
+        <Badge tone='danger'>
+          {route.problems} time {route.problems === 1 ? 'problem' : 'problems'}
+        </Badge>
+      )}
     </span>
   )
 
@@ -140,9 +172,9 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
     { key: 'students', header: 'Students', cell: (route) => <Riders route={route} /> },
     {
       key: 'first',
-      header: 'First pickup',
+      header: 'Morning · Evening',
       hideBelow: 'lg',
-      cell: (route) => <span className='tabular'>{route.first_pickup ?? '—'}</span>,
+      cell: (route) => <span className='tabular text-xs'>{routeWindow(route.timings)}</span>,
     },
     { key: 'actions', header: '', align: 'right', cell: actions },
   ]
@@ -150,9 +182,15 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
   return (
     <Card className='overflow-hidden'>
       <ListToolbar summary={routes.data ? `${rows.length} routes` : ''}>
-        <p className='text-sm text-muted-foreground'>
-          Open the builder to place stops on the map and put students on them.
-        </p>
+        <Combobox
+          id='route-flag'
+          label='Show routes'
+          value={flag}
+          options={toOptions(ROUTE_FLAG_LABELS)}
+          allLabel='All routes'
+          placeholder='All routes'
+          onChange={(value) => setFlag(value as RouteFlag | undefined)}
+        />
         {canManage && (
           <Button onClick={() => setEditing('new')}>
             <Plus />
@@ -194,11 +232,8 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
               <span>
                 Students <Riders route={route} />
               </span>
-              <span>
-                First pickup{' '}
-                <span className='tabular font-semibold text-foreground'>
-                  {route.first_pickup ?? '—'}
-                </span>
+              <span className='tabular font-semibold text-foreground'>
+                {routeWindow(route.timings)}
               </span>
             </div>
             {actions(route)}

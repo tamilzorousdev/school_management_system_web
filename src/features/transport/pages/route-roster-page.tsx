@@ -198,8 +198,18 @@ export function RouteRosterPage() {
                   </span>
                 </div>
                 <div className='grid divide-y md:grid-cols-2 md:divide-x md:divide-y-0'>
-                  <StudentList icon={Sun} title='Picked up here' students={stop.pickup_students} />
-                  <StudentList icon={Moon} title='Dropped here' students={stop.drop_students} />
+                  <StudentList
+                    icon={Sun}
+                    title='Picked up here'
+                    students={stop.pickup_students}
+                    trip='pickup'
+                  />
+                  <StudentList
+                    icon={Moon}
+                    title='Dropped here'
+                    students={stop.drop_students}
+                    trip='drop'
+                  />
                 </div>
               </Card>
             </li>
@@ -257,10 +267,12 @@ function StudentList({
   icon: Icon,
   title,
   students,
+  trip,
 }: {
   icon: typeof Sun
   title: string
   students: RosterStudent[]
+  trip: 'pickup' | 'drop'
 }) {
   return (
     <div className='grid content-start gap-2 p-4 sm:px-5'>
@@ -279,7 +291,15 @@ function StudentList({
           {students.map((student) => (
             <li key={student.id} className='flex flex-wrap items-start gap-x-3 gap-y-0.5 py-2'>
               <span className='grid min-w-0 flex-1'>
-                <span className='truncate font-semibold'>{student.full_name}</span>
+                <span className='flex min-w-0 items-center gap-1.5'>
+                  <span className='truncate font-semibold'>{student.full_name}</span>
+                  {student.pass_status === 'on_hold' && <Badge tone='warning'>Pass on hold</Badge>}
+                  {(trip === 'pickup' ? student.away_morning : student.away_evening) && (
+                    <Badge tone='neutral'>
+                      {trip === 'pickup' ? student.away_morning : student.away_evening}
+                    </Badge>
+                  )}
+                </span>
                 <span className='truncate text-xs text-muted-foreground'>
                   <span className='font-mono'>{student.admission_no}</span>
                   {student.class_section ? ` · ${student.class_section}` : ''}

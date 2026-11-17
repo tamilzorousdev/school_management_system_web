@@ -10,6 +10,8 @@ import type {
   BusDocumentType,
   BusFlag,
   FuelType,
+  RouteFlag,
+  RouteTimings,
   Ownership,
   TransportMode,
   VehicleType,
@@ -88,6 +90,20 @@ export const FLAG_LABELS: Record<BusFlag, string> = {
   nearly_full: 'Nearly full (90%+)',
   contractor: 'Contractor buses',
 }
+
+export const ROUTE_FLAG_LABELS: Record<RouteFlag, string> = {
+  no_bus: 'No bus',
+  inactive: 'Not running',
+  has_problems: 'Stop time problems',
+}
+
+export const routeWindow = (timings: RouteTimings) =>
+  [
+    timings.leaves_at && `${timings.leaves_at} – ${timings.reaches_school_at ?? '?'}`,
+    timings.leaves_school_at && `${timings.leaves_school_at} – ${timings.last_drop_at ?? '?'}`,
+  ]
+    .filter(Boolean)
+    .join(' · ') || 'No times yet'
 
 export const toOptions = <T extends string>(labels: Record<T, string>) =>
   (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }))
