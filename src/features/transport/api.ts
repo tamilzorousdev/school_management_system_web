@@ -453,6 +453,68 @@ export interface DriverRatingParams {
   low?: boolean
 }
 
+export type BusPassState = 'awaiting_payment' | 'active' | 'on_hold' | 'expired'
+export type FeeStanding = 'clear' | 'due' | 'past_grace'
+
+export interface BusPassStop {
+  id: number
+  name: string
+  time: string | null
+}
+
+export interface BusPass {
+  pass_no: string
+  state: BusPassState
+  hold_kind: 'fee' | 'office' | null
+  hold_note: string | null
+  student: {
+    id: number
+    full_name: string
+    admission_no: string
+    class_section: string | null
+    photo_url: string | null
+  }
+  valid_from: string
+  valid_until: string
+  issued_at: string | null
+  route: { id: number; name: string }
+  pickup: BusPassStop | null
+  drop: BusPassStop | null
+  bus: { id: number; name: string; registration_no: string; today_only: boolean } | null
+  fee: {
+    standing: FeeStanding
+    oldest_due: string | null
+    grace_ends: string | null
+    pending_amount: number
+    billed: boolean
+  }
+}
+
+export interface BusPassInsights {
+  total: number
+  active: number
+  awaiting_payment: number
+  on_hold: number
+  fee_due: number
+  fee_past_grace: number
+  expired: number
+}
+
+export interface BusPassSettings {
+  grace_days: number
+  valid_until: string | null
+  year_ends: string
+}
+
+export interface BusPassParams {
+  page: number
+  limit: number
+  search?: string
+  state?: BusPassState
+  fee?: FeeStanding
+  route_id?: number
+}
+
 export const transportKeys = {
   all: ['transport'] as const,
   buses: (params: BusListParams) => [...transportKeys.all, 'buses', params] as const,
@@ -472,11 +534,31 @@ export const transportKeys = {
   ratings: (params: DriverRatingParams) => [...transportKeys.all, 'ratings', params] as const,
   ratingSummary: () => [...transportKeys.all, 'rating-summary'] as const,
   ratingInsights: () => [...transportKeys.all, 'rating-insights'] as const,
+  passes: (params: BusPassParams) => [...transportKeys.all, 'passes', params] as const,
+  passInsights: () => [...transportKeys.all, 'pass-insights'] as const,
+  passSettings: () => [...transportKeys.all, 'pass-settings'] as const,
 }
 
 const base = '/admin/transport'
 
 export const transportApi = {
+  busPasses: (params: BusPassParams) =>
+    api.get<Paginated<BusPass>>(`${base}/bus-passes`, { ...params }),
+  busPassInsights: () => api.get<BusPassInsights>(`${base}/bus-passes/insights`),
+  busPassSettings: () => api.get<BusPassSettings>(`${base}/bus-passes/settings`),
+  saveBusPassSettings: (input: { grace_days?: number; valid_until?: string | null }) =>
+    api.put<BusPassSettings>(`${base}/bus-passes/settings`, input),
+  restrictPasses: (studentIds: number[], note?: string) =>
+    api.post<{ changed: number; parents_told: number }>(`${base}/bus-passes/restrict`, {
+      student_ids: studentIds,
+      ...(note ? { note } : {}),
+    }),
+  activatePasses: (studentIds: number[]) =>
+    api.post<{ changed: number; parents_told: number }>(`${base}/bus-passes/activate`, {
+      student_ids: studentIds,
+    }),
+  setPassEnd: (studentId: number, validUntil: string) =>
+    api.patch<BusPass>(`${base}/bus-passes/${studentId}`, { valid_until: validUntil }),
   driverRatings: (params: DriverRatingParams) =>
     api.get<Paginated<DriverRating>>(`${base}/driver-ratings`, { ...params }),
   driverRatingSummary: () => api.get<DriverRatingSummary[]>(`${base}/driver-ratings/summary`),
@@ -605,6 +687,22 @@ export function useDriverRatingInsights() {
     queryKey: transportKeys.ratingInsights(),
     queryFn: transportApi.driverRatingInsights,
   })
+}
+
+export function useBusPasses(params: BusPassParams) {
+  return useQuery({
+    queryKey: transportKeys.passes(params),
+    queryFn: () => transportApi.busPasses(params),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useBusPassInsights() {
+  return useQuery({ queryKey: transportKeys.passInsights(), queryFn: transportApi.busPassInsights })
+}
+
+export function useBusPassSettings() {
+  return useQuery({ queryKey: transportKeys.passSettings(), queryFn: transportApi.busPassSettings })
 }
 
 export function useExpiries(days = 30) {

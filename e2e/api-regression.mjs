@@ -6739,6 +6739,85 @@ await TA(
   }
 )
 await TA(
+  'API-BP-01',
+  'Bus pass',
+  'GET',
+  '/admin/transport/bus-passes',
+  'Bus passes with the bus fee position, settings and insights',
+  '200; every rider has a pass number; settings round-trip; bad grace 400',
+  async () => {
+    const list = await admin('GET', '/admin/transport/bus-passes?limit=100')
+    expectStatus(list, 200)
+    if (list.body.data.items.some((row) => !row.pass_no || !row.state || !row.fee))
+      throw new Error('Pass without a number, state or fee')
+    const insights = (await admin('GET', '/admin/transport/bus-passes/insights')).body.data
+    if (insights.total !== list.body.data.total)
+      throw new Error('Insights total differs from the list')
+    const settings = (await admin('GET', '/admin/transport/bus-passes/settings')).body.data
+    expectStatus(
+      await admin('PUT', '/admin/transport/bus-passes/settings', {
+        grace_days: settings.grace_days,
+      }),
+      200
+    )
+    expectFields(await admin('PUT', '/admin/transport/bus-passes/settings', { grace_days: 500 }), [
+      'grace_days',
+    ])
+    return `200; ${insights.total} passes, ${insights.active} active, ${insights.fee_past_grace} fee pending`
+  }
+)
+await TA(
+  'API-BP-02',
+  'Bus pass',
+  'POST',
+  '/admin/transport/bus-passes/restrict',
+  'Restrict a pass and activate it again',
+  '200; on hold then active; parent sees it; parent cannot restrict',
+  async () => {
+    const kid = (await parent('GET', '/mobile/parent/children')).body.data[0]
+    if (!kid) return 'Skipped: parent has no child'
+    const before = (await admin('GET', `/admin/transport/bus-passes/${kid.id}`)).body.data
+    if (!before) return 'Skipped: child has no bus'
+    if (before.state === 'on_hold') return 'Skipped: already on hold'
+    const held = await admin('POST', '/admin/transport/bus-passes/restrict', {
+      student_ids: [kid.id],
+      note: 'Regression check',
+    })
+    expectStatus(held, 200)
+    const card = (await parent('GET', `/mobile/parent/children/${kid.id}/bus-pass`)).body.data
+    if (card.state !== 'on_hold' || card.qr) throw new Error(`Parent sees ${card.state}`)
+    const back = await admin('POST', '/admin/transport/bus-passes/activate', {
+      student_ids: [kid.id],
+    })
+    expectStatus(back, 200)
+    const after = (await admin('GET', `/admin/transport/bus-passes/${kid.id}`)).body.data
+    if (after.state === 'on_hold') throw new Error('Still on hold')
+    expectStatus(
+      await parent('POST', '/admin/transport/bus-passes/restrict', { student_ids: [kid.id] }),
+      403
+    )
+    return `200; ${card.pass_no} held then ${after.state}`
+  }
+)
+await TA(
+  'API-BP-03',
+  'Bus pass',
+  'GET',
+  '/mobile/driver/passes-on-hold',
+  'Driver sees passes on hold without amounts; pass label on the student list',
+  '200; labels only',
+  async () => {
+    const held = await driver('GET', '/mobile/driver/passes-on-hold')
+    expectStatus(held, 200)
+    if (held.body.data.some((row) => !row.label?.startsWith('Pass on hold') || 'fee' in row))
+      throw new Error('Wrong label or fee shown')
+    const list = (await driver('GET', '/mobile/driver/students')).body.data
+    if (list.some((row) => !('pass_label' in row))) throw new Error('pass_label missing')
+    expectStatus(await parent('GET', '/mobile/driver/passes-on-hold'), 403)
+    return `200; ${held.body.data.length} on hold on my bus`
+  }
+)
+await TA(
   'API-DLY-01',
   'Routes and stops',
   'POST',

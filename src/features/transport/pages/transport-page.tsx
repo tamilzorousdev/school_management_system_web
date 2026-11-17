@@ -15,6 +15,7 @@ import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Button } from '@/components/ui/button'
 import { can, useMe } from '@/features/auth/api'
 import { useBusInsights, useBusRoutes, useBuses, useExpiries, type BusFlag } from '../api'
+import { BusPassesTab } from '../components/bus-passes-tab'
 import { BusesTab } from '../components/buses-tab'
 import { DriverRatingsTab } from '../components/driver-ratings-tab'
 import { ExpiriesTab } from '../components/expiries-tab'
@@ -143,6 +144,7 @@ export function TransportPage() {
           { value: 'buses', label: 'Buses', icon: Bus },
           { value: 'routes', label: 'Routes', icon: RouteIcon },
           { value: 'students', label: 'Students', icon: UsersRound },
+          { value: 'passes', label: 'Bus passes', icon: IdCard },
           {
             value: 'expiries',
             label: 'Expiries',
@@ -180,6 +182,7 @@ export function TransportPage() {
           onChange={(patch) => setSearch(patch)}
         />
       )}
+      {search.tab === 'passes' && <BusPassesTab canManage={canManage} />}
       {search.tab === 'expiries' && <ExpiriesTab canManage={canManage} />}
       {search.tab === 'ratings' && <DriverRatingsTab />}
     </Page>
