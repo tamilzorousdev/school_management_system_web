@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const FEE_TABS = ['dues', 'plans', 'payments'] as const
+export const FEE_TABS = ['dues', 'plans', 'payments', 'transport'] as const
 export type FeeTab = (typeof FEE_TABS)[number]
 
 const INVOICE_STATUSES = ['unpaid', 'partly_paid', 'paid', 'cancelled'] as const
@@ -23,6 +23,9 @@ export const feesSearchSchema = z.object({
   from: z.string().regex(DATE).optional().catch(undefined),
   to: z.string().regex(DATE).optional().catch(undefined),
   mode: z.enum(PAYMENT_MODES).optional().catch(undefined),
+  route_id: z.coerce.number().int().min(1).optional().catch(undefined),
+  stop_id: z.coerce.number().int().min(1).optional().catch(undefined),
+  bus_status: z.enum(['paid', 'pending', 'overdue', 'not_billed']).optional().catch(undefined),
 })
 
 export type FeesSearch = z.infer<typeof feesSearchSchema>

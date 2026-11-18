@@ -146,3 +146,13 @@ export function amountInWords(value: number): string {
   const rupeesText = parts.length ? `Rupees ${parts.join(' ')}` : 'Rupees Zero'
   return `${rupeesText}${paise ? ` and ${belowHundred(paise)} Paise` : ''} Only`
 }
+
+export const TRANSPORT_FEE_STATUS: Record<
+  'paid' | 'pending' | 'overdue' | 'not_billed',
+  { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' }
+> = {
+  paid: { label: 'Paid', tone: 'success' },
+  pending: { label: 'Pending', tone: 'warning' },
+  overdue: { label: 'Overdue', tone: 'danger' },
+  not_billed: { label: 'Not billed yet', tone: 'neutral' },
+}

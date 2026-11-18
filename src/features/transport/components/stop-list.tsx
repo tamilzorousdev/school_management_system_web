@@ -22,6 +22,7 @@ import type { DraftStop } from './stop-form-modal'
 
 interface StopListProps {
   routeId: number
+  routeFee: number
   stops: DraftStop[]
   counts: Record<string, number>
   selectedKey?: string
@@ -74,6 +75,7 @@ function StopStudents({ routeId, stopId }: { routeId: number; stopId: number }) 
 
 export function StopList({
   routeId,
+  routeFee,
   stops,
   counts,
   selectedKey,
@@ -175,7 +177,10 @@ export function StopList({
                   <span>Pickup {stop.pickup_time ?? '—'}</span>
                   <span>Drop {stop.drop_time ?? '—'}</span>
                   <span>{stop.geofence_radius_m} m circle</span>
-                  <span>{rupees(stop.monthly_fee)} a month</span>
+                  <span>
+                    {rupees(stop.fee_override ?? routeFee)} a month
+                    {stop.fee_override === null ? ' (route fee)' : ' (own fee)'}
+                  </span>
                 </span>
                 {stop.landmark && (
                   <span className='truncate text-xs text-muted-foreground'>{stop.landmark}</span>

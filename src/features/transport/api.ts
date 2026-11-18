@@ -162,6 +162,7 @@ export interface BusRoute {
   stops: number
   students: number
   first_pickup: string | null
+  monthly_fee: number
 }
 
 export interface Stop {
@@ -175,6 +176,7 @@ export interface Stop {
   drop_time: string | null
   geofence_radius_m: number
   monthly_fee: number
+  fee_override: number | null
   students: number
 }
 
@@ -189,6 +191,7 @@ export interface RouteInput {
   name: string
   vehicle_id?: number | null
   is_active?: boolean
+  monthly_fee?: number
 }
 
 export interface StopInput {
@@ -200,7 +203,7 @@ export interface StopInput {
   pickup_time?: string | null
   drop_time?: string | null
   geofence_radius_m?: number
-  monthly_fee?: number
+  monthly_fee?: number | null
 }
 
 export interface RiderStop {

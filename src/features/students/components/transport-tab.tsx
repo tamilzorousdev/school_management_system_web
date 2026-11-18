@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Section } from '@/features/setup/components/setup-shared'
 import { run } from '@/features/setup/form-actions'
+import { can, useMe } from '@/features/auth/api'
+import { TRANSPORT_FEE_STATUS } from '@/features/fees/labels'
+import { useTransportFees } from '@/features/fees/transport-api'
 import {
   transportApi,
   useBusRoutes,
@@ -70,6 +73,9 @@ function TransportDetails({
 }) {
   const transport = useStudentTransport(studentId)
   const history = useTransportHistory(studentId)
+  const canSeeFees = can(useMe().data, 'fees.view')
+  const busFee = useTransportFees({ page: 1, limit: 1, student_id: studentId }, canSeeFees)
+  const fee = busFee.data?.items[0] ?? null
   const routes = useBusRoutes()
   const [editing, setEditing] = useState(false)
   const [removing, setRemoving] = useState(false)
@@ -152,6 +158,29 @@ function TransportDetails({
                 { label: 'Uses the bus for', value: MODE_LABELS[rider.mode] },
                 { label: 'From', value: formatDate(rider.start_date) },
                 { label: 'Fee a month', value: rupees(rider.monthly_fee) },
+                ...(fee
+                  ? [
+                      {
+                        label: 'Bus fee this year',
+                        value: `${rupees(fee.billed)} billed · ${rupees(fee.paid)} paid · ${rupees(fee.pending)} pending`,
+                      },
+                      {
+                        label: 'Payment',
+                        value: (
+                          <span className='flex flex-wrap items-center gap-2'>
+                            <Badge tone={TRANSPORT_FEE_STATUS[fee.status].tone}>
+                              {TRANSPORT_FEE_STATUS[fee.status].label}
+                            </Badge>
+                            {fee.next_due_date && (
+                              <span className='text-xs text-muted-foreground'>
+                                Next due {formatDate(fee.next_due_date)}
+                              </span>
+                            )}
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
             />
             <Button size='sm' variant='outline' asChild className='justify-self-start'>
