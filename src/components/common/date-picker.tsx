@@ -3,8 +3,6 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   X,
 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -169,12 +167,15 @@ export function DatePicker({
     return false
   }
 
+  const [pendingIso, setPendingIso] = React.useState<string>(selectedIso)
+
   // Reset to days view whenever popover opens or closes
   const handleOpenChange = (newOpen: boolean) => {
     if (disabled) return
     setOpen(newOpen)
     if (newOpen) {
       setViewMode('days')
+      setPendingIso(selectedIso || '')
       setNavYear(selectedParsed?.year ?? today.year)
       setNavMonth(selectedParsed?.month ?? today.month)
     } else {
@@ -207,21 +208,36 @@ export function DatePicker({
 
   const handleSelectDay = (year: number, month: number, day: number) => {
     const iso = toIso(year, month, day)
+    setPendingIso(iso)
+  }
+
+  const handleDoubleClickDay = (year: number, month: number, day: number) => {
+    const iso = toIso(year, month, day)
+    setPendingIso(iso)
     triggerChange(iso)
+    setOpen(false)
+  }
+
+  const handleApply = () => {
+    if (pendingIso) {
+      triggerChange(pendingIso)
+    }
     setOpen(false)
   }
 
   const handleClear = (e?: React.MouseEvent) => {
     e?.stopPropagation()
+    setPendingIso('')
     triggerChange('')
+    setOpen(false)
   }
 
   const handleToday = () => {
     if (isDateDisabled(today.year, today.month, today.day)) return
-    triggerChange(today.iso)
+    setPendingIso(today.iso)
     setNavYear(today.year)
     setNavMonth(today.month)
-    setOpen(false)
+    setViewMode('days')
   }
 
   // Month navigation
@@ -308,8 +324,8 @@ export function DatePicker({
           disabled={disabled}
           data-slot='date-picker'
           className={cn(
-            'group relative flex w-full min-w-0 items-center justify-between rounded-md border border-input bg-card px-3 text-left text-sm shadow-xs transition-all outline-none select-none',
-            'hover:bg-muted/30 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30',
+            'group relative flex w-full min-w-0 items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-left text-[13px] shadow-xs transition-all outline-none select-none table-typography dark:border-slate-800 dark:bg-slate-900',
+            'hover:bg-slate-50/70 hover:border-slate-300 focus-visible:border-[#159053] focus-visible:ring-[3px] focus-visible:ring-[#159053]/20',
             disabled && 'cursor-not-allowed opacity-50',
             invalid &&
               'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20',
@@ -322,17 +338,16 @@ export function DatePicker({
           <div className='flex items-center gap-2 truncate overflow-hidden'>
             <CalendarIcon
               className={cn(
-                'shrink-0 text-muted-foreground/80 transition-colors group-hover:text-primary',
-                size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4',
-                selectedIso && 'text-primary'
+                'shrink-0 text-[#159053] transition-colors',
+                size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
               )}
             />
             {selectedIso ? (
-              <span className='font-medium tracking-tight text-foreground'>
+              <span className='font-medium text-slate-800 dark:text-slate-100'>
                 {formatDisplay(selectedIso)}
               </span>
             ) : (
-              <span className='text-muted-foreground/70'>{placeholder}</span>
+              <span className='text-slate-400'>{placeholder}</span>
             )}
           </div>
 
@@ -349,7 +364,7 @@ export function DatePicker({
                     handleClear()
                   }
                 }}
-                className='rounded-sm p-0.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground'
+                className='rounded-sm p-0.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200'
               >
                 <X className='h-3.5 w-3.5' />
               </span>
@@ -361,63 +376,37 @@ export function DatePicker({
       <PopoverContent
         align={align}
         sideOffset={6}
-        className='z-50 w-[310px] rounded-2xl border border-border/80 bg-card p-3.5 text-card-foreground shadow-xl outline-none select-none'
+        className='z-50 w-[290px] rounded-2xl border border-slate-200/90 bg-white p-4 text-slate-800 shadow-xl outline-none select-none table-typography dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
       >
         {/* Top Header */}
-        <div className='mb-3 flex items-center justify-between border-b border-border/60 pb-3'>
+        <div className='mb-3 flex items-center justify-between'>
           {viewMode === 'days' && (
             <>
-              <div className='flex items-center gap-1'>
-                <button
-                  type='button'
-                  onClick={() => setViewMode('months')}
-                  className='flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold text-foreground transition-colors hover:bg-muted/70 hover:text-primary'
-                >
-                  {MONTH_NAMES[viewMonth]}
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setViewMode('years')}
-                  className='flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold text-foreground transition-colors hover:bg-muted/70 hover:text-primary'
-                >
-                  {viewYear}
-                </button>
-              </div>
+              <button
+                type='button'
+                onClick={prevMonth}
+                aria-label='Previous month'
+                className='flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              >
+                <ChevronLeft className='h-4 w-4' />
+              </button>
 
-              <div className='flex items-center gap-0.5'>
-                <button
-                  type='button'
-                  onClick={() => setNavYear(viewYear - 1)}
-                  title='Previous year'
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronsLeft className='h-3.5 w-3.5' />
-                </button>
-                <button
-                  type='button'
-                  onClick={prevMonth}
-                  title='Previous month'
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronLeft className='h-4 w-4' />
-                </button>
-                <button
-                  type='button'
-                  onClick={nextMonth}
-                  title='Next month'
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setNavYear(viewYear + 1)}
-                  title='Next year'
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronsRight className='h-3.5 w-3.5' />
-                </button>
-              </div>
+              <button
+                type='button'
+                onClick={() => setViewMode('months')}
+                className='text-[14.5px] font-semibold text-slate-800 transition-colors hover:text-[#159053] dark:text-slate-100 dark:hover:text-emerald-400'
+              >
+                {MONTH_NAMES[viewMonth]} {viewYear}
+              </button>
+
+              <button
+                type='button'
+                onClick={nextMonth}
+                aria-label='Next month'
+                className='flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              >
+                <ChevronRight className='h-4 w-4' />
+              </button>
             </>
           )}
 
@@ -425,53 +414,55 @@ export function DatePicker({
             <>
               <button
                 type='button'
+                onClick={() => setNavYear(viewYear - 1)}
+                aria-label='Previous year'
+                className='flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              >
+                <ChevronLeft className='h-4 w-4' />
+              </button>
+
+              <button
+                type='button'
                 onClick={() => setViewMode('years')}
-                className='rounded-lg px-2 py-1 text-sm font-bold text-foreground transition-colors hover:bg-muted/70 hover:text-primary'
+                className='text-[14.5px] font-semibold text-slate-800 transition-colors hover:text-[#159053] dark:text-slate-100 dark:hover:text-emerald-400'
               >
                 {viewYear}
               </button>
 
-              <div className='flex items-center gap-1'>
-                <button
-                  type='button'
-                  onClick={() => setNavYear(viewYear - 1)}
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronLeft className='h-4 w-4' />
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setNavYear(viewYear + 1)}
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronRight className='h-4 w-4' />
-                </button>
-              </div>
+              <button
+                type='button'
+                onClick={() => setNavYear(viewYear + 1)}
+                aria-label='Next year'
+                className='flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              >
+                <ChevronRight className='h-4 w-4' />
+              </button>
             </>
           )}
 
           {viewMode === 'years' && (
             <>
-              <span className='px-2 py-1 text-sm font-bold text-foreground'>
+              <button
+                type='button'
+                onClick={() => setNavYear(viewYear - 12)}
+                aria-label='Previous decade'
+                className='flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              >
+                <ChevronLeft className='h-4 w-4' />
+              </button>
+
+              <span className='text-[14.5px] font-semibold text-slate-800 dark:text-slate-100'>
                 {decadeStart} – {decadeStart + 11}
               </span>
 
-              <div className='flex items-center gap-1'>
-                <button
-                  type='button'
-                  onClick={() => setNavYear(viewYear - 12)}
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronsLeft className='h-4 w-4' />
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setNavYear(viewYear + 12)}
-                  className='flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-                >
-                  <ChevronsRight className='h-4 w-4' />
-                </button>
-              </div>
+              <button
+                type='button'
+                onClick={() => setNavYear(viewYear + 12)}
+                aria-label='Next decade'
+                className='flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              >
+                <ChevronRight className='h-4 w-4' />
+              </button>
             </>
           )}
         </div>
@@ -480,14 +471,11 @@ export function DatePicker({
         {viewMode === 'days' && (
           <div>
             {/* Weekday labels */}
-            <div className='mb-1.5 grid grid-cols-7 gap-1 text-center'>
-              {WEEKDAYS.map((day, idx) => (
+            <div className='mb-2 grid grid-cols-7 gap-1 text-center'>
+              {WEEKDAYS.map((day) => (
                 <span
                   key={day}
-                  className={cn(
-                    'py-0.5 text-[11px] font-semibold tracking-wider text-muted-foreground/80',
-                    (idx === 0 || idx === 6) && 'text-muted-foreground/60'
-                  )}
+                  className='text-[12px] font-normal text-slate-400 dark:text-slate-500'
                 >
                   {day}
                 </span>
@@ -495,10 +483,11 @@ export function DatePicker({
             </div>
 
             {/* Days Grid */}
-            <div className='grid grid-cols-7 gap-1'>
+            <div className='grid grid-cols-7 gap-y-1 gap-x-1'>
               {calendarCells.map((cell, idx) => {
                 const cellIso = toIso(cell.year, cell.month, cell.day)
-                const isSelected = selectedIso === cellIso
+                const activeIso = pendingIso || selectedIso
+                const isSelected = activeIso === cellIso
                 const isToday = today.iso === cellIso
                 const disabledCell = isDateDisabled(cell.year, cell.month, cell.day)
 
@@ -508,22 +497,27 @@ export function DatePicker({
                     type='button'
                     disabled={disabledCell}
                     onClick={() => handleSelectDay(cell.year, cell.month, cell.day)}
+                    onDoubleClick={() => handleDoubleClickDay(cell.year, cell.month, cell.day)}
                     className={cn(
-                      'relative mx-auto flex h-8 w-8 items-center justify-center rounded-xl text-xs font-medium transition-all',
-                      cell.isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/35',
-                      !isSelected &&
-                        !disabledCell &&
-                        'hover:bg-accent hover:text-accent-foreground',
+                      'flex h-8 w-8 items-center justify-center rounded-lg text-[13px] transition-all mx-auto',
+                      // Non-current month days (muted gray like 29, 30, 1, 2, 3, 4, 5 in screenshot)
+                      !cell.isCurrentMonth && 'text-slate-300 dark:text-slate-600 font-normal',
+                      // Current month normal days
+                      cell.isCurrentMonth &&
+                        !isSelected &&
+                        !isToday &&
+                        'font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
+                      // Today outline box (Day 2 in screenshot!)
+                      isToday &&
+                        !isSelected &&
+                        'border-2 border-[#159053] font-semibold text-[#159053] hover:bg-[#ECFDF5] dark:hover:bg-emerald-950/40',
+                      // Selected date filled solid green (Day 18 in screenshot!)
                       isSelected &&
-                        'bg-primary font-semibold text-primary-foreground shadow-xs hover:bg-primary/90',
-                      isToday && !isSelected && 'ring-1.5 font-bold text-primary ring-primary/60',
+                        'bg-[#159053] font-semibold text-white shadow-xs hover:bg-[#127d48]',
                       disabledCell && 'pointer-events-none cursor-not-allowed opacity-20'
                     )}
                   >
                     {cell.day}
-                    {isToday && !isSelected && (
-                      <span className='absolute bottom-1 h-1 w-1 rounded-full bg-primary' />
-                    )}
                   </button>
                 )
               })}
@@ -549,11 +543,11 @@ export function DatePicker({
                     setViewMode('days')
                   }}
                   className={cn(
-                    'flex h-11 items-center justify-center rounded-xl text-xs font-semibold transition-all',
+                    'flex h-10 items-center justify-center rounded-xl text-xs font-semibold transition-all',
                     isSelected
-                      ? 'bg-primary text-primary-foreground shadow-xs'
-                      : 'text-foreground hover:bg-muted',
-                    isCurrent && !isSelected && 'border border-primary/50 font-bold text-primary',
+                      ? 'bg-[#159053] text-white shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+                    isCurrent && !isSelected && 'border border-[#159053] font-bold text-[#159053]',
                     disabledMonth && 'pointer-events-none cursor-not-allowed opacity-25'
                   )}
                 >
@@ -582,11 +576,11 @@ export function DatePicker({
                     setViewMode('months')
                   }}
                   className={cn(
-                    'flex h-11 items-center justify-center rounded-xl text-xs font-semibold transition-all',
+                    'flex h-10 items-center justify-center rounded-xl text-xs font-semibold transition-all',
                     isSelected
-                      ? 'bg-primary text-primary-foreground shadow-xs'
-                      : 'text-foreground hover:bg-muted',
-                    isCurrent && !isSelected && 'border border-primary/50 font-bold text-primary',
+                      ? 'bg-[#159053] text-white shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+                    isCurrent && !isSelected && 'border border-[#159053] font-bold text-[#159053]',
                     disabledYear && 'pointer-events-none cursor-not-allowed opacity-25'
                   )}
                 >
@@ -597,23 +591,35 @@ export function DatePicker({
           </div>
         )}
 
-        {/* Bottom Quick Bar */}
-        <div className='mt-2.5 flex items-center justify-between border-t border-border/60 pt-2.5 text-xs'>
-          <button
-            type='button'
-            onClick={() => handleClear()}
-            className='rounded-md px-2 py-1 font-medium text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive'
-          >
-            Clear
-          </button>
+        {/* Bottom Divider */}
+        <div className='my-3 border-t border-slate-100 dark:border-slate-800' />
 
+        {/* Bottom Footer */}
+        <div className='flex items-center justify-between text-[13px]'>
           <button
             type='button'
             onClick={handleToday}
-            className='rounded-md px-2 py-1 font-bold text-primary transition-colors hover:bg-primary/10 hover:text-primary/80'
+            className='font-semibold text-[#159053] transition-colors hover:text-[#117343] hover:underline cursor-pointer'
           >
             Today
           </button>
+
+          <div className='flex items-center gap-2'>
+            <button
+              type='button'
+              onClick={handleClear}
+              className='rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+            >
+              Clear
+            </button>
+            <button
+              type='button'
+              onClick={handleApply}
+              className='rounded-lg bg-[#159053] px-3.5 py-1.5 text-[12.5px] font-medium text-white shadow-xs transition-colors hover:bg-[#127d48]'
+            >
+              Apply
+            </button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

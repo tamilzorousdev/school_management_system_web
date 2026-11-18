@@ -249,13 +249,13 @@ function RosterEditor({
                     key={student.student_id}
                     className={cn('grid gap-2 p-3', ROW_TINT[mark.status])}
                   >
-                    <div className='flex flex-wrap items-center justify-between gap-2'>
+                    <div className='flex flex-wrap items-center justify-between gap-2 table-typography'>
                       <div className='flex min-w-0 items-center gap-3'>
-                        <span className='tabular grid size-8 shrink-0 place-items-center rounded-md bg-muted text-xs font-bold text-muted-foreground'>
+                        <span className='flex size-8 shrink-0 items-center justify-center rounded-full border border-[#A7F3D0]/70 bg-[#ECFDF5] text-xs font-bold text-[#059669] select-none dark:border-emerald-800/40 dark:bg-emerald-950/60 dark:text-emerald-300'>
                           {student.roll_no ?? '—'}
                         </span>
                         <span className='grid min-w-0'>
-                          <span className='flex items-center gap-1.5 truncate font-semibold'>
+                          <span className='flex items-center gap-1.5 truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
                             {student.full_name}
                             {student.on_duty ? (
                               <Badge tone='success'>
@@ -265,7 +265,7 @@ function RosterEditor({
                               <Badge tone='info'>Approved leave</Badge>
                             ) : null}
                           </span>
-                          <span className='truncate font-mono text-xs text-muted-foreground'>
+                          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                             {student.admission_no}
                           </span>
                         </span>
