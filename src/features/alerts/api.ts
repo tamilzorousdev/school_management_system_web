@@ -64,6 +64,7 @@ export const alertKeys = {
   list: (params: AlertListParams) => [...alertKeys.all, 'list', params] as const,
   insights: () => [...alertKeys.all, 'insights'] as const,
   activeSos: () => [...alertKeys.all, 'active-sos'] as const,
+  detail: (id: number) => [...alertKeys.all, 'detail', id] as const,
 }
 
 const base = '/admin/fleet/alerts'
@@ -71,6 +72,7 @@ const base = '/admin/fleet/alerts'
 export const alertsApi = {
   list: (params: AlertListParams) => api.get<Paginated<FleetAlert>>(base, { ...params }),
   insights: () => api.get<AlertInsights>(`${base}/insights`),
+  get: (id: number) => api.get<FleetAlert>(`${base}/${id}`),
   acknowledge: (id: number) => api.post<FleetAlert>(`${base}/${id}/acknowledge`),
   resolve: ({ id, resolution_note }: { id: number; resolution_note: string }) =>
     api.post<FleetAlert>(`${base}/${id}/resolve`, { resolution_note }),
@@ -90,6 +92,14 @@ export function useAlertInsights(poll: boolean) {
     queryKey: alertKeys.insights(),
     queryFn: alertsApi.insights,
     refetchInterval: poll ? config.refreshIntervalMs * 3 : false,
+  })
+}
+
+export function useAlert(id: number | null) {
+  return useQuery({
+    queryKey: alertKeys.detail(id ?? 0),
+    queryFn: () => alertsApi.get(id!),
+    enabled: Boolean(id),
   })
 }
 

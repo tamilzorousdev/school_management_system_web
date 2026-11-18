@@ -38,7 +38,7 @@ import {
   type FleetAlert,
 } from '../api'
 import { ResolveAlertModal } from '../components/resolve-alert-modal'
-import { SosBanner } from '../components/sos-banner'
+import { AlertSheet } from '../components/alert-sheet'
 import { ALERT_KIND, ALERT_SEVERITY, ALERT_STATUS, mapLink, telLink } from '../labels'
 import { useAlertsLive } from '../live'
 import type { AlertsSearch } from '../search'
@@ -138,6 +138,7 @@ export function AlertsPage() {
   const canManage = can(me, 'fleet.manage')
   const socket = useAlertsLive()
   const [resolving, setResolving] = useState<FleetAlert | null>(null)
+  const [viewing, setViewing] = useState<number | null>(null)
   const acknowledge = useAcknowledgeAlert()
   const { date, ...filters } = search
   const list = useAlerts({ ...filters, from: date, to: date, limit: LIMIT }, !socket.live)
@@ -306,8 +307,6 @@ export function AlertsPage() {
         actions={<LiveBadge status={socket.status} state={socket.state} />}
       />
 
-      <SosBanner />
-
       <InsightCards items={cards} loading={insights.isPending} />
 
       <Card className='overflow-hidden'>
@@ -380,6 +379,7 @@ export function AlertsPage() {
           loading={list.isFetching && !list.data}
           error={list.isError ? list.error.message : null}
           onRetry={() => list.refetch()}
+          onRowClick={(alert) => setViewing(alert.id)}
           sort={{ sort: search.sort, order: search.order ?? 'desc' }}
           onSortChange={(next) => setSearch(next as Partial<AlertsSearch>)}
           empty={{
@@ -425,6 +425,7 @@ export function AlertsPage() {
         open={Boolean(resolving)}
         onOpenChange={(open) => !open && setResolving(null)}
       />
+      <AlertSheet alertId={viewing} onOpenChange={(open) => !open && setViewing(null)} />
     </Page>
   )
 }

@@ -17,7 +17,6 @@ import { Page, PageHeader } from '@/components/common/page'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SosBanner } from '@/features/alerts/components/sos-banner'
 import { can, useMe, type Me } from '@/features/auth/api'
 import { SportsStarsCard } from '@/features/activities/components/sports-stars-card'
 import { TopRankHoldersCard } from '@/features/exams/components/top-rank-holders-card'
@@ -43,7 +42,6 @@ export function DashboardPage() {
         title={`Good ${greeting()}, Tamilzorous`}
         description='Today at a glance: students, attendance, staff, buses and alerts.'
       />
-      {can(me, 'fleet.view') && <SosBanner />}
       {dashboard.isError && !dashboard.data ? (
         <ErrorState message={dashboard.error.message} onRetry={() => dashboard.refetch()} />
       ) : (
