@@ -46,6 +46,8 @@ interface DataTableProps<T> {
     total: number
     label: string
     onPageChange: (page: number) => void
+    onLimitChange?: (limit: number) => void
+    limitOptions?: number[]
   }
 }
 
@@ -212,6 +214,8 @@ export function DataTable<T>({
           limit={pagination.limit}
           total={pagination.total}
           onPageChange={pagination.onPageChange}
+          onLimitChange={pagination.onLimitChange}
+          limitOptions={pagination.limitOptions}
           label={pagination.label}
         />
       )}

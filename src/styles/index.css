@@ -107,6 +107,7 @@
   --color-sidebar-border: var(--sidebar-border);
 
   --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-table: 'Plus Jakarta Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -193,6 +194,14 @@
 .dark .leaflet-bar a.leaflet-disabled {
   background: var(--muted);
   color: var(--muted-foreground);
+}
+
+.table-typography {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  letter-spacing: 0%;
 }
 
 @media (prefers-reduced-motion: reduce) {
