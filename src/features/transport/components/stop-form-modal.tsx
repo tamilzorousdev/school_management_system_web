@@ -14,17 +14,19 @@ export interface DraftStop {
   pickup_time: string | null
   drop_time: string | null
   geofence_radius_m: number
-  monthly_fee: number
+  fee_override: number | null
 }
 
 export function StopFormModal({
   stop,
   isNew,
+  routeFee,
   onSave,
   onClose,
 }: {
   stop: DraftStop
   isNew: boolean
+  routeFee: number
   onSave: (stop: DraftStop) => void
   onClose: () => void
 }) {
@@ -33,7 +35,7 @@ export function StopFormModal({
   const [pickup, setPickup] = useState(stop.pickup_time ?? '')
   const [drop, setDrop] = useState(stop.drop_time ?? '')
   const [radius, setRadius] = useState(String(stop.geofence_radius_m))
-  const [fee, setFee] = useState(String(stop.monthly_fee))
+  const [fee, setFee] = useState(stop.fee_override === null ? '' : String(stop.fee_override))
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   return (
@@ -52,12 +54,15 @@ export function StopFormModal({
         onSubmit={(event) => {
           event.preventDefault()
           const radiusValue = Number(radius)
-          const feeValue = fee.trim() === '' ? 0 : Number(fee)
+          const feeValue = fee.trim() === '' ? null : Number(fee)
           const next: Record<string, string> = {}
           if (name.trim().length < 2) next.name = 'Enter the stop name'
           if (!Number.isInteger(radiusValue) || radiusValue < 30 || radiusValue > 1000)
             next.radius = 'Enter 30 to 1000 metres'
-          if (!Number.isFinite(feeValue) || feeValue < 0 || feeValue > 100000)
+          if (
+            feeValue !== null &&
+            (!Number.isFinite(feeValue) || feeValue < 0 || feeValue > 100000)
+          )
             next.fee = 'Enter an amount from 0 to 100000'
           setErrors(next)
           if (Object.keys(next).length) return
@@ -68,7 +73,7 @@ export function StopFormModal({
             pickup_time: pickup || null,
             drop_time: drop || null,
             geofence_radius_m: radiusValue,
-            monthly_fee: Math.round(feeValue * 100) / 100,
+            fee_override: feeValue === null ? null : Math.round(feeValue * 100) / 100,
           })
         }}
       >
@@ -141,9 +146,9 @@ export function StopFormModal({
         </FormField>
         <FormField
           id='stop-fee'
-          label='Monthly fee (₹)'
+          label='Own monthly fee (₹)'
           error={errors.fee}
-          hint='Transport fee for students at this stop'
+          hint={`Leave empty to use the route fee, ₹${routeFee.toLocaleString('en-IN')}`}
         >
           <Input
             id='stop-fee'
@@ -151,6 +156,7 @@ export function StopFormModal({
             inputMode='decimal'
             min={0}
             max={100000}
+            placeholder={String(routeFee)}
             value={fee}
             aria-invalid={Boolean(errors.fee) || undefined}
             onChange={(event) => setFee(event.target.value)}

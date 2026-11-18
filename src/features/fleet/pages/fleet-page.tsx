@@ -34,7 +34,6 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { today } from '@/features/attendance/labels'
-import { SosBanner } from '@/features/alerts/components/sos-banner'
 import { can, useMe } from '@/features/auth/api'
 import { useBuses, type Bus as SchoolBus } from '@/features/transport/api'
 import { useNow } from '@/hooks/use-now'
@@ -276,7 +275,6 @@ export function FleetPage() {
         description='Where every bus is, whether the engine is on, fuel, battery and harsh driving. Buses on a trip move live.'
         actions={<LiveBadge status={socket.status} state={socket.state} />}
       />
-      <SosBanner />
       {live.isError && !data ? (
         <Card className='p-6'>
           <ErrorState message={live.error.message} onRetry={() => live.refetch()} />

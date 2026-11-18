@@ -1,11 +1,12 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { Layers, ReceiptIndianRupee, Wallet } from 'lucide-react'
+import { Bus, Layers, ReceiptIndianRupee, Wallet } from 'lucide-react'
 import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { can, useMe } from '@/features/auth/api'
 import { DuesTab } from '../components/dues-tab'
 import { PaymentsTab } from '../components/payments-tab'
 import { PlansTab } from '../components/plans-tab'
+import { TransportFeesTab } from '../components/transport-fees-tab'
 import type { FeeTab, FeesSearch } from '../search'
 
 const route = getRouteApi('/_app/fees')
@@ -44,6 +45,7 @@ export function FeesPage() {
           { value: 'dues', label: 'Dues', icon: ReceiptIndianRupee },
           { value: 'plans', label: 'Fee plans', icon: Layers },
           { value: 'payments', label: 'Payments', icon: Wallet },
+          { value: 'transport', label: 'Bus fees', icon: Bus },
         ]}
       />
       {search.tab === 'dues' && (
@@ -66,6 +68,7 @@ export function FeesPage() {
           }
         />
       )}
+      {search.tab === 'transport' && <TransportFeesTab search={search} onChange={setSearch} />}
     </Page>
   )
 }

@@ -29,6 +29,7 @@ export function RouteFormModal({
   const [name, setName] = useState(route?.name ?? '')
   const [busId, setBusId] = useState(route?.vehicle ? String(route.vehicle.id) : undefined)
   const [active, setActive] = useState(route?.is_active ?? true)
+  const [fee, setFee] = useState(String(route?.monthly_fee ?? 0))
   const [reason, setReason] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useTransportMutation((input: RouteInput) =>
@@ -57,6 +58,9 @@ export function RouteFormModal({
           const next: Record<string, string> = {}
           if (!cleanCode) next.code = 'Enter a code, like R1'
           if (name.trim().length < 2) next.name = 'Enter the route name'
+          const feeValue = fee.trim() === '' ? 0 : Number(fee)
+          if (!Number.isFinite(feeValue) || feeValue < 0 || feeValue > 100000)
+            next.monthly_fee = 'Enter an amount from 0 to 100000'
           setErrors(next)
           if (Object.keys(next).length) return
           try {
@@ -64,6 +68,7 @@ export function RouteFormModal({
               code: cleanCode,
               name: name.trim(),
               vehicle_id: busId ? Number(busId) : null,
+              monthly_fee: Math.round((fee.trim() === '' ? 0 : Number(fee)) * 100) / 100,
               ...(route ? { is_active: active } : {}),
               ...(route && reason.trim() ? { reason: reason.trim() } : {}),
             })
@@ -94,6 +99,24 @@ export function RouteFormModal({
             value={name}
             aria-invalid={Boolean(errors.name) || undefined}
             onChange={(event) => setName(event.target.value)}
+          />
+        </FormField>
+        <FormField
+          id='route-fee'
+          label='Monthly bus fee (₹)'
+          error={errors.monthly_fee}
+          className='sm:col-span-2'
+          hint='Charged to every student on this route. A stop can have its own fee instead. Unpaid invoices update when you change it for a student.'
+        >
+          <Input
+            id='route-fee'
+            type='number'
+            inputMode='decimal'
+            min={0}
+            max={100000}
+            value={fee}
+            aria-invalid={Boolean(errors.monthly_fee) || undefined}
+            onChange={(event) => setFee(event.target.value)}
           />
         </FormField>
         <FormField

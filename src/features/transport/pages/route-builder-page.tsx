@@ -51,7 +51,7 @@ const toDraft = (detail: RouteDetail): DraftStop[] =>
     pickup_time: stop.pickup_time,
     drop_time: stop.drop_time,
     geofence_radius_m: stop.geofence_radius_m,
-    monthly_fee: stop.monthly_fee,
+    fee_override: stop.fee_override,
   }))
 
 const toInput = (stops: DraftStop[]): StopInput[] =>
@@ -64,7 +64,7 @@ const toInput = (stops: DraftStop[]): StopInput[] =>
     pickup_time: stop.pickup_time,
     drop_time: stop.drop_time,
     geofence_radius_m: stop.geofence_radius_m,
-    monthly_fee: stop.monthly_fee,
+    monthly_fee: stop.fee_override,
   }))
 
 const signature = (stops: DraftStop[]) => JSON.stringify(toInput(stops))
@@ -236,7 +236,7 @@ export function RouteBuilderPage() {
         pickup_time: null,
         drop_time: null,
         geofence_radius_m: 100,
-        monthly_fee: 0,
+        fee_override: null,
       },
     })
 
@@ -447,6 +447,7 @@ export function RouteBuilderPage() {
             {data ? (
               <StopList
                 routeId={routeId}
+                routeFee={data?.monthly_fee ?? 0}
                 stops={draft}
                 counts={counts}
                 selectedKey={selectedKey}
@@ -477,6 +478,7 @@ export function RouteBuilderPage() {
         <StopFormModal
           stop={editing.stop}
           isNew={editing.isNew}
+          routeFee={data?.monthly_fee ?? 0}
           onClose={() => setEditing(null)}
           onSave={(stop) => {
             setDraft((prev) =>
