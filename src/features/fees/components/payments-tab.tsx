@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileDown, Wallet } from 'lucide-react'
+import { FileDown, Undo2, Wallet } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
@@ -8,18 +8,28 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatDate } from '@/lib/format'
 import { useClasses } from '@/features/setup/api'
-import { usePaymentSummary, usePayments, type FeePayment, type PaymentMode } from '../api'
-import { MODE_OPTIONS, PAYMENT_MODES, rupees } from '../labels'
+import type { FeeAccess } from '../access'
+import {
+  usePaymentSummary,
+  usePayments,
+  type FeePayment,
+  type PaymentMode,
+  type PaymentStatus,
+} from '../api'
+import { MODE_OPTIONS, PAYMENT_MODES, PAYMENT_STATUS_OPTIONS, rupees } from '../labels'
 import type { FeesSearch } from '../search'
+import { PaymentAmount, ReversePaymentModal, ReversedBadge } from './payment-reversal'
 import { ReceiptModal } from './receipt-modal'
 
 const LIMIT = 20
 
 export function PaymentsTab({
   search,
+  access,
   onChange,
 }: {
   search: FeesSearch
+  access: FeeAccess
   onChange: (patch: Partial<FeesSearch>) => void
 }) {
   const page = search.page ?? 1
@@ -34,34 +44,58 @@ export function PaymentsTab({
     ...filters,
     page,
     limit: LIMIT,
+    status: search.payment_status,
     search: search.search,
     sort: search.sort,
     order: search.order,
   })
   const summary = usePaymentSummary(filters)
   const filtered = Boolean(
-    search.search || search.from || search.to || search.mode || search.class_id
+    search.search ||
+    search.from ||
+    search.to ||
+    search.mode ||
+    search.class_id ||
+    search.payment_status
   )
   const [selectedPayment, setSelectedPayment] = useState<FeePayment | null>(null)
+  const [reversing, setReversing] = useState<FeePayment | null>(null)
 
   useShortcut('app.refresh', () => {
     void payments.refetch()
     void summary.refetch()
   })
 
-  const receiptButton = (payment: FeePayment) => (
-    <Button
-      size='sm'
-      variant='outline'
-      aria-label={`Receipt ${payment.receipt_no}`}
-      onClick={(event) => {
-        event.stopPropagation()
-        setSelectedPayment(payment)
-      }}
-    >
-      <FileDown />
-      Receipt
-    </Button>
+  const actions = (payment: FeePayment) => (
+    <span className='inline-flex gap-1.5'>
+      {access.adjust && payment.status === 'success' && (
+        <Button
+          size='sm'
+          variant='ghost'
+          className='text-destructive hover:bg-destructive/10'
+          aria-label={`Reverse payment ${payment.receipt_no}`}
+          onClick={(event) => {
+            event.stopPropagation()
+            setReversing(payment)
+          }}
+        >
+          <Undo2 />
+          Reverse
+        </Button>
+      )}
+      <Button
+        size='sm'
+        variant='outline'
+        aria-label={`Receipt ${payment.receipt_no}`}
+        onClick={(event) => {
+          event.stopPropagation()
+          setSelectedPayment(payment)
+        }}
+      >
+        <FileDown />
+        Receipt
+      </Button>
+    </span>
   )
 
   const columns: Column<FeePayment>[] = [
@@ -114,9 +148,14 @@ export function PaymentsTab({
       header: 'Amount',
       align: 'right',
       sortKey: 'amount',
-      cell: (payment) => <span className='tabular font-bold'>{rupees(payment.amount)}</span>,
+      cell: (payment) => (
+        <span className='inline-flex flex-wrap items-center justify-end gap-1.5'>
+          <ReversedBadge payment={payment} />
+          <PaymentAmount payment={payment} />
+        </span>
+      ),
     },
-    { key: 'actions', header: '', align: 'right', cell: receiptButton },
+    { key: 'actions', header: '', align: 'right', cell: actions },
   ]
 
   return (
@@ -150,6 +189,7 @@ export function PaymentsTab({
                   to: undefined,
                   mode: undefined,
                   class_id: undefined,
+                  payment_status: undefined,
                 })
             : undefined
         }
@@ -201,6 +241,14 @@ export function PaymentsTab({
           }))}
           onChange={(value) => onChange({ class_id: value ? Number(value) : undefined })}
         />
+        <FilterSelect
+          id='payments-status-filter'
+          label='Filter by status'
+          allLabel='All payments'
+          value={search.payment_status}
+          options={PAYMENT_STATUS_OPTIONS}
+          onChange={(value) => onChange({ payment_status: value as PaymentStatus | undefined })}
+        />
       </ListToolbar>
       <DataTable
         rows={payments.data?.items ?? []}
@@ -240,14 +288,19 @@ export function PaymentsTab({
                   {payment.receipt_no}
                 </span>
               </span>
-              <span className='tabular font-bold'>{rupees(payment.amount)}</span>
+              <span className='grid justify-items-end gap-1'>
+                <PaymentAmount payment={payment} />
+                <ReversedBadge payment={payment} />
+              </span>
             </div>
+            <div className='flex justify-end'>{actions(payment)}</div>
           </div>
         )}
       />
       {selectedPayment && (
         <ReceiptModal payment={selectedPayment} onClose={() => setSelectedPayment(null)} />
       )}
+      {reversing && <ReversePaymentModal payment={reversing} onClose={() => setReversing(null)} />}
     </Card>
   )
 }

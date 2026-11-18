@@ -5,20 +5,33 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { alerts } from '@/lib/alerts'
 import { formatDate } from '@/lib/format'
-import { can, useMe } from '@/features/auth/api'
-import { useStudentFees, type FeeInvoice, type FeePayment } from '../api'
-import { PAYMENT_MODES, STUDENT_FEE_STATUS, rupees } from '../labels'
+import { useMe } from '@/features/auth/api'
+import { feeAccess } from '../access'
+import { feesApi, useFeesMutation, useStudentFees, type FeeInvoice, type FeePayment } from '../api'
+import {
+  PAYMENT_MODES,
+  STUDENT_FEE_STATUS,
+  formErrors,
+  openAdvanceReceipt,
+  rupees,
+} from '../labels'
 import { InvoiceModal, InvoiceStatusBadge } from './invoice-modal'
 import { PaymentModal } from './payment-modal'
+import { PaymentListItem, ReversePaymentModal } from './payment-reversal'
 import { ReceiptModal } from './receipt-modal'
+import { StudentPaymentModal } from './student-payment-modal'
 
 export function StudentFeesTab({ studentId }: { studentId: number }) {
-  const canManage = can(useMe().data, 'fees.manage')
+  const access = feeAccess(useMe().data)
   const fees = useStudentFees(studentId)
   const [openId, setOpenId] = useState<number | null>(null)
   const [paying, setPaying] = useState<FeeInvoice | null>(null)
   const [receiptPayment, setReceiptPayment] = useState<FeePayment | null>(null)
+  const [reversing, setReversing] = useState<FeePayment | null>(null)
+  const [collecting, setCollecting] = useState(false)
+  const useCredit = useFeesMutation(() => feesApi.applyCredit(studentId))
   const data = fees.data
 
   if (fees.isPending) {
@@ -70,6 +83,91 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
             </div>
           ))}
         </dl>
+        {(access.collect || data.credit_balance > 0) && (
+          <div className='flex flex-wrap items-center justify-between gap-2'>
+            <span className='text-sm text-muted-foreground'>
+              {data.credit_balance > 0 ? (
+                <>
+                  Advance credit{' '}
+                  <span className='tabular font-bold text-foreground'>
+                    {rupees(data.credit_balance)}
+                  </span>
+                  , used on the next invoices
+                </>
+              ) : (
+                'No advance credit'
+              )}
+            </span>
+            {access.collect && (
+              <span className='flex flex-wrap gap-2'>
+                {data.credit_balance > 0 && data.balance > 0 && (
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    loading={useCredit.isPending}
+                    onClick={async () => {
+                      try {
+                        const result = await useCredit.mutateAsync(undefined)
+                        alerts.success(`${rupees(result.applied_amount)} of advance credit used`)
+                      } catch (error) {
+                        formErrors(error)
+                      }
+                    }}
+                  >
+                    Use credit now
+                  </Button>
+                )}
+                <Button size='sm' onClick={() => setCollecting(true)}>
+                  <IndianRupee />
+                  Record payment
+                </Button>
+              </span>
+            )}
+          </div>
+        )}
+        {data.previous_dues.amount > 0 && (
+          <p className='rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm'>
+            <span className='font-semibold'>{rupees(data.previous_dues.amount)}</span> of the
+            balance is from {data.previous_dues.academic_years.join(', ')} (
+            {data.previous_dues.invoices === 1
+              ? '1 invoice'
+              : `${data.previous_dues.invoices} invoices`}
+            ).
+          </p>
+        )}
+        {data.advances.length > 0 && (
+          <div className='grid gap-1.5'>
+            <h3 className='text-xs font-semibold text-muted-foreground'>Advance receipts</h3>
+            <ul className='divide-y rounded-lg border'>
+              {data.advances.map((advance) => (
+                <li
+                  key={advance.collection_id}
+                  className='flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm'
+                >
+                  <span className='grid min-w-0'>
+                    <span className='truncate font-mono text-xs'>{advance.receipt_no}</span>
+                    <span className='truncate text-xs text-muted-foreground'>
+                      {formatDate(advance.paid_on)} · {PAYMENT_MODES[advance.mode]} · from{' '}
+                      {rupees(advance.collected)} paid
+                    </span>
+                  </span>
+                  <span className='flex items-center gap-2'>
+                    <span className='tabular font-bold'>{rupees(advance.amount)}</span>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      aria-label={`Advance receipt ${advance.receipt_no}`}
+                      onClick={() => openAdvanceReceipt(advance.collection_id)}
+                    >
+                      <FileDown />
+                      Receipt
+                    </Button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Card>
 
       <Card className='overflow-hidden'>
@@ -105,7 +203,7 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
                   <span className='flex items-center gap-2'>
                     <span className='tabular text-sm font-bold'>{rupees(invoice.balance)}</span>
                     <InvoiceStatusBadge invoice={invoice} />
-                    {canManage && invoice.balance > 0 && invoice.status !== 'cancelled' && (
+                    {access.collect && invoice.balance > 0 && invoice.status !== 'cancelled' && (
                       <Button
                         size='sm'
                         variant='outline'
@@ -138,31 +236,14 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
           <h2 className='border-b px-4 py-3 font-bold'>Payments</h2>
           <ul className='divide-y'>
             {data.payments.map((payment) => (
-              <li
+              <PaymentListItem
                 key={payment.id}
-                className='flex flex-wrap items-center justify-between gap-2 px-4 py-2.5'
-              >
-                <span className='grid min-w-0'>
-                  <span className='tabular font-semibold'>
-                    {rupees(payment.amount)}{' '}
-                    <span className='font-normal text-muted-foreground'>
-                      · {PAYMENT_MODES[payment.mode]} · {payment.installment}
-                    </span>
-                  </span>
-                  <span className='truncate text-xs text-muted-foreground'>
-                    {formatDate(payment.paid_on)} · {payment.receipt_no}
-                  </span>
-                </span>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  aria-label={`Receipt ${payment.receipt_no}`}
-                  onClick={() => setReceiptPayment(payment)}
-                >
-                  <FileDown />
-                  Receipt
-                </Button>
-              </li>
+                payment={payment}
+                showInstallment
+                canReverse={access.adjust}
+                onReceipt={() => setReceiptPayment(payment)}
+                onReverse={() => setReversing(payment)}
+              />
             ))}
           </ul>
         </Card>
@@ -171,7 +252,7 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
       {openId && (
         <InvoiceModal
           invoiceId={openId}
-          canManage={canManage}
+          access={access}
           onClose={() => setOpenId(null)}
           onRecordPayment={(invoice) => {
             setOpenId(null)
@@ -199,6 +280,8 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
           }}
         />
       )}
+      {collecting && <StudentPaymentModal fees={data} onClose={() => setCollecting(false)} />}
+      {reversing && <ReversePaymentModal payment={reversing} onClose={() => setReversing(null)} />}
     </div>
   )
 }

@@ -118,7 +118,8 @@ const clean = (params?: QueryParams) =>
 export const api = {
   get: <T>(url: string, params?: QueryParams) =>
     http.get<ApiEnvelope<T>>(url, { params: clean(params) }).then(unwrap),
-  post: <T>(url: string, body?: unknown) => http.post<ApiEnvelope<T>>(url, body).then(unwrap),
+  post: <T>(url: string, body?: unknown, headers?: Record<string, string>) =>
+    http.post<ApiEnvelope<T>>(url, body, headers ? { headers } : undefined).then(unwrap),
   patch: <T>(url: string, body?: unknown) => http.patch<ApiEnvelope<T>>(url, body).then(unwrap),
   put: <T>(url: string, body?: unknown) => http.put<ApiEnvelope<T>>(url, body).then(unwrap),
   delete: <T>(url: string, params?: QueryParams) =>

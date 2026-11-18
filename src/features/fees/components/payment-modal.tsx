@@ -12,7 +12,7 @@ import {
   type FeePayment,
   type PaymentMode,
 } from '../api'
-import { MODE_OPTIONS, amountError, formErrors, rupees } from '../labels'
+import { MANUAL_MODE_OPTIONS, amountError, formErrors, newIdempotencyKey, rupees } from '../labels'
 
 const FORM_ID = 'fee-payment-form'
 
@@ -51,8 +51,8 @@ export function PaymentModal({
   const [paidOn, setPaidOn] = useState(today())
   const [notes, setNotes] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [idempotencyKey] = useState(newIdempotencyKey)
 
-  // Mode-specific fields
   const [upiRef, setUpiRef] = useState('')
   const [upiVpa, setUpiVpa] = useState('')
 
@@ -75,7 +75,7 @@ export function PaymentModal({
       reference?: string
       paid_on: string
       notes?: string
-    }) => feesApi.pay(invoice.id, payload)
+    }) => feesApi.pay(invoice.id, payload, idempotencyKey)
   )
 
   const clear = (field: string) => errors[field] && setErrors((prev) => ({ ...prev, [field]: '' }))
@@ -142,7 +142,12 @@ export function PaymentModal({
             onPaid(payment)
           } catch (error) {
             setErrors(
-              formErrors(error, { PAYMENT_EXCEEDS_BALANCE: 'amount', INVOICE_PAID: 'amount' })
+              formErrors(error, {
+                PAYMENT_EXCEEDS_BALANCE: 'amount',
+                INVOICE_PAID: 'amount',
+                IDEMPOTENCY_CONFLICT: 'amount',
+                YEAR_ARCHIVED: 'amount',
+              })
             )
           }
         }}
@@ -174,7 +179,7 @@ export function PaymentModal({
             id='payment-mode'
             label='Paid by'
             value={mode}
-            options={MODE_OPTIONS}
+            options={MANUAL_MODE_OPTIONS}
             placeholder='Choose how it was paid'
             searchPlaceholder='Search payment modes'
             invalid={Boolean(errors.mode)}

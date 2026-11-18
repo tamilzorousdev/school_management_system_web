@@ -2,7 +2,25 @@ import type { BadgeTone } from '@/components/ui/badge'
 import { toApiError } from '@/lib/api/errors'
 import { alerts } from '@/lib/alerts'
 import { openFile } from '@/lib/files'
-import { receiptUrl, type InvoiceStatus, type PaymentMode, type StudentFeeStatus } from './api'
+import {
+  advanceReceiptUrl,
+  receiptUrl,
+  type AwardStatus,
+  type BenefitCalcType,
+  type BenefitKind,
+  type BenefitType,
+  type FeeAuditAction,
+  type FeeRequestKind,
+  type FeeRequestStatus,
+  type FeeAuditEntity,
+  type FeeFrequency,
+  type InvoiceStatus,
+  type OnlineOrderStatus,
+  type PaymentMode,
+  type PaymentStatus,
+  type PlanVersionStatus,
+  type StudentFeeStatus,
+} from './api'
 
 export const INVOICE_STATUS: Record<InvoiceStatus, { label: string; tone: BadgeTone }> = {
   unpaid: { label: 'Unpaid', tone: 'warning' },
@@ -24,12 +42,101 @@ export const PAYMENT_MODES: Record<PaymentMode, string> = {
   card: 'Card',
   bank_transfer: 'Bank transfer',
   cheque: 'Cheque',
+  online: 'Online (Razorpay)',
+  credit: 'Advance credit',
+}
+
+export const PAYMENT_STATUS: Record<PaymentStatus, { label: string; tone: BadgeTone }> = {
+  success: { label: 'Received', tone: 'success' },
+  reversed: { label: 'Reversed', tone: 'danger' },
+}
+
+export const PAYMENT_STATUS_OPTIONS = (Object.keys(PAYMENT_STATUS) as PaymentStatus[]).map(
+  (status) => ({ value: status, label: PAYMENT_STATUS[status].label })
+)
+
+export const FREQUENCIES: Record<FeeFrequency, string> = {
+  one_time: 'One time',
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  half_yearly: 'Half-yearly',
+  yearly: 'Yearly',
+  per_term: 'Per term',
+  custom: 'As per plan',
+}
+
+export const FREQUENCY_OPTIONS = (Object.keys(FREQUENCIES) as FeeFrequency[]).map((value) => ({
+  value,
+  label: FREQUENCIES[value],
+}))
+
+export const AUDIT_ENTITIES: Record<FeeAuditEntity, string> = {
+  fee_head: 'Fee head',
+  fee_plan: 'Fee plan',
+  fee_invoice: 'Invoice',
+  fee_payment: 'Payment',
+  invoice_run: 'Invoice run',
+  fee_benefit: 'Concession or scholarship',
+  benefit_award: 'Given to a student',
+  fee_request: 'Approval request',
+  fee_refund: 'Refund',
+  fee_settings: 'Late fee settings',
+}
+
+export const AUDIT_ACTIONS: Record<FeeAuditAction, { label: string; tone: BadgeTone }> = {
+  created: { label: 'Added', tone: 'success' },
+  updated: { label: 'Changed', tone: 'info' },
+  deleted: { label: 'Deleted', tone: 'danger' },
+  replaced: { label: 'Plan saved', tone: 'info' },
+  generated: { label: 'Invoices raised', tone: 'info' },
+  discounted: { label: 'Discount', tone: 'warning' },
+  cancelled: { label: 'Cancelled', tone: 'danger' },
+  paid: { label: 'Paid', tone: 'success' },
+  reversed: { label: 'Reversed', tone: 'danger' },
+  submitted: { label: 'Sent for approval', tone: 'info' },
+  approved: { label: 'Approved', tone: 'success' },
+  rejected: { label: 'Sent back', tone: 'warning' },
+  discarded: { label: 'Draft discarded', tone: 'neutral' },
+  awarded: { label: 'Given', tone: 'success' },
+  revoked: { label: 'Withdrawn', tone: 'danger' },
+  requested: { label: 'Asked for approval', tone: 'info' },
+  withdrawn: { label: 'Request withdrawn', tone: 'neutral' },
+  refunded: { label: 'Refunded', tone: 'warning' },
+  late_fee: { label: 'Late fee', tone: 'warning' },
+}
+
+export const AUDIT_ENTITY_OPTIONS = (Object.keys(AUDIT_ENTITIES) as FeeAuditEntity[]).map(
+  (value) => ({ value, label: AUDIT_ENTITIES[value] })
+)
+
+export const AUDIT_ACTION_OPTIONS = (Object.keys(AUDIT_ACTIONS) as FeeAuditAction[]).map(
+  (value) => ({ value, label: AUDIT_ACTIONS[value].label })
+)
+
+export function auditValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (Array.isArray(value)) return value.length ? value.map(auditValue).join(', ') : 'None'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+export function newIdempotencyKey() {
+  const random =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+  return `pay-${random}`
 }
 
 export const MODE_OPTIONS = (Object.keys(PAYMENT_MODES) as PaymentMode[]).map((mode) => ({
   value: mode,
   label: PAYMENT_MODES[mode],
 }))
+
+export const MANUAL_MODE_OPTIONS = MODE_OPTIONS.filter(
+  (option) => option.value !== 'online' && option.value !== 'credit'
+)
 
 export const STATUS_OPTIONS = (Object.keys(INVOICE_STATUS) as InvoiceStatus[]).map((status) => ({
   value: status,
@@ -82,6 +189,12 @@ export const invoicesText = (count: number) => `${count} ${count === 1 ? 'invoic
 
 export function openReceipt(paymentId: number) {
   void openFile(receiptUrl(paymentId)).catch((error: unknown) =>
+    alerts.error(error instanceof Error ? error.message : 'Could not open the receipt')
+  )
+}
+
+export function openAdvanceReceipt(collectionId: number) {
+  void openFile(advanceReceiptUrl(collectionId)).catch((error: unknown) =>
     alerts.error(error instanceof Error ? error.message : 'Could not open the receipt')
   )
 }
@@ -146,3 +259,93 @@ export function amountInWords(value: number): string {
   const rupeesText = parts.length ? `Rupees ${parts.join(' ')}` : 'Rupees Zero'
   return `${rupeesText}${paise ? ` and ${belowHundred(paise)} Paise` : ''} Only`
 }
+
+export const PLAN_VERSION_STATUS: Record<PlanVersionStatus, { label: string; tone: BadgeTone }> = {
+  draft: { label: 'Draft', tone: 'neutral' },
+  pending_approval: { label: 'Waiting for approval', tone: 'warning' },
+  published: { label: 'In use', tone: 'success' },
+  superseded: { label: 'Replaced', tone: 'neutral' },
+}
+
+export const BENEFIT_KINDS: Record<BenefitKind, string> = {
+  concession: 'Concession',
+  scholarship: 'Scholarship',
+}
+
+export const BENEFIT_KIND_OPTIONS = (Object.keys(BENEFIT_KINDS) as BenefitKind[]).map((value) => ({
+  value,
+  label: BENEFIT_KINDS[value],
+}))
+
+export const BENEFIT_TYPES: Record<BenefitType, string> = {
+  sibling: 'Sibling',
+  staff_child: 'Staff child',
+  merit: 'Merit',
+  sports: 'Sports',
+  financial: 'Financial need',
+  management: 'Management quota',
+  government: 'Government',
+  institution: 'School funded',
+  trust: 'Trust',
+  private: 'Private sponsor',
+  other: 'Other',
+}
+
+export const TYPES_BY_KIND: Record<BenefitKind, BenefitType[]> = {
+  concession: ['sibling', 'staff_child', 'merit', 'sports', 'financial', 'management', 'other'],
+  scholarship: ['government', 'institution', 'trust', 'private', 'other'],
+}
+
+export const AWARD_STATUS: Record<AwardStatus, { label: string; tone: BadgeTone }> = {
+  active: { label: 'Active', tone: 'success' },
+  revoked: { label: 'Withdrawn', tone: 'neutral' },
+}
+
+export const AWARD_STATUS_OPTIONS = (Object.keys(AWARD_STATUS) as AwardStatus[]).map((value) => ({
+  value,
+  label: AWARD_STATUS[value].label,
+}))
+
+export function benefitValue(benefit: { calc_type: BenefitCalcType; value: number }): string {
+  return benefit.calc_type === 'percent'
+    ? `${Number(benefit.value)}%`
+    : `${rupees(benefit.value)} a year`
+}
+
+export const REQUEST_KINDS: Record<FeeRequestKind, string> = {
+  discount: 'Discount',
+  cancel: 'Cancel invoice',
+  reversal: 'Reverse payment',
+  refund: 'Refund',
+  reschedule: 'New due date',
+  write_off: 'Write-off',
+}
+
+export const REQUEST_KIND_OPTIONS = (Object.keys(REQUEST_KINDS) as FeeRequestKind[]).map(
+  (value) => ({ value, label: REQUEST_KINDS[value] })
+)
+
+export const ONLINE_ORDER_STATUS: Record<OnlineOrderStatus, { label: string; tone: BadgeTone }> = {
+  created: { label: 'Not finished', tone: 'warning' },
+  paid: { label: 'Paid', tone: 'success' },
+  failed: { label: 'Failed', tone: 'danger' },
+}
+
+export const ONLINE_ORDER_STATUS_OPTIONS = (
+  Object.keys(ONLINE_ORDER_STATUS) as OnlineOrderStatus[]
+).map((value) => ({ value, label: ONLINE_ORDER_STATUS[value].label }))
+
+export const REQUEST_STATUS: Record<FeeRequestStatus, { label: string; tone: BadgeTone }> = {
+  pending: { label: 'Waiting', tone: 'warning' },
+  approved: { label: 'Approved', tone: 'success' },
+  rejected: { label: 'Rejected', tone: 'danger' },
+  withdrawn: { label: 'Withdrawn', tone: 'neutral' },
+}
+
+export const REQUEST_STATUS_OPTIONS = [
+  ...(Object.keys(REQUEST_STATUS) as FeeRequestStatus[]).map((value) => ({
+    value,
+    label: REQUEST_STATUS[value].label,
+  })),
+  { value: 'all', label: 'All requests' },
+]

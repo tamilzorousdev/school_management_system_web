@@ -22,6 +22,7 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
     remarks: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [dues, setDues] = useState<string | null>(null)
   const save = useStudentMutation((input: ExitInput) => recordsApi.exit(student.id, input))
 
   return (
@@ -31,7 +32,7 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
       title={`${student.full_name} is leaving`}
       description='The student is marked as left, the roll number is freed and a transfer certificate is issued.'
       formId='exit-form'
-      submitText='Issue TC'
+      submitText={dues ? 'Issue TC with dues' : 'Issue TC'}
       loading={save.isPending}
       size='lg'
     >
@@ -54,6 +55,7 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
               conduct: draft.conduct.trim() || 'Good',
               promotion_eligible: draft.promotion_eligible,
               remarks: draft.remarks.trim() || null,
+              acknowledge_dues: dues ? true : undefined,
             })
             alerts.success(`TC ${tc.tc_no} issued`)
             onClose()
@@ -62,6 +64,10 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
             )
           } catch (error) {
             const apiError = toApiError(error)
+            if (apiError.code === 'FEE_DUES_PENDING') {
+              setDues(apiError.message)
+              return
+            }
             setErrors(
               apiError.fieldErrors.length
                 ? Object.fromEntries(apiError.fieldErrors.map((item) => [item.field, item.message]))
@@ -70,6 +76,15 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
           }
         }}
       >
+        {dues && (
+          <p
+            role='alert'
+            className='rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm sm:col-span-2'
+          >
+            <span className='font-semibold'>Unpaid fees.</span> {dues} To stop collecting them, ask
+            for a write-off on each invoice in Fees.
+          </p>
+        )}
         {errors.root && (
           <p role='alert' className='text-sm font-medium text-destructive sm:col-span-2'>
             {errors.root}
