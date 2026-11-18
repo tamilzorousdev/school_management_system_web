@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
+  ArrowLeftRight,
   Map as MapIcon,
   Pencil,
   Plus,
   Radio,
   Route as RouteIcon,
   Trash2,
+  Undo2,
   UsersRound,
 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -19,31 +21,61 @@ import { today } from '@/features/attendance/labels'
 import { useTrips } from '@/features/fleet/api'
 import { run } from '@/features/setup/form-actions'
 import { cn } from '@/lib/utils'
-import { transportApi, useBusRoutes, useTransportMutation, type BusRoute } from '../api'
+import { Combobox } from '@/components/common/combobox'
+import {
+  transportApi,
+  useBusRoutes,
+  useTransportMutation,
+  type BusRoute,
+  type RouteFlag,
+} from '../api'
+import { ROUTE_FLAG_LABELS, routeWindow, toOptions } from '../labels'
 import { RouteFormModal } from './route-form-modal'
+import { SwapBusModal } from './swap-bus-modal'
 
-function Riders({ route }: { route: BusRoute }) {
-  const capacity = route.vehicle?.capacity
+function TripSeats({
+  label,
+  riders,
+  capacity,
+}: {
+  label: string
+  riders: number
+  capacity?: number
+}) {
   return (
     <span
       className={cn(
         'tabular font-semibold',
-        capacity !== undefined && route.students > capacity && 'text-destructive'
+        capacity !== undefined && riders > capacity && 'text-destructive'
       )}
     >
-      {route.students}
+      <span className='font-normal text-muted-foreground'>{label} </span>
+      {riders}
       {capacity !== undefined && (
-        <span className='font-normal text-muted-foreground'>/{capacity} seats</span>
+        <span className='font-normal text-muted-foreground'>/{capacity}</span>
       )}
+    </span>
+  )
+}
+
+function Riders({ route }: { route: BusRoute }) {
+  const capacity = route.vehicle?.capacity
+  return (
+    <span className='grid gap-0.5 text-sm whitespace-nowrap'>
+      <TripSeats label='Morning' riders={route.morning_riders} capacity={capacity} />
+      <TripSeats label='Evening' riders={route.evening_riders} capacity={capacity} />
     </span>
   )
 }
 
 export function RoutesTab({ canManage }: { canManage: boolean }) {
   const navigate = useNavigate()
-  const routes = useBusRoutes()
+  const [flag, setFlag] = useState<RouteFlag>()
+  const routes = useBusRoutes(flag)
   const [editing, setEditing] = useState<BusRoute | 'new' | null>(null)
   const [removing, setRemoving] = useState<BusRoute | null>(null)
+  const [swapping, setSwapping] = useState<BusRoute | null>(null)
+  const undoSwap = useTransportMutation((id: number) => transportApi.clearSwap(id))
   const remove = useTransportMutation((id: number) => transportApi.removeRoute(id))
   const rows = routes.data ?? []
   const activeTrips = useTrips({ page: 1, limit: 50, date: today(), status: 'active' }, false)
@@ -85,6 +117,25 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
           <UsersRound />
           Students
         </Button>
+        {canManage && route.is_active && route.vehicle && !route.swap_today && (
+          <Button size='sm' variant='outline' onClick={() => setSwapping(route)}>
+            <ArrowLeftRight />
+            Bus for a day
+          </Button>
+        )}
+        {canManage && route.swap_today && (
+          <Button
+            size='sm'
+            variant='outline'
+            loading={undoSwap.isPending && undoSwap.variables === route.id}
+            onClick={() =>
+              void run(() => undoSwap.mutateAsync(route.id), `${route.code} back to its usual bus`)
+            }
+          >
+            <Undo2 />
+            Usual bus today
+          </Button>
+        )}
         {canManage && (
           <>
             <Button
@@ -117,6 +168,11 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
       </Badge>
       <span className='truncate font-bold'>{route.name}</span>
       {!route.is_active && <Badge>Not running</Badge>}
+      {route.problems > 0 && (
+        <Badge tone='danger'>
+          {route.problems} time {route.problems === 1 ? 'problem' : 'problems'}
+        </Badge>
+      )}
     </span>
   )
 
@@ -125,12 +181,27 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
     {
       key: 'bus',
       header: 'Bus',
-      cell: (route) =>
-        route.vehicle ? (
-          <span className='font-mono text-xs font-semibold'>{route.vehicle.registration_no}</span>
-        ) : (
-          <span className='text-muted-foreground'>No bus</span>
-        ),
+      cell: (route) => (
+        <span className='grid gap-1'>
+          {route.vehicle ? (
+            <span
+              className={cn(
+                'font-mono text-xs font-semibold',
+                route.swap_today && 'text-muted-foreground line-through'
+              )}
+            >
+              {route.vehicle.registration_no}
+            </span>
+          ) : (
+            <span className='text-muted-foreground'>No bus</span>
+          )}
+          {route.swap_today && (
+            <Badge tone='warning' title={route.swap_today.reason ?? undefined}>
+              Today: {route.swap_today.vehicle.name}
+            </Badge>
+          )}
+        </span>
+      ),
     },
     {
       key: 'stops',
@@ -140,9 +211,9 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
     { key: 'students', header: 'Students', cell: (route) => <Riders route={route} /> },
     {
       key: 'first',
-      header: 'First pickup',
+      header: 'Morning · Evening',
       hideBelow: 'lg',
-      cell: (route) => <span className='tabular'>{route.first_pickup ?? '—'}</span>,
+      cell: (route) => <span className='tabular text-xs'>{routeWindow(route.timings)}</span>,
     },
     { key: 'actions', header: '', align: 'right', cell: actions },
   ]
@@ -150,9 +221,15 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
   return (
     <Card className='overflow-hidden'>
       <ListToolbar summary={routes.data ? `${rows.length} routes` : ''}>
-        <p className='text-sm text-muted-foreground'>
-          Open the builder to place stops on the map and put students on them.
-        </p>
+        <Combobox
+          id='route-flag'
+          label='Show routes'
+          value={flag}
+          options={toOptions(ROUTE_FLAG_LABELS)}
+          allLabel='All routes'
+          placeholder='All routes'
+          onChange={(value) => setFlag(value as RouteFlag | undefined)}
+        />
         {canManage && (
           <Button onClick={() => setEditing('new')}>
             <Plus />
@@ -194,17 +271,15 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
               <span>
                 Students <Riders route={route} />
               </span>
-              <span>
-                First pickup{' '}
-                <span className='tabular font-semibold text-foreground'>
-                  {route.first_pickup ?? '—'}
-                </span>
+              <span className='tabular font-semibold text-foreground'>
+                {routeWindow(route.timings)}
               </span>
             </div>
             {actions(route)}
           </div>
         )}
       />
+      {swapping && <SwapBusModal route={swapping} onClose={() => setSwapping(null)} />}
       {editing && (
         <RouteFormModal
           route={editing === 'new' ? undefined : editing}

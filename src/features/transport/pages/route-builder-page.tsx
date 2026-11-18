@@ -16,6 +16,7 @@ import { ErrorState } from '@/components/common/display'
 import { Page, PageHeader } from '@/components/common/page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
@@ -34,6 +35,7 @@ import { AssignStudentsModal } from '../components/assign-students-modal'
 import { RouteFormModal } from '../components/route-form-modal'
 import { RouteMap, type MapStop } from '../components/route-map'
 import { StopFormModal, type DraftStop } from '../components/stop-form-modal'
+import { RouteHistory, RouteTimingsPanel } from '../components/route-insights'
 import { StopList } from '../components/stop-list'
 
 const route = getRouteApi('/_app/transport/routes/$routeId')
@@ -90,7 +92,8 @@ const stopError = (error: unknown, stops: DraftStop[]) => {
   if (!first) return apiError.message
   const index = Number(/items\.(\d+)/.exec(first.field)?.[1])
   const stop = Number.isInteger(index) ? stops[index] : undefined
-  return stop ? `Stop ${index + 1} (${stop.name}): ${first.message}` : first.message
+  if (!stop || first.message.includes(stop.name)) return first.message
+  return `Stop ${index + 1} (${stop.name}): ${first.message}`
 }
 
 let nextKey = 0
@@ -112,6 +115,7 @@ export function RouteBuilderPage() {
   const [confirmOrder, setConfirmOrder] = useState(false)
   const [editingRoute, setEditingRoute] = useState(false)
   const [busy, setBusy] = useState<'save' | 'order' | 'bus' | null>(null)
+  const [reason, setReason] = useState('')
 
   const data = detail.data
   const baseline = useMemo(() => (data ? toDraft(data) : []), [data])
@@ -159,8 +163,13 @@ export function RouteBuilderPage() {
   const saveStops = async () => {
     setBusy('save')
     try {
-      const result = await transportApi.saveStops(routeId, toInput(draft))
+      const result = await transportApi.saveStops(
+        routeId,
+        toInput(draft),
+        reason.trim() || undefined
+      )
       applyDetail(result)
+      setReason('')
       alerts.success('Stops saved')
       return result
     } catch (error) {
@@ -392,6 +401,16 @@ export function RouteBuilderPage() {
               Distance through every stop to school{' '}
               <span className='font-bold text-foreground'>{distance} km</span>
             </p>
+            {data && <RouteTimingsPanel route={data} />}
+            {canManage && dirty && (
+              <Input
+                aria-label='Reason for the change'
+                placeholder='Reason for the change (optional, parents see it)'
+                maxLength={200}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
             {canManage && (
               <div className='flex flex-wrap gap-2'>
                 <Button
@@ -444,6 +463,11 @@ export function RouteBuilderPage() {
                 {Array.from({ length: 4 }, (_, index) => (
                   <Skeleton key={index} className='h-20' />
                 ))}
+              </div>
+            )}
+            {data && (
+              <div className='mt-4 border-t pt-3'>
+                <RouteHistory routeId={routeId} />
               </div>
             )}
           </div>

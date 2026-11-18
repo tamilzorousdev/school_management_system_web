@@ -23,8 +23,9 @@ import {
   type EmergencyCategory,
   type EmergencyChannel,
   type EmergencySeverity,
+  type ExpiryUnit,
 } from '../api'
-import { AUDIENCE_OPTIONS, CATEGORY_LABEL, SEVERITY } from '../labels'
+import { AUDIENCE_OPTIONS, CATEGORY_LABEL, EXPIRY_UNITS, SEVERITY } from '../labels'
 
 export interface ComposePrefill {
   follow_up_of?: EmergencyBroadcast
@@ -43,6 +44,18 @@ interface Draft {
   include_teachers: boolean
   push: boolean
   sms: boolean
+  expires: boolean
+  expiry_value: string
+  expiry_unit: ExpiryUnit
+  later: boolean
+  send_at: string
+}
+
+const UNIT_SECONDS: Partial<Record<ExpiryUnit, number>> = {
+  seconds: 1,
+  minutes: 60,
+  hours: 3600,
+  days: 86400,
 }
 
 const emptyDraft: Draft = {
@@ -58,6 +71,11 @@ const emptyDraft: Draft = {
   include_teachers: false,
   push: true,
   sms: true,
+  expires: false,
+  expiry_value: '1',
+  expiry_unit: 'hours',
+  later: false,
+  send_at: '',
 }
 
 const fromPrevious = (previous: EmergencyBroadcast): Draft => ({
@@ -129,6 +147,17 @@ export function ComposeModal({
     if (draft.audience === 'sections' && !draft.section_ids.length)
       next.section_ids = 'Choose at least one section'
     if (!channels.length) next.channels = 'Choose push, SMS or both'
+    if (draft.expires) {
+      const value = Number(draft.expiry_value)
+      if (!Number.isInteger(value) || value < 1) next.expiry = 'Write a whole number, 1 or more'
+      else if (value * (UNIT_SECONDS[draft.expiry_unit] ?? Infinity) < 5)
+        next.expiry = 'Keep it for at least 5 seconds'
+    }
+    if (draft.later) {
+      const at = new Date(draft.send_at).getTime()
+      if (!draft.send_at || Number.isNaN(at)) next.send_at = 'Pick the date and time to send'
+      else if (at < Date.now() + 60_000) next.send_at = 'Pick a time at least 1 minute from now'
+    }
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -146,8 +175,18 @@ export function ComposeModal({
         channels,
         client_id: clientId,
         ...(prefill?.follow_up_of ? { follow_up_of: prefill.follow_up_of.id } : {}),
+        ...(draft.expires
+          ? { expires_in: { value: Number(draft.expiry_value), unit: draft.expiry_unit } }
+          : {}),
+        ...(draft.later ? { send_at: new Date(draft.send_at).toISOString() } : {}),
       })
-      alerts.success(`Emergency broadcast is going out to ${sent.counts.total} people`)
+      alerts.success(
+        sent.state === 'pending_approval'
+          ? 'Sent to the principal for approval. It goes out once approved.'
+          : sent.state === 'scheduled'
+            ? `Scheduled for ${new Date(sent.send_at!).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+            : `Emergency broadcast is going out to ${sent.counts.total} people`
+      )
       onSent(sent)
     } catch (error) {
       setConfirming(false)
@@ -196,7 +235,7 @@ export function ComposeModal({
         description={
           prefill?.follow_up_of
             ? `Follows up "${prefill.follow_up_of.title}"`
-            : 'Goes out at once in the app, by push and by SMS. It cannot be edited after sending.'
+            : 'Goes out in the app, by push and by SMS, now or at the time you pick. It cannot be edited after sending.'
         }
         size='lg'
         formId='emergency-form'
@@ -233,8 +272,8 @@ export function ComposeModal({
                     ...current,
                     title: item.title,
                     message: item.message,
-                    title_ta: item.title_ta,
-                    message_ta: item.message_ta,
+                    title_ta: item.title_ta ?? '',
+                    message_ta: item.message_ta ?? '',
                     category: item.category,
                     severity: item.severity,
                   }))
@@ -342,6 +381,71 @@ export function ComposeModal({
                 />
                 SMS
               </label>
+            </div>
+          </FormField>
+          <FormField
+            id='em-expiry-value'
+            label='Take it off the screen after'
+            error={errors.expiry}
+            hint={
+              draft.expires
+                ? 'Counted from when it goes out. Phones that were offline do not get it after this.'
+                : 'Stays until you end it.'
+            }
+          >
+            <div className='grid gap-2'>
+              <label className='flex items-center gap-2 text-sm'>
+                <Switch
+                  checked={draft.expires}
+                  onCheckedChange={(value) => set('expires', value)}
+                  aria-label='Take it off the screen after a time'
+                />
+                {draft.expires ? 'After' : 'Keep it until ended'}
+              </label>
+              {draft.expires && (
+                <div className='flex gap-2'>
+                  <Input
+                    id='em-expiry-value'
+                    type='number'
+                    min={1}
+                    inputMode='numeric'
+                    className='w-24'
+                    value={draft.expiry_value}
+                    onChange={(event) => set('expiry_value', event.target.value)}
+                  />
+                  <Combobox
+                    id='em-expiry-unit'
+                    label='Unit'
+                    placeholder='Unit'
+                    value={draft.expiry_unit}
+                    options={EXPIRY_UNITS}
+                    onChange={(value) => value && set('expiry_unit', value as ExpiryUnit)}
+                    highlightSelected={false}
+                    className='min-w-0 flex-1'
+                  />
+                </div>
+              )}
+            </div>
+          </FormField>
+          <FormField id='em-send-at' label='When' error={errors.send_at}>
+            <div className='grid gap-2'>
+              <SegmentedControl
+                label='When'
+                value={draft.later ? 'later' : 'now'}
+                onChange={(value: 'now' | 'later') => set('later', value === 'later')}
+                options={[
+                  { value: 'now', label: 'Send now' },
+                  { value: 'later', label: 'Send later' },
+                ]}
+              />
+              {draft.later && (
+                <Input
+                  id='em-send-at'
+                  type='datetime-local'
+                  value={draft.send_at}
+                  onChange={(event) => set('send_at', event.target.value)}
+                />
+              )}
             </div>
           </FormField>
           <FormField id='em-audience' label='Send to' className='sm:col-span-2'>
@@ -453,9 +557,13 @@ export function ComposeModal({
       <ConfirmDialog
         open={confirming}
         onOpenChange={(open) => !open && setConfirming(false)}
-        title={`Send to ${count?.recipients ?? ''} people now?`}
-        description={`"${draft.title.trim()}" goes out at once${channels.length ? ` by ${channels.map((channel) => (channel === 'sms' ? 'SMS' : 'push')).join(' and ')}` : ''} and in the app. It cannot be edited or recalled after sending.`}
-        confirmText='Send now'
+        title={
+          draft.later
+            ? `Schedule for ${count?.recipients ?? ''} people?`
+            : `Send to ${count?.recipients ?? ''} people now?`
+        }
+        description={`"${draft.title.trim()}" goes out ${draft.later ? 'at the chosen time' : 'at once'}${channels.length ? ` by ${channels.map((channel) => (channel === 'sms' ? 'SMS' : 'push')).join(' and ')}` : ''} and in the app${draft.expires ? `, and leaves the screen after ${draft.expiry_value} ${draft.expiry_unit}` : ''}. A whole-school or SMS message from someone who cannot approve waits for the principal. It cannot be edited after sending.`}
+        confirmText={draft.later ? 'Schedule' : 'Send now'}
         destructive
         loading={send.isPending}
         onConfirm={() => void submit()}

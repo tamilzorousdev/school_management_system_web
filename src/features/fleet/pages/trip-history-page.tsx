@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { CircleOff, History, PlayCircle, Route as RouteIcon } from 'lucide-react'
+import { CircleOff, ClipboardCheck, History, PlayCircle, Route as RouteIcon } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,8 +13,16 @@ import { today } from '@/features/attendance/labels'
 import { useBusOptions, useBusRoutes } from '@/features/transport/api'
 import { formatDate } from '@/lib/format'
 import { useTrips, type Trip } from '../api'
+import { TripChecklistModal } from '../components/trip-checklist-modal'
 import { TripStatusBadge } from '../components/trips-panel'
-import { END_REASON, TRIP_KIND, TRIP_STATUS_OPTIONS, clock, durationText } from '../labels'
+import {
+  END_REASON,
+  TRIP_FLAG_OPTIONS,
+  TRIP_KIND,
+  TRIP_STATUS_OPTIONS,
+  clock,
+  durationText,
+} from '../labels'
 import type { TripHistorySearch } from '../search'
 
 const route = getRouteApi('/_app/fleet/history')
@@ -23,6 +33,18 @@ const tripSeconds = (trip: Trip) =>
     ? Math.max(0, (new Date(trip.ended_at).getTime() - new Date(trip.started_at).getTime()) / 1000)
     : null
 
+function BoardingFlags({ trip }: { trip: Trip }) {
+  if (!trip.flags) return <span className='text-xs text-muted-foreground'>After the trip ends</span>
+  const { not_alighted, not_boarded } = trip.flags
+  if (!not_alighted && !not_boarded) return <Badge tone='success'>All marked</Badge>
+  return (
+    <span className='flex flex-wrap gap-1'>
+      {not_alighted > 0 && <Badge tone='danger'>{not_alighted} not marked off</Badge>}
+      {not_boarded > 0 && <Badge tone='warning'>{not_boarded} never got on</Badge>}
+    </span>
+  )
+}
+
 export function TripHistoryPage() {
   const search = route.useSearch()
   const navigate = useNavigate({ from: '/fleet/history' })
@@ -30,6 +52,7 @@ export function TripHistoryPage() {
   const routes = useBusRoutes()
   const busOptions = useBusOptions()
   const rows = trips.data?.items ?? []
+  const [checklistTrip, setChecklistTrip] = useState<number | null>(null)
 
   const setSearch = (patch: Partial<TripHistorySearch>) =>
     navigate({ search: (prev) => ({ ...prev, page: 1, ...patch }), replace: true })
@@ -41,7 +64,9 @@ export function TripHistoryPage() {
 
   useShortcut('app.refresh', () => void trips.refetch())
 
-  const filtered = Boolean(search.date || search.route_id || search.vehicle_id || search.status)
+  const filtered = Boolean(
+    search.date || search.route_id || search.vehicle_id || search.status || search.flag
+  )
 
   const columns: Column<Trip>[] = [
     {
@@ -106,23 +131,42 @@ export function TripHistoryPage() {
       ),
     },
     {
+      key: 'boarding',
+      header: 'Boarding',
+      cell: (trip) => <BoardingFlags trip={trip} />,
+    },
+    {
       key: 'actions',
       header: <span className='sr-only'>Actions</span>,
       align: 'right',
-      className: 'w-28',
+      className: 'w-56',
       cell: (trip) => (
-        <Button
-          size='sm'
-          variant='outline'
-          aria-label={`${trip.status === 'ended' ? 'Replay' : 'Open'} trip ${trip.route.name}`}
-          onClick={(event) => {
-            event.stopPropagation()
-            void open(trip)
-          }}
-        >
-          {trip.status === 'ended' ? <PlayCircle /> : <RouteIcon />}
-          {trip.status === 'ended' ? 'Replay' : 'Live'}
-        </Button>
+        <div className='flex justify-end gap-2'>
+          <Button
+            size='sm'
+            variant='outline'
+            aria-label={`Boarding checklist for trip ${trip.route.name}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              setChecklistTrip(trip.id)
+            }}
+          >
+            <ClipboardCheck />
+            Checklist
+          </Button>
+          <Button
+            size='sm'
+            variant='outline'
+            aria-label={`${trip.status === 'ended' ? 'Replay' : 'Open'} trip ${trip.route.name}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              void open(trip)
+            }}
+          >
+            {trip.status === 'ended' ? <PlayCircle /> : <RouteIcon />}
+            {trip.status === 'ended' ? 'Replay' : 'Live'}
+          </Button>
+        </div>
       ),
     },
   ]
@@ -177,6 +221,14 @@ export function TripHistoryPage() {
             options={TRIP_STATUS_OPTIONS}
             onChange={(value) => setSearch({ status: value as TripHistorySearch['status'] })}
           />
+          <FilterSelect
+            id='history-flag'
+            label='Filter by boarding problem'
+            allLabel='All trips'
+            value={search.flag}
+            options={TRIP_FLAG_OPTIONS}
+            onChange={(value) => setSearch({ flag: value as TripHistorySearch['flag'] })}
+          />
         </ListToolbar>
         <DataTable
           rows={rows}
@@ -209,6 +261,19 @@ export function TripHistoryPage() {
                 {trip.ended_at ? clock(trip.ended_at) : 'now'} · {trip.stops_done} of{' '}
                 {trip.stops_total} stops
               </span>
+              <BoardingFlags trip={trip} />
+              <Button
+                size='sm'
+                variant='outline'
+                className='justify-self-start'
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setChecklistTrip(trip.id)
+                }}
+              >
+                <ClipboardCheck />
+                Checklist
+              </Button>
               <span className='flex items-center gap-1.5 text-xs font-semibold text-primary'>
                 {trip.status === 'ended' ? (
                   <PlayCircle className='size-3.5' />
@@ -228,6 +293,10 @@ export function TripHistoryPage() {
           }}
         />
       </Card>
+      <TripChecklistModal
+        tripId={checklistTrip}
+        onOpenChange={(open) => !open && setChecklistTrip(null)}
+      />
     </Page>
   )
 }

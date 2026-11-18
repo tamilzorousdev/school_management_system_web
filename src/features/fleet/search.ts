@@ -10,6 +10,7 @@ export const tripHistorySearchSchema = z.object({
   route_id: z.coerce.number().int().min(1).optional().catch(undefined),
   vehicle_id: z.coerce.number().int().min(1).optional().catch(undefined),
   status: z.enum(['active', 'ended']).optional().catch(undefined),
+  flag: z.enum(['any', 'not_boarded', 'not_alighted']).optional().catch(undefined),
 })
 
 export type TripHistorySearch = z.infer<typeof tripHistorySearchSchema>
