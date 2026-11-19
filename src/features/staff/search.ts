@@ -35,7 +35,7 @@ export const staffSearchSchema = z.object({
   department: z.string().trim().max(60).optional().catch(undefined),
 })
 
-export const STAFF_PROFILE_TABS = ['profile', 'classes', 'documents', 'bank'] as const
+export const STAFF_PROFILE_TABS = ['profile', 'classes', 'documents', 'bank', 'library'] as const
 export type StaffProfileTab = (typeof STAFF_PROFILE_TABS)[number]
 
 export const staffProfileSearchSchema = z.object({

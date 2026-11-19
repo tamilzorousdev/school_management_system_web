@@ -11,6 +11,7 @@ import {
   HeartPulse,
   IdCard,
   IndianRupee,
+  Library,
   Link2,
   LogOut,
   NotebookPen,
@@ -49,6 +50,7 @@ import { can, useMe } from '@/features/auth/api'
 import { ReportCard } from '@/features/exams/components/report-card'
 import { StudentResults } from '@/features/exams/components/student-results'
 import { StudentFeesTab } from '@/features/fees/components/student-fees-tab'
+import { PersonLibraryTab } from '@/features/library/components/person-library-tab'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi, openFile } from '@/lib/files'
@@ -100,6 +102,7 @@ export function StudentPage() {
   const canManage = can(me, 'students.manage')
   const canSeeResults = can(useMe().data, 'exams.view')
   const canSeeFees = can(useMe().data, 'fees.view')
+  const canSeeLibrary = can(me, 'library.view')
   const student = useStudent(id)
   const counts = useRecordCounts(id)
   const data = student.data
@@ -376,6 +379,9 @@ export function StudentPage() {
               ]
             : []),
           ...(canSeeFees ? [{ value: 'fees' as const, label: 'Fees', icon: IndianRupee }] : []),
+          ...(canSeeLibrary
+            ? [{ value: 'library' as const, label: 'Library', icon: Library }]
+            : []),
         ]}
       />
 
@@ -403,6 +409,7 @@ export function StudentPage() {
       {tab === 'results' && canSeeResults && <StudentResults studentId={id} />}
       {tab === 'report-card' && canSeeResults && <ReportCard studentId={id} />}
       {tab === 'fees' && canSeeFees && <StudentFeesTab studentId={id} />}
+      {tab === 'library' && canSeeLibrary && <PersonLibraryTab kind='student' id={id} />}
 
       {modal === 'edit' && <EditStudentModal student={data} onClose={() => setModal(null)} />}
       {modal === 'class' && (

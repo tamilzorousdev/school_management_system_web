@@ -9,6 +9,7 @@ import {
   Eye,
   FileText,
   Landmark,
+  Library,
   Pencil,
   Phone,
   SearchX,
@@ -34,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
+import { PersonLibraryTab } from '@/features/library/components/person-library-tab'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
@@ -80,6 +82,7 @@ export function StaffProfilePage() {
   const me = useMe().data
   const canManage = can(me, 'staff.manage')
   const canBank = can(me, 'staff.bank')
+  const canSeeLibrary = can(me, 'library.view')
   const staff = useStaff(Number.isFinite(id) ? id : null)
 
   useShortcut('app.refresh', () => void staff.refetch())
@@ -153,6 +156,9 @@ export function StaffProfilePage() {
             count: pendingDocs || undefined,
           },
           { value: 'bank', label: 'Bank', icon: Landmark },
+          ...(canSeeLibrary
+            ? [{ value: 'library' as const, label: 'Library', icon: Library }]
+            : []),
         ]}
       />
 
@@ -160,6 +166,7 @@ export function StaffProfilePage() {
       {tab === 'classes' && <ClassesTab staff={data} />}
       {tab === 'documents' && <DocumentsTab staff={data} canManage={canManage} />}
       {tab === 'bank' && <BankTab staff={data} canBank={canBank} />}
+      {tab === 'library' && canSeeLibrary && <PersonLibraryTab kind='staff' id={id} />}
     </Page>
   )
 }
