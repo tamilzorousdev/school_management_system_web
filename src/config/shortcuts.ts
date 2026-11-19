@@ -26,6 +26,7 @@ export const SHORTCUTS = {
   'nav.transport': { combo: 'g m', label: 'Go to buses and routes', group: 'Navigation' },
   'nav.admissions': { combo: 'g a', label: 'Go to admissions', group: 'Navigation' },
   'nav.guardians': { combo: 'g p', label: 'Go to parents', group: 'Navigation' },
+  'nav.inventory': { combo: 'g 9', label: 'Go to inventory', group: 'Navigation' },
   'nav.setup': { combo: 'g c', label: 'Go to school setup', group: 'Navigation' },
   'nav.schools': { combo: 'g o', label: 'Go to schools', group: 'Navigation' },
   'nav.users': { combo: 'g u', label: 'Go to users and access', group: 'Navigation' },

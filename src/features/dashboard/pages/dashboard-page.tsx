@@ -25,6 +25,7 @@ import { useFleetLive, VEHICLE_STATE } from '@/features/fleet/api'
 import { formatNumber } from '@/lib/format'
 import { useDashboard, type Dashboard } from '../api'
 import { YearPerformanceCard } from '../components/year-performance-card'
+import { fallbackLanding } from '../landing'
 
 type Navigate = ReturnType<typeof useNavigate>
 
@@ -36,10 +37,13 @@ const landsOnLibrary = (me: Me | undefined) =>
 
 export function DashboardPage() {
   const me = useMe().data
-  const dashboard = useDashboard()
+  const landing = fallbackLanding(me)
+  const library = landsOnLibrary(me)
+  const dashboard = useDashboard(!landing && !library)
   const navigate = useNavigate()
+  if (landing) return <Redirect to={landing} search={{ tab: 'dashboard' }} replace />
+  if (library) return <Redirect to='/library' search={{ tab: 'dashboard' }} replace />
   const items = insights(me, dashboard.data, navigate)
-  if (landsOnLibrary(me)) return <Redirect to='/library' search={{ tab: 'dashboard' }} replace />
   return (
     <Page>
       <PageHeader

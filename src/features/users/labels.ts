@@ -90,6 +90,18 @@ export const ROLE_METADATA: Record<string, RoleMeta> = {
       'No access to exams, student marks, academic records, or payroll',
     ],
   },
+  STORE_KEEPER: {
+    code: 'STORE_KEEPER',
+    name: 'Store keeper',
+    suitablePerson: 'Store Keeper / Lab Assistant / Inventory Clerk',
+    suitablePersonEn: 'Store Keeper / Inventory Clerk',
+    canDo: [
+      'Register assets, print tags and allocate them to staff, departments and rooms',
+      'Receive, issue and adjust store stock and handle requisitions',
+      'Open repair tickets, run asset verifications and stock counts',
+    ],
+    cannotDo: ['Cannot approve transfers, requisitions or disposals'],
+  },
   HOD: {
     code: 'HOD',
     name: 'Head of department',

@@ -30,6 +30,7 @@ import {
   UsersRound,
   Video,
   BookOpenCheck,
+  Boxes,
   Megaphone,
   MessagesSquare,
   Wrench,
@@ -71,6 +72,7 @@ export type NavPath =
   | '/fleet/alerts'
   | '/fleet/history'
   | '/fleet/maintenance'
+  | '/inventory'
   | '/setup'
   | '/schools'
   | '/users'
@@ -398,6 +400,15 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Settings',
     items: [
+      {
+        to: '/inventory',
+        label: 'Inventory',
+        description:
+          'Assets with tags, allocations, transfers, repairs, store stock, requisitions, audits and disposals',
+        icon: Boxes,
+        shortcut: 'nav.inventory',
+        permission: 'inventory.view',
+      },
       {
         to: '/setup',
         label: 'School setup',
