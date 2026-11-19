@@ -15,6 +15,7 @@ import {
   Grid3x3,
   IndianRupee,
   Library,
+  Landmark,
   // HeartHandshake,
   History,
   LayoutDashboard,
@@ -51,6 +52,7 @@ export type NavPath =
   | '/substitutes'
   | '/payroll'
   | '/fees'
+  | '/accounts'
   | '/library'
   | '/exams'
   | '/class-performance'
@@ -265,6 +267,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: IndianRupee,
         shortcut: 'nav.fees',
         permission: 'fees.view',
+      },
+      {
+        to: '/accounts',
+        label: 'Accounts',
+        description: 'School expenses, other income and income vs expense reports',
+        icon: Landmark,
+        shortcut: 'nav.accounts',
+        permission: 'accounts.view',
       },
     ],
   },

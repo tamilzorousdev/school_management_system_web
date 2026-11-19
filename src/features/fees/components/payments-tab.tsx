@@ -10,6 +10,7 @@ import { formatDate } from '@/lib/format'
 import { useClasses } from '@/features/setup/api'
 import type { FeeAccess } from '../access'
 import {
+  useCollectorOptions,
   usePaymentSummary,
   usePayments,
   type FeePayment,
@@ -34,11 +35,13 @@ export function PaymentsTab({
 }) {
   const page = search.page ?? 1
   const classes = useClasses()
+  const collectors = useCollectorOptions()
   const filters = {
     from: search.from,
     to: search.to,
     mode: search.mode,
     class_id: search.class_id,
+    received_by: search.received_by,
   }
   const payments = usePayments({
     ...filters,
@@ -56,6 +59,7 @@ export function PaymentsTab({
     search.to ||
     search.mode ||
     search.class_id ||
+    search.received_by ||
     search.payment_status
   )
   const [selectedPayment, setSelectedPayment] = useState<FeePayment | null>(null)
@@ -189,6 +193,7 @@ export function PaymentsTab({
                   to: undefined,
                   mode: undefined,
                   class_id: undefined,
+                  received_by: undefined,
                   payment_status: undefined,
                 })
             : undefined
@@ -240,6 +245,14 @@ export function PaymentsTab({
             label: `Class ${item.name}`,
           }))}
           onChange={(value) => onChange({ class_id: value ? Number(value) : undefined })}
+        />
+        <FilterSelect
+          id='payments-collector-filter'
+          label='Filter by who received it'
+          allLabel='Received by anyone'
+          value={search.received_by ? String(search.received_by) : undefined}
+          options={collectors.data ?? []}
+          onChange={(value) => onChange({ received_by: value ? Number(value) : undefined })}
         />
         <FilterSelect
           id='payments-status-filter'

@@ -29,6 +29,11 @@ function describe(settings: FeeSettings) {
   return `${fee} once, after ${grace}`
 }
 
+function describeReminder(days: number) {
+  if (days === 0) return 'No reminder before the due date'
+  return `Parents are reminded ${days} ${days === 1 ? 'day' : 'days'} before the due date`
+}
+
 export function LateFeeCard({ access }: { access: FeeAccess }) {
   const settings = useFeeSettings()
   const [editing, setEditing] = useState(false)
@@ -38,12 +43,12 @@ export function LateFeeCard({ access }: { access: FeeAccess }) {
   return (
     <Card className='overflow-hidden'>
       <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-        <h2 className='font-bold'>Late fee</h2>
+        <h2 className='font-bold'>Late fee and reminders</h2>
         {access.configure && data && (
           <Button
             size='sm'
             variant='ghost'
-            aria-label='Edit late fee'
+            aria-label='Edit late fee and reminders'
             onClick={() => setEditing(true)}
           >
             <Pencil />
@@ -61,6 +66,7 @@ export function LateFeeCard({ access }: { access: FeeAccess }) {
         ) : (
           <>
             <p>{describe(data)}</p>
+            <p>{describeReminder(data.reminder_days)}</p>
             <p className='text-xs text-muted-foreground'>
               Added automatically every morning as a “Late fee” line. Remove it from an invoice with
               a discount request.
@@ -103,19 +109,21 @@ function LateFeeModal({ settings, onClose }: { settings: FeeSettings; onClose: (
   const [type, setType] = useState<LateFeeType>(settings.late_fee_type)
   const [value, setValue] = useState(settings.late_fee_value ? String(settings.late_fee_value) : '')
   const [grace, setGrace] = useState(String(settings.grace_days))
+  const [reminder, setReminder] = useState(String(settings.reminder_days))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useFeesMutation(() =>
     feesApi.saveSettings({
       grace_days: Number(grace),
       late_fee_type: type,
       late_fee_value: type === 'none' ? 0 : Number(value),
+      reminder_days: Number(reminder),
     })
   )
   return (
     <AppModal
       open
       onOpenChange={(open) => !open && onClose()}
-      title='Late fee and grace days'
+      title='Late fee and reminders'
       description='An invoice still unpaid after its due date plus the grace days gets the late fee once. Overdue reminders to parents also wait for the grace days.'
       formId='fee-late-form'
       loading={save.isPending}
@@ -129,6 +137,9 @@ function LateFeeModal({ settings, onClose }: { settings: FeeSettings; onClose: (
           const next: Record<string, string> = {}
           const days = Number(grace)
           if (!/^\d+$/.test(grace.trim()) || days > 90) next.grace_days = 'Enter 0 to 90 days'
+          if (!/^\d+$/.test(reminder.trim()) || Number(reminder) > 30) {
+            next.reminder_days = 'Enter 0 to 30 days'
+          }
           if (type !== 'none') {
             const message = amountError(
               value,
@@ -142,7 +153,7 @@ function LateFeeModal({ settings, onClose }: { settings: FeeSettings; onClose: (
           if (Object.keys(next).length) return
           try {
             await save.mutateAsync(undefined)
-            alerts.success('Late fee saved')
+            alerts.success('Late fee and reminders saved')
             onClose()
           } catch (error) {
             setErrors(formErrors(error))
@@ -200,6 +211,25 @@ function LateFeeModal({ settings, onClose }: { settings: FeeSettings; onClose: (
             value={grace}
             aria-invalid={Boolean(errors.grace_days) || undefined}
             onChange={(event) => setGrace(event.target.value)}
+          />
+        </FormField>
+        <FormField
+          id='fee-reminder-days'
+          label='Remind parents this many days before the due date'
+          hint='0 turns the reminder off. Each invoice gets one reminder, at 8 AM.'
+          required
+          error={errors.reminder_days}
+        >
+          <Input
+            id='fee-reminder-days'
+            type='number'
+            inputMode='numeric'
+            min={0}
+            max={30}
+            className='tabular sm:w-32'
+            value={reminder}
+            aria-invalid={Boolean(errors.reminder_days) || undefined}
+            onChange={(event) => setReminder(event.target.value)}
           />
         </FormField>
       </form>
