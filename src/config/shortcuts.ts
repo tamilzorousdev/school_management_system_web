@@ -40,6 +40,7 @@ export const SHORTCUTS = {
   'nav.alerts': { combo: 'g l', label: 'Go to fleet alerts', group: 'Navigation' },
   'nav.tripHistory': { combo: 'g h', label: 'Go to trip history', group: 'Navigation' },
   'nav.maintenance': { combo: 'g i', label: 'Go to maintenance', group: 'Navigation' },
+  'nav.gate': { combo: 'g 8', label: 'Go to gate and visitors', group: 'Navigation' },
   'nav.parentPreview': { combo: 'g 1', label: 'Go to parent app preview', group: 'Navigation' },
   'nav.teacherPreview': {
     combo: 'g 3',
@@ -62,6 +63,11 @@ export const SHORTCUTS = {
   'banners.create': {
     combo: 'alt+n',
     label: 'Add a banner',
+    group: 'Users',
+  },
+  'gate.create': {
+    combo: 'alt+n',
+    label: 'Add a pass, invite a visitor or block a person in Gate',
     group: 'Users',
   },
 } as const satisfies Record<string, ShortcutDefinition>

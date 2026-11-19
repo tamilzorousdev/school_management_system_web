@@ -15,6 +15,7 @@ import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
 import { feedbackSearchSchema } from '@/features/feedback/search'
 import { emergencySearchSchema } from '@/features/emergency/search'
+import { gateSearchSchema } from '@/features/gate/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
@@ -335,6 +336,13 @@ const emergencyRoute = createRoute({
   ),
 })
 
+const gateRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gate',
+  validateSearch: gateSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/gate/pages/gate-page'), 'GatePage'),
+})
+
 const timetableRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/timetable',
@@ -502,6 +510,7 @@ const routeTree = rootRoute.addChildren([
     performanceRoute,
     feedbackRoute,
     emergencyRoute,
+    gateRoute,
     timetableRoute,
     substitutesRoute,
     payrollRoute,

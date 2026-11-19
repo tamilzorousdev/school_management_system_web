@@ -312,7 +312,7 @@ export function StaffTab({
               },
             ]}
             primaryAction={{
-              label: 'Mark attendance',
+              label: 'Mark selected',
               icon: <CheckCheck className='size-3.5' />,
               onClick: () => setBulk([...selected]),
               variant: 'primary',

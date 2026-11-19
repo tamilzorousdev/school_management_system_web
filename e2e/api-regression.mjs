@@ -3247,10 +3247,10 @@ await TA(
   'Report card',
   'GET',
   '/admin/students/{id}/report-card',
-  'Teacher without exams.view',
+  'User without exams.view',
   '403',
   async () =>
-    expectStatus(await teacher('GET', `/admin/students/${rcStudent ?? 1}/report-card`), 403)
+    expectStatus(await parent('GET', `/admin/students/${rcStudent ?? 1}/report-card`), 403)
 )
 
 const anonymous = client(null)
@@ -7141,6 +7141,216 @@ await TA(
     if (file.status !== 200 || !file.type.includes('spreadsheet'))
       throw new Error('log xlsx failed')
     return `200; ${log.body.data.total} log entries; km ${summary.body.data.current_km ?? 'unknown'}`
+  }
+)
+const gateUser = client(await sessionFor('.auth-gate.json', '9000000009', 'mobile'))
+const gateKid = children[0]
+const gateNow = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Kolkata',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+}).format(new Date())
+const gateToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
+await TA(
+  'API-GATE-01',
+  'Gate and visitors',
+  'GET',
+  '/mobile/teacher/gate/today',
+  'Gate in-charge home; parents and teachers cannot use the gate screens',
+  '200 for the gate role; 403 for parent and teacher',
+  async () => {
+    const home = await gateUser('GET', '/mobile/teacher/gate/today')
+    expectStatus(home, 200)
+    if (typeof home.body.data.counts.waiting_release !== 'number') throw new Error('counts missing')
+    expectStatus(await parent('GET', '/mobile/teacher/gate/today'), 403)
+    expectStatus(await teacher('POST', '/mobile/teacher/gate/check', { code: '0000' }), 403)
+    return `200; ${home.body.data.counts.waiting_release} due, ${home.body.data.counts.visitors_inside} visitors inside`
+  }
+)
+await TA(
+  'API-GATE-02',
+  'Gate and visitors',
+  'POST',
+  '/mobile/parent/children/:id/gate-passes',
+  'Parent asks, office approves, gate checks by QR, code and number; then cancelled',
+  '201 pending; code only after approval; 3 green checks; gate never sees the code',
+  async () => {
+    if (!gateKid) return 'Skipped: parent has no child'
+    const card = (
+      await gateUser(
+        'GET',
+        `/mobile/teacher/gate/students?search=${encodeURIComponent(gateKid.full_name.split(' ')[0])}`
+      )
+    ).body.data.find((item) => item.student.id === gateKid.id)
+    const guardian = card?.people.find((person) => person.kind === 'guardian')
+    if (!guardian) return 'Skipped: no parent allowed to pick up'
+    const asked = await parent('POST', `/mobile/parent/children/${gateKid.id}/gate-passes`, {
+      pass_date: gateToday,
+      from_time: gateNow,
+      reason: 'Regression check',
+      pickup: { kind: 'guardian', guardian_id: guardian.id },
+    })
+    expectStatus(asked, 201)
+    const id = asked.body.data.id
+    try {
+      if (asked.body.data.code !== null) throw new Error('Code shown before approval')
+      expectStatus(await admin('POST', `/admin/gate/passes/${id}/decision`, { approve: true }), 200)
+      expectStatus(
+        await admin('POST', `/admin/gate/passes/${id}/decision`, { approve: false }),
+        409,
+        'PASS_ALREADY_DECIDED'
+      )
+      const mine = (
+        await parent('GET', `/mobile/parent/children/${gateKid.id}/gate-passes`)
+      ).body.data.find((item) => item.id === id)
+      if (!mine.qr_token || !/^\d{4}$/.test(mine.code))
+        throw new Error('No QR or code for the parent')
+      const gateView = (await gateUser('GET', `/mobile/teacher/gate/passes/${id}`)).body.data
+      if (gateView.code !== null || gateView.qr_token !== null)
+        throw new Error('Gate can see the code')
+      for (const body of [{ qr: mine.qr_token }, { code: mine.code }, { number: mine.pass_no }]) {
+        const result = (await gateUser('POST', '/mobile/teacher/gate/check', body)).body.data
+        if (result.pass?.id !== id || !['ok', 'student_absent'].includes(result.verdict))
+          throw new Error(`Check failed for ${Object.keys(body)[0]}: ${result.verdict}`)
+      }
+      const forged = (
+        await gateUser('POST', '/mobile/teacher/gate/check', {
+          qr: `${mine.qr_token.slice(0, -2)}xx`,
+        })
+      ).body.data
+      if (forged.ok) throw new Error('Edited QR accepted')
+      expectFields(
+        await gateUser('POST', `/mobile/teacher/gate/passes/${id}/release`, { method: 'manual' }),
+        ['photo_file_id', 'id_proof_kind', 'id_proof_last4']
+      )
+      return `201; approved; QR, code and number green; ${mine.pass_no}`
+    } finally {
+      await parent('POST', `/mobile/parent/children/${gateKid.id}/gate-passes/${id}/cancel`)
+    }
+  }
+)
+await TA(
+  'API-GATE-03',
+  'Gate and visitors',
+  'POST',
+  '/mobile/teacher/gate/emergency',
+  'Emergency for someone not registered needs a photo; blocked person refused',
+  '400 photo; 403 PERSON_BLOCKED when on the blocked list',
+  async () => {
+    if (!gateKid) return 'Skipped: parent has no child'
+    expectFields(
+      await gateUser('POST', '/mobile/teacher/gate/emergency', {
+        student_id: gateKid.id,
+        reason: 'Regression',
+        pickup: {
+          kind: 'other',
+          name: 'Regression Uncle',
+          relation: 'Uncle',
+          mobile: '9876500111',
+        },
+      }),
+      ['pickup.photo_file_id']
+    )
+    const blocked = (await admin('GET', '/admin/gate/blocklist')).body.data.find(
+      (row) => row.is_active && row.mobile
+    )
+    if (!blocked) return '400 photo; no blocked entry to test with'
+    const result = await gateUser('POST', '/mobile/teacher/gate/emergency', {
+      student_id: gateKid.id,
+      reason: 'Regression',
+      pickup: {
+        kind: 'other',
+        name: blocked.name,
+        relation: 'Uncle',
+        mobile: blocked.mobile,
+        photo_file_id: 999999999,
+      },
+    })
+    expectStatus(result, 403, 'PERSON_BLOCKED')
+    return '400 without photo; 403 PERSON_BLOCKED'
+  }
+)
+await TA(
+  'API-GATE-04',
+  'Gate and visitors',
+  'POST',
+  '/admin/gate/visits/invite',
+  'Invited visitor gets a code that is green at the gate; cancelled',
+  '201 expected; check ok_in; cancelled',
+  async () => {
+    const invited = await admin('POST', '/admin/gate/visits/invite', {
+      name: 'Regression Guest',
+      mobile: '9876500113',
+      purpose: 'event',
+      visit_date: gateToday,
+    })
+    expectStatus(invited, 201)
+    const visit = invited.body.data
+    try {
+      const check = (await gateUser('POST', '/mobile/teacher/gate/check', { code: visit.code }))
+        .body.data
+      if (!check.ok || check.kind !== 'visit' || check.verdict !== 'ok_in')
+        throw new Error(`Invite check ${check.verdict}`)
+      return `201 ${visit.visit_no}; code green at the gate`
+    } finally {
+      await admin('POST', `/admin/gate/visits/${visit.id}/cancel`)
+    }
+  }
+)
+await TA(
+  'API-GATE-05',
+  'Gate and visitors',
+  'POST',
+  '/mobile/parent/children/:id/pickups',
+  'Parent saves a pickup person and removes it',
+  '201; listed; removed',
+  async () => {
+    if (!gateKid) return 'Skipped: parent has no child'
+    const added = await parent('POST', `/mobile/parent/children/${gateKid.id}/pickups`, {
+      name: 'Regression Grandpa',
+      relation: 'Grandfather',
+      mobile: '9876500114',
+    })
+    expectStatus(added, 201)
+    const list = (await parent('GET', `/mobile/parent/children/${gateKid.id}/pickups`)).body.data
+    expectStatus(
+      await parent('DELETE', `/mobile/parent/children/${gateKid.id}/pickups/${added.body.data.id}`),
+      200
+    )
+    if (!list.some((row) => row.id === added.body.data.id)) throw new Error('Not listed')
+    expectFields(
+      await parent('POST', `/mobile/parent/children/${gateKid.id}/pickups`, { name: 'X' }),
+      ['name', 'relation', 'mobile']
+    )
+    return '201; listed; removed; 400 on bad input'
+  }
+)
+await TA(
+  'API-GATE-06',
+  'Gate and visitors',
+  'GET',
+  '/admin/gate/*',
+  'Admin board, gate log, report and Excel downloads',
+  '200 for each; xlsx files',
+  async () => {
+    for (const path of [
+      '/admin/gate/today',
+      '/admin/gate/events',
+      '/admin/gate/report',
+      '/admin/gate/settings',
+      '/admin/gate/visits',
+      '/admin/gate/passes?emergency=false',
+    ]) {
+      expectStatus(await admin('GET', path), 200)
+    }
+    for (const path of ['/admin/gate/passes/xlsx', '/admin/gate/visits/xlsx']) {
+      const file = await admin('GET', path)
+      if (file.status !== 200 || !file.type.includes('spreadsheet'))
+        throw new Error(`${path} failed`)
+    }
+    expectStatus(await teacher('GET', '/admin/gate/today'), 403)
+    return '200 for board, log, report, settings, lists; Excel ok'
   }
 )
 await TA(

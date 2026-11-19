@@ -4,7 +4,6 @@ import { AppModal } from '@/components/common/app-modal'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FormField } from '@/components/common/form-field'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
-import { SegmentedControl } from '@/components/common/segmented-control'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -87,21 +86,8 @@ export function LeaveTab({
   return (
     <div className='grid gap-4'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
-        <SegmentedControl
-          label='Leave requests type'
-          value={kind}
-          onChange={(next) =>
-            onSearchChange({ leave: next as LeaveKind, page: 1, search: undefined, status: undefined })
-          }
-          options={[
-            { value: 'staff', label: 'Staff leaves' },
-            { value: 'student', label: 'Student leaves' },
-          ]}
-        />
         <p className='text-xs text-muted-foreground'>
-          {kind === 'staff'
-            ? 'Staff leave requests waiting for a decision by HOD or Principal.'
-            : 'Student leave requests from parents.'}
+          Student leave from parents is approved by the class teacher in the Staff app. Staff leave requests are decided here by the HOD or Principal.
         </p>
       </div>
 

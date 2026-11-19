@@ -7,6 +7,7 @@ import {
   ChartColumnBig,
   ClipboardCheck,
   ClipboardList,
+  DoorOpen,
   Repeat,
   Route,
   Wallet,
@@ -56,6 +57,7 @@ export type NavPath =
   | '/class-performance'
   | '/teacher-feedback'
   | '/emergency'
+  | '/gate'
   | '/activities'
   | '/transport'
   | '/notifications'
@@ -304,6 +306,15 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Siren,
         shortcut: 'nav.emergency',
         permission: 'emergency.view',
+      },
+      {
+        to: '/gate',
+        label: 'Gate & visitors',
+        description:
+          'Student early release passes, emergency pickups, visitor management and campus security log',
+        icon: DoorOpen,
+        shortcut: 'nav.gate',
+        permission: 'gate.view',
       },
       {
         to: '/announcements',
