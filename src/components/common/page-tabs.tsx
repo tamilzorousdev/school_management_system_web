@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -21,8 +22,25 @@ export function PageTabs<T extends string>({
   label: string
   wrap?: boolean
 }) {
+  const scroller = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = scroller.current
+    const active = container?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!container || !active || wrap) return
+    const left =
+      active.getBoundingClientRect().left -
+      container.getBoundingClientRect().left +
+      container.scrollLeft
+    const right = left + active.offsetWidth
+    if (left < container.scrollLeft) container.scrollLeft = left - 16
+    else if (right > container.scrollLeft + container.clientWidth)
+      container.scrollLeft = right - container.clientWidth + 16
+  }, [value, wrap])
+
   return (
     <div
+      ref={scroller}
       className={wrap ? '-mx-4 px-4 sm:mx-0 sm:px-0' : '-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0'}
     >
       <div
