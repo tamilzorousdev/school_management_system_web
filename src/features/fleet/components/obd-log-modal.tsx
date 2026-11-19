@@ -90,7 +90,7 @@ export function ObdLogModal({ busId, busName, open, onOpenChange }: ObdLogModalP
       key: 'dtc',
       header: 'Faults',
       cell: (row) =>
-        row.dtc.length ? (
+        row.dtc?.length ? (
           <span className='font-mono text-xs text-destructive'>{row.dtc.join(', ')}</span>
         ) : (
           <span className='text-muted-foreground'>—</span>
@@ -171,7 +171,7 @@ export function ObdLogModal({ busId, busName, open, onOpenChange }: ObdLogModalP
                 <span className='tabular text-xs text-muted-foreground'>
                   {formatDateTime(row.recorded_at)}
                 </span>
-                {row.dtc.length > 0 && (
+                {Boolean(row.dtc?.length) && (
                   <span className='font-mono text-xs text-destructive'>{row.dtc.join(', ')}</span>
                 )}
               </div>
