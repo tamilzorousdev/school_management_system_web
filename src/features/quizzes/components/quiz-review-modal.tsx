@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { CheckCircle2, XCircle, AlertCircle, Clock, BookOpen, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,25 +29,33 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
   const { data: quiz, isLoading } = useQuiz(quizId)
   const [rejecting, setRejecting] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [prevQuizId, setPrevQuizId] = useState(quizId)
+
+  if (quizId !== prevQuizId) {
+    setPrevQuizId(quizId)
+    setRejecting(false)
+    setRejectionReason('')
+  }
 
   const approveMutation = useQuizActionMutation(() => quizzesApi.approve(quizId!))
   const rejectMutation = useQuizActionMutation((reason: string) =>
     quizzesApi.reject(quizId!, reason)
   )
 
-  useEffect(() => {
+  if (!quizId) return null
+
+  const handleClose = () => {
     setRejecting(false)
     setRejectionReason('')
-  }, [quizId])
-
-  if (!quizId) return null
+    onClose()
+  }
 
   const handleApprove = async () => {
     try {
       await approveMutation.mutateAsync()
       alerts.success('Quiz approved successfully. Parents and students have been notified.')
       onApproved?.()
-      onClose()
+      handleClose()
     } catch (err) {
       alerts.error(toApiError(err).message)
     }
@@ -61,7 +69,7 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
     try {
       await rejectMutation.mutateAsync(rejectionReason.trim())
       alerts.success('Quiz returned with rejection notes.')
-      onClose()
+      handleClose()
     } catch (err) {
       alerts.error(toApiError(err).message)
     }
@@ -77,7 +85,7 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
       : 'neutral'
 
   return (
-    <Dialog open={Boolean(quizId)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={Boolean(quizId)} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className='max-w-3xl max-h-[90vh] flex flex-col p-0'>
         <DialogHeader className='p-6 pb-2 border-b'>
           <div className='flex items-center justify-between'>
@@ -251,7 +259,7 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
         </div>
 
         <DialogFooter className='p-4 border-t bg-muted/20 flex items-center justify-between'>
-          <Button variant='outline' onClick={onClose}>
+          <Button variant='outline' onClick={handleClose}>
             Close
           </Button>
 
