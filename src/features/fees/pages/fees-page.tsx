@@ -4,6 +4,7 @@ import {
   BarChart3,
   ClipboardCheck,
   CreditCard,
+  Gavel,
   History,
   Layers,
   Lock,
@@ -18,6 +19,7 @@ import { feeAccess } from '../access'
 import { AuditTab } from '../components/audit-tab'
 import { BenefitsTab } from '../components/benefits-tab'
 import { DuesTab } from '../components/dues-tab'
+import { FinesTab } from '../components/fines-tab'
 import { OnlinePaymentsTab } from '../components/online-payments-tab'
 import { PaymentsTab } from '../components/payments-tab'
 import { PlansTab } from '../components/plans-tab'
@@ -83,6 +85,7 @@ export function FeesPage() {
           ...(approvals
             ? [{ value: 'approvals' as const, label: 'Approvals', icon: ClipboardCheck }]
             : []),
+          { value: 'fines', label: 'Fines', icon: Gavel },
           { value: 'reports', label: 'Reports', icon: BarChart3 },
           ...(access.audit ? [{ value: 'audit' as const, label: 'Audit log', icon: History }] : []),
         ]}
@@ -97,6 +100,14 @@ export function FeesPage() {
       )}
       {tab === 'approvals' && (
         <ApprovalsTab
+          search={search}
+          access={access}
+          onChange={setSearch}
+          onOpenInvoice={(invoice_id) => navigate({ search: { tab: 'dues', invoice_id } })}
+        />
+      )}
+      {tab === 'fines' && (
+        <FinesTab
           search={search}
           access={access}
           onChange={setSearch}

@@ -12,6 +12,7 @@ import {
   type FeeAuditAction,
   type FeeRequestKind,
   type FeeRequestStatus,
+  type FineStatus,
   type FeeAuditEntity,
   type FeeFrequency,
   type InvoiceStatus,
@@ -81,6 +82,8 @@ export const AUDIT_ENTITIES: Record<FeeAuditEntity, string> = {
   fee_request: 'Approval request',
   fee_refund: 'Refund',
   fee_settings: 'Late fee settings',
+  fee_fine: 'Fine',
+  fine_type: 'Fine type',
 }
 
 export const AUDIT_ACTIONS: Record<FeeAuditAction, { label: string; tone: BadgeTone }> = {
@@ -341,6 +344,21 @@ export const REQUEST_STATUS: Record<FeeRequestStatus, { label: string; tone: Bad
   rejected: { label: 'Rejected', tone: 'danger' },
   withdrawn: { label: 'Withdrawn', tone: 'neutral' },
 }
+
+export const FINE_STATUS: Record<FineStatus, { label: string; tone: BadgeTone }> = {
+  pending: { label: 'Waiting', tone: 'warning' },
+  approved: { label: 'Charged', tone: 'success' },
+  rejected: { label: 'Not approved', tone: 'danger' },
+  withdrawn: { label: 'Withdrawn', tone: 'neutral' },
+}
+
+export const FINE_STATUS_OPTIONS = [
+  ...(Object.keys(FINE_STATUS) as FineStatus[]).map((value) => ({
+    value,
+    label: FINE_STATUS[value].label,
+  })),
+  { value: 'all', label: 'All fines' },
+]
 
 export const REQUEST_STATUS_OPTIONS = [
   ...(Object.keys(REQUEST_STATUS) as FeeRequestStatus[]).map((value) => ({

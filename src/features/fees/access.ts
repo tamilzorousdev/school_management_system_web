@@ -8,6 +8,7 @@ export interface FeeAccess {
   adjust: boolean
   audit: boolean
   approve: boolean
+  fine: boolean
 }
 
 export function feeAccess(me: Me | undefined): FeeAccess {
@@ -19,5 +20,6 @@ export function feeAccess(me: Me | undefined): FeeAccess {
     adjust: can(me, 'fees.adjust'),
     audit: can(me, 'fees.audit'),
     approve: can(me, 'fees.approve'),
+    fine: can(me, 'fees.fine'),
   }
 }

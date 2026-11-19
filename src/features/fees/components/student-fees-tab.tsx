@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileDown, IndianRupee, ReceiptIndianRupee } from 'lucide-react'
+import { FileDown, Gavel, IndianRupee, ReceiptIndianRupee } from 'lucide-react'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import {
   openAdvanceReceipt,
   rupees,
 } from '../labels'
+import { RaiseFineModal } from './fines-tab'
 import { InvoiceModal, InvoiceStatusBadge } from './invoice-modal'
 import { PaymentModal } from './payment-modal'
 import { PaymentListItem, ReversePaymentModal } from './payment-reversal'
@@ -31,6 +32,7 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
   const [receiptPayment, setReceiptPayment] = useState<FeePayment | null>(null)
   const [reversing, setReversing] = useState<FeePayment | null>(null)
   const [collecting, setCollecting] = useState(false)
+  const [fining, setFining] = useState(false)
   const useCredit = useFeesMutation(() => feesApi.applyCredit(studentId))
   const data = fees.data
 
@@ -68,11 +70,19 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
             <h2 className='font-bold'>Fee status</h2>
             <Badge tone={status.tone}>{status.label}</Badge>
           </div>
-          <span className='text-xs text-muted-foreground'>
-            {data.next_due_date ? `Next due ${formatDate(data.next_due_date)}` : 'Nothing due'}
-            {data.last_payment
-              ? ` · Last paid ${rupees(data.last_payment.amount)} on ${formatDate(data.last_payment.date)}`
-              : ''}
+          <span className='flex flex-wrap items-center gap-3'>
+            <span className='text-xs text-muted-foreground'>
+              {data.next_due_date ? `Next due ${formatDate(data.next_due_date)}` : 'Nothing due'}
+              {data.last_payment
+                ? ` · Last paid ${rupees(data.last_payment.amount)} on ${formatDate(data.last_payment.date)}`
+                : ''}
+            </span>
+            {access.fine && (
+              <Button size='sm' variant='outline' onClick={() => setFining(true)}>
+                <Gavel />
+                Raise fine
+              </Button>
+            )}
           </span>
         </div>
         <dl className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
@@ -190,6 +200,11 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
                 >
                   <span className='grid min-w-0'>
                     <span className='font-semibold'>
+                      {invoice.kind === 'fine' && (
+                        <Badge tone='danger' className='mr-1.5 align-middle'>
+                          Fine
+                        </Badge>
+                      )}
                       {invoice.installment}{' '}
                       <span className='font-mono text-xs font-normal text-muted-foreground'>
                         {invoice.invoice_no}
@@ -281,6 +296,12 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
         />
       )}
       {collecting && <StudentPaymentModal fees={data} onClose={() => setCollecting(false)} />}
+      {fining && (
+        <RaiseFineModal
+          student={{ id: studentId, name: data.student.full_name }}
+          onClose={() => setFining(false)}
+        />
+      )}
       {reversing && <ReversePaymentModal payment={reversing} onClose={() => setReversing(null)} />}
     </div>
   )

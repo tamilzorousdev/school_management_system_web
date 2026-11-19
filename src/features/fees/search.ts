@@ -7,6 +7,7 @@ export const FEE_TABS = [
   'payments',
   'online',
   'approvals',
+  'fines',
   'reports',
   'audit',
 ] as const
@@ -34,6 +35,8 @@ const AUDIT_ENTITIES = [
   'fee_request',
   'fee_refund',
   'fee_settings',
+  'fee_fine',
+  'fine_type',
 ] as const
 const AUDIT_ACTIONS = [
   'created',
@@ -87,6 +90,10 @@ export const feesSearchSchema = z.object({
     .catch(undefined),
   request_kind: z
     .enum(['discount', 'cancel', 'reversal', 'refund', 'reschedule', 'write_off'])
+    .optional()
+    .catch(undefined),
+  fine_status: z
+    .enum(['pending', 'approved', 'rejected', 'withdrawn', 'all'])
     .optional()
     .catch(undefined),
   report: z

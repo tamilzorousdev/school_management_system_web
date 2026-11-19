@@ -20,6 +20,8 @@ export type FeeAuditEntity =
   | 'fee_request'
   | 'fee_refund'
   | 'fee_settings'
+  | 'fee_fine'
+  | 'fine_type'
 export type FeeAuditAction =
   | 'created'
   | 'updated'
@@ -502,11 +504,14 @@ export interface FeePayment {
   created_at: string
 }
 
+export type InvoiceKind = 'fee' | 'fine'
+
 export interface FeeInvoice {
   id: number
   invoice_no: string
   academic_year_id: number
   installment: string
+  kind: InvoiceKind
   due_date: string
   student: FeeStudentRef
   class_id: number
@@ -651,6 +656,67 @@ export interface PaymentListParams extends PaymentFilters {
   order?: 'asc' | 'desc'
 }
 
+export type FineStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn'
+
+export interface FineType {
+  id: number
+  name: string
+  default_amount: number
+  description: string | null
+  is_active: boolean
+  fines: number
+}
+
+export interface FineTypeInput {
+  name: string
+  default_amount: number
+  description?: string | null
+  is_active?: boolean
+}
+
+export interface Fine {
+  id: number
+  fine_no: string
+  status: FineStatus
+  student: FeeStudentRef
+  fine_type: { id: number; name: string } | null
+  title: string
+  amount: number
+  incident_on: string
+  details: string | null
+  raised_by: { id: number; name: string } | null
+  raised_at: string
+  decided_by: { id: number; name: string } | null
+  decided_at: string | null
+  decision_comment: string | null
+  invoice: {
+    id: number
+    invoice_no: string
+    due_date: string
+    balance: number
+    status: InvoiceStatus
+  } | null
+  behaviour_note_id: number | null
+}
+
+export interface FineInput {
+  student_id: number
+  fine_type_id?: number
+  title?: string
+  amount?: number
+  incident_on?: string
+  details?: string
+}
+
+export interface FineListParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: FineStatus
+  student_id?: number
+  fine_type_id?: number
+}
+
 export const feeKeys = {
   all: ['fees'] as const,
   insights: () => [...feeKeys.all, 'insights'] as const,
@@ -674,6 +740,8 @@ export const feeKeys = {
   student: (id: number) => [...feeKeys.all, 'student', id] as const,
   audit: (params: FeeAuditParams) => [...feeKeys.all, 'audit', params] as const,
   reconciliation: () => [...feeKeys.all, 'reconciliation'] as const,
+  fines: (params: FineListParams) => [...feeKeys.all, 'fines', params] as const,
+  fineTypes: () => [...feeKeys.all, 'fine-types'] as const,
 }
 
 export const receiptUrl = (paymentId: number) => `/admin/fees/payments/${paymentId}/receipt`
@@ -775,6 +843,18 @@ export const feesApi = {
   auditLogs: (params: FeeAuditParams) =>
     api.get<Paginated<FeeAuditLog>>('/admin/fees/audit-logs', { ...params }),
   reconciliation: () => api.get<Reconciliation>('/admin/fees/reconciliation'),
+  fineTypes: () => api.get<FineType[]>('/admin/fees/fine-types'),
+  createFineType: (input: FineTypeInput) => api.post<FineType>('/admin/fees/fine-types', input),
+  updateFineType: (id: number, input: Partial<FineTypeInput>) =>
+    api.patch<FineType>(`/admin/fees/fine-types/${id}`, input),
+  removeFineType: (id: number) => api.delete<null>(`/admin/fees/fine-types/${id}`),
+  fines: (params: FineListParams) => api.get<Paginated<Fine>>('/admin/fees/fines', { ...params }),
+  raiseFine: (input: FineInput) => api.post<Fine>('/admin/fees/fines', input),
+  approveFine: (id: number, input: { due_date?: string; comment?: string }) =>
+    api.post<Fine>(`/admin/fees/fines/${id}/approve`, input),
+  rejectFine: (id: number, comment: string) =>
+    api.post<Fine>(`/admin/fees/fines/${id}/reject`, { comment }),
+  withdrawFine: (id: number) => api.post<Fine>(`/admin/fees/fines/${id}/withdraw`),
 }
 
 export function useFeeInsights() {
@@ -906,6 +986,19 @@ export function useFeeAudit(params: FeeAuditParams) {
 
 export function useReconciliation() {
   return useQuery({ queryKey: feeKeys.reconciliation(), queryFn: feesApi.reconciliation })
+}
+
+export function useFines(params: FineListParams, enabled = true) {
+  return useQuery({
+    queryKey: feeKeys.fines(params),
+    queryFn: () => feesApi.fines(params),
+    placeholderData: keepPreviousData,
+    enabled,
+  })
+}
+
+export function useFineTypes() {
+  return useQuery({ queryKey: feeKeys.fineTypes(), queryFn: feesApi.fineTypes })
 }
 
 export function useFeesMutation<TInput, TResult>(fn: (input: TInput) => Promise<TResult>) {
