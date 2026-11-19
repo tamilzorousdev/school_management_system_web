@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Navigate as Redirect, useNavigate } from '@tanstack/react-router'
 import {
   Bus,
   CalendarCheck,
@@ -29,12 +29,17 @@ import { YearPerformanceCard } from '../components/year-performance-card'
 type Navigate = ReturnType<typeof useNavigate>
 
 const PERFORMANCE_PERMISSIONS = ['students.view', 'attendance.view', 'exams.view', 'fees.view']
+const SCHOOL_DASHBOARD_PERMISSIONS = ['attendance.view', 'exams.view', 'fees.view', 'fleet.view']
+
+const landsOnLibrary = (me: Me | undefined) =>
+  can(me, 'library.view') && !SCHOOL_DASHBOARD_PERMISSIONS.some((permission) => can(me, permission))
 
 export function DashboardPage() {
   const me = useMe().data
   const dashboard = useDashboard()
   const navigate = useNavigate()
   const items = insights(me, dashboard.data, navigate)
+  if (landsOnLibrary(me)) return <Redirect to='/library' search={{ tab: 'dashboard' }} replace />
   return (
     <Page>
       <PageHeader

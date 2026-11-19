@@ -13,6 +13,9 @@ export type NotificationCategory =
   | 'meeting'
   | 'alert'
   | 'fees'
+  | 'announcement'
+  | 'approval'
+  | 'library'
 
 export interface MyNotification {
   id: number

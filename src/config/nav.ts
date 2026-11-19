@@ -14,6 +14,7 @@ import {
   IdCard,
   Grid3x3,
   IndianRupee,
+  Library,
   // HeartHandshake,
   History,
   LayoutDashboard,
@@ -50,6 +51,7 @@ export type NavPath =
   | '/substitutes'
   | '/payroll'
   | '/fees'
+  | '/library'
   | '/exams'
   | '/class-performance'
   | '/teacher-feedback'
@@ -225,6 +227,15 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Star,
         shortcut: 'nav.feedback',
         permission: 'feedback.view',
+      },
+      {
+        to: '/library',
+        label: 'Library',
+        description:
+          'Books and barcodes, issue and return desk, overdue follow-ups, fines and library attendance',
+        icon: Library,
+        shortcut: 'nav.library',
+        permission: 'library.view',
       },
       {
         to: '/activities',
