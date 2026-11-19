@@ -11,12 +11,22 @@ export interface Term {
   sort_order: number
 }
 
+export type AcademicYearStatus = 'draft' | 'active' | 'closed' | 'archived'
+
 export interface AcademicYear {
   id: number
   name: string
   start_date: string
   end_date: string
   is_current: boolean
+  status: AcademicYearStatus
+  description: string | null
+  activated_at: string | null
+  activated_by: string | null
+  closed_at: string | null
+  closed_by: string | null
+  archived_at: string | null
+  archived_by: string | null
   terms: Term[]
 }
 
@@ -154,11 +164,21 @@ export const setupApi = {
     start_date: string
     end_date: string
     is_current?: boolean
+    description?: string | null
   }) => api.post<AcademicYear>('/admin/academic-years', input),
   updateYear: (
     id: number,
-    input: Partial<{ name: string; start_date: string; end_date: string; is_current: boolean }>
+    input: Partial<{
+      name: string
+      start_date: string
+      end_date: string
+      is_current: boolean
+      description: string | null
+    }>
   ) => api.patch<AcademicYear>(`/admin/academic-years/${id}`, input),
+  activateYear: (id: number) => api.post<AcademicYear>(`/admin/academic-years/${id}/activate`),
+  archiveYear: (id: number) => api.post<AcademicYear>(`/admin/academic-years/${id}/archive`),
+  restoreYear: (id: number) => api.post<AcademicYear>(`/admin/academic-years/${id}/restore`),
   removeYear: (id: number) => api.delete<{ id: number }>(`/admin/academic-years/${id}`),
   addTerm: (yearId: number, input: { name: string; start_date: string; end_date: string }) =>
     api.post<AcademicYear>(`/admin/academic-years/${yearId}/terms`, input),

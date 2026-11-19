@@ -60,7 +60,19 @@ export function ReceiptModal({ payment, onClose }: { payment: FeePayment; onClos
       footer={footer}
     >
       <div className='space-y-4 text-sm'>
-        {/* Receipt Header Banner */}
+        {payment.status === 'reversed' && (
+          <div
+            role='alert'
+            className='rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm'
+          >
+            <span className='font-bold text-destructive'>This payment was reversed. </span>
+            <span className='text-muted-foreground'>
+              It no longer counts as paid
+              {payment.reversed_at ? ` (since ${formatDate(payment.reversed_at)})` : ''}
+              {payment.reversal_reason ? `: ${payment.reversal_reason}` : '.'}
+            </span>
+          </div>
+        )}
         <div className='flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-950 dark:bg-emerald-950/20'>
           <div className='space-y-1'>
             <div className='flex items-center gap-2'>
@@ -73,9 +85,15 @@ export function ReceiptModal({ payment, onClose }: { payment: FeePayment; onClos
               Receipt #{payment.receipt_no} · {formatDate(payment.paid_on)}
             </p>
           </div>
-          <Badge tone='success' className='px-3 py-1 text-xs font-bold tracking-wider uppercase'>
-            Paid · Official Copy
-          </Badge>
+          {payment.status === 'reversed' ? (
+            <Badge tone='danger' className='px-3 py-1 text-xs font-bold tracking-wider uppercase'>
+              Reversed
+            </Badge>
+          ) : (
+            <Badge tone='success' className='px-3 py-1 text-xs font-bold tracking-wider uppercase'>
+              Paid · Official Copy
+            </Badge>
+          )}
         </div>
 
         {/* Student & Invoice Information */}

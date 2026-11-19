@@ -27,6 +27,7 @@ interface AppModalProps {
   children: React.ReactNode
   formId?: string
   submitText?: string
+  cancelText?: string
   loading?: boolean
   size?: keyof typeof sizes
   footer?: React.ReactNode
@@ -40,6 +41,7 @@ export function AppModal({
   children,
   formId,
   submitText = 'Save',
+  cancelText = 'Cancel',
   loading = false,
   size = 'md',
   footer,
@@ -69,7 +71,7 @@ export function AppModal({
           (formId && (
             <DialogFooter>
               <Button variant='outline' onClick={() => onOpenChange(false)} disabled={loading}>
-                Cancel
+                {cancelText}
               </Button>
               <Button type='submit' form={formId} loading={loading}>
                 {submitText}

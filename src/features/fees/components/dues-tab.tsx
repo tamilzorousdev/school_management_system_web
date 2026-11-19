@@ -17,6 +17,7 @@ import {
   type InvoiceStatus,
 } from '../api'
 import { STATUS_OPTIONS, invoicesText, rupees, wholeRupees } from '../labels'
+import type { FeeAccess } from '../access'
 import type { FeesSearch } from '../search'
 import { InvoiceModal, InvoiceStatusBadge } from './invoice-modal'
 import { PaymentModal } from './payment-modal'
@@ -26,11 +27,11 @@ const LIMIT = 20
 
 export function DuesTab({
   search,
-  canManage,
+  access,
   onChange,
 }: {
   search: FeesSearch
-  canManage: boolean
+  access: FeeAccess
   onChange: (patch: Partial<FeesSearch>) => void
 }) {
   const page = search.page ?? 1
@@ -72,7 +73,12 @@ export function DuesTab({
       key: 'collected',
       label: 'Collected',
       value: wholeRupees(stats?.collected ?? 0),
-      hint: `of ${wholeRupees(stats?.total_billed ?? 0)} billed`,
+      hint: [
+        `of ${wholeRupees(stats?.total_billed ?? 0)} billed`,
+        stats?.refunded ? `${wholeRupees(stats.refunded)} refunded` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
       icon: Wallet,
       tone: 'success',
       active: search.status === 'paid',
@@ -119,7 +125,7 @@ export function DuesTab({
   )
 
   const payButton = (invoice: FeeInvoice) =>
-    canManage &&
+    access.collect &&
     invoice.balance > 0 &&
     invoice.status !== 'cancelled' && (
       <Button
@@ -191,6 +197,26 @@ export function DuesTab({
   return (
     <div className='grid gap-4'>
       <InsightCards items={cards} loading={insights.isPending} />
+      {(access.approve || access.adjust) && (stats?.pending_requests ?? 0) > 0 && (
+        <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm'>
+          <span>
+            <span className='font-semibold'>
+              {stats!.pending_requests === 1
+                ? '1 request is waiting for approval'
+                : `${stats!.pending_requests} requests are waiting for approval`}
+            </span>
+            {stats!.concessions > 0 && (
+              <span className='text-muted-foreground'>
+                {' '}
+                · {wholeRupees(stats!.concessions)} given in concessions this year
+              </span>
+            )}
+          </span>
+          <Button size='sm' variant='outline' onClick={() => onChange({ tab: 'approvals' })}>
+            Open approvals
+          </Button>
+        </div>
+      )}
       <Card className='overflow-hidden'>
         <ListToolbar
           summary={invoices.data ? invoicesText(invoices.data.total) : ''}
@@ -314,7 +340,7 @@ export function DuesTab({
       {search.invoice_id && (
         <InvoiceModal
           invoiceId={search.invoice_id}
-          canManage={canManage}
+          access={access}
           onClose={() => onChange({ invoice_id: undefined })}
           onRecordPayment={(invoice) => {
             onChange({ invoice_id: undefined })

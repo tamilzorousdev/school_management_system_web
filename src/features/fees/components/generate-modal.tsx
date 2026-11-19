@@ -75,7 +75,16 @@ export function GenerateModal({ onClose }: { onClose: () => void }) {
             })
             if (result.created) {
               alerts.success(`${invoicesText(result.created)} raised for ${result.installment}`, {
-                description: `${rupees(result.total_amount)} in all · ${result.with_transport} with transport · ${result.already_invoiced} already had one`,
+                description: [
+                  `${rupees(result.total_amount)} in all`,
+                  `${result.with_transport} with transport`,
+                  result.with_benefits
+                    ? `${result.with_benefits} with concessions or scholarships (${rupees(result.benefit_amount)} off)`
+                    : null,
+                  `${result.already_invoiced} already had one`,
+                ]
+                  .filter(Boolean)
+                  .join(' · '),
               })
             } else {
               alerts.info(`No new invoices for ${result.installment}`, {

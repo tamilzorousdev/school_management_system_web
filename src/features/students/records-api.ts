@@ -105,6 +105,7 @@ export interface TransferCertificate {
   academic_year_name: string | null
   promotion_eligible: boolean
   remarks: string | null
+  fee_balance: number
 }
 
 export interface ExitInput {
@@ -114,6 +115,7 @@ export interface ExitInput {
   conduct?: string
   promotion_eligible?: boolean
   remarks?: string | null
+  acknowledge_dues?: boolean
 }
 
 export type ImportRowStatus = 'valid' | 'error' | 'created' | 'failed'
