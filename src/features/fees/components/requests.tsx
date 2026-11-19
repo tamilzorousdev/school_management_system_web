@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, ClipboardCheck, Undo2, XCircle } from 'lucide-react'
+import { CheckCircle2, ClipboardCheck, FileDown, Undo2, XCircle } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { DataTable, type Column } from '@/components/common/data-table'
@@ -34,6 +34,7 @@ import {
   REQUEST_STATUS_OPTIONS,
   amountError,
   formErrors,
+  openRefundReceipt,
   rupees,
 } from '../labels'
 import type { FeesSearch } from '../search'
@@ -614,6 +615,15 @@ export function RefundList({ invoice }: { invoice: FeeInvoiceDetail }) {
                 {refund.reference ? ` · ${refund.reference}` : ''} · {refund.reason}
               </span>
             </span>
+            <Button
+              size='sm'
+              variant='ghost'
+              aria-label={`Refund receipt ${refund.refund_no}`}
+              onClick={() => openRefundReceipt(refund.id)}
+            >
+              <FileDown />
+              Receipt
+            </Button>
           </li>
         ))}
       </ul>

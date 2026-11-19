@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3, Download } from 'lucide-react'
+import { BarChart3, Download, FileText } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar } from '@/components/common/list-toolbar'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
@@ -12,6 +12,7 @@ import { downloadFile } from '@/lib/files'
 import { formatDate } from '@/lib/format'
 import { useClasses } from '@/features/setup/api'
 import {
+  useCollectorOptions,
   useFeeReport,
   useInstallments,
   type BenefitKind,
@@ -22,6 +23,7 @@ import {
 } from '../api'
 import { BENEFIT_KIND_OPTIONS, rupees } from '../labels'
 import type { FeesSearch } from '../search'
+import { DaySheetModal } from './day-sheet-modal'
 
 const REPORTS: { value: FeeReportType; label: string; hint: string }[] = [
   {
@@ -41,8 +43,19 @@ const REPORTS: { value: FeeReportType; label: string; hint: string }[] = [
     label: 'Students due',
     hint: 'Students with a balance, most overdue first',
   },
-  { value: 'collections', label: 'Daily collection', hint: 'Payments received each day by mode' },
+  {
+    value: 'collections',
+    label: 'Daily collection',
+    hint: 'Money received each day by mode: fees, advances and library fines, less refunds',
+  },
+  {
+    value: 'collectors',
+    label: 'By staff',
+    hint: 'What each staff member received and refunded, and the cash they should hand over',
+  },
 ]
+
+const DATED: FeeReportType[] = ['collections', 'collectors']
 
 type Row = Record<string, ReportValue> & { __key: string }
 
@@ -63,6 +76,12 @@ const SECONDARY = [
   'oldest_due',
   'admission_no',
   'active_students',
+  'receipts',
+  'card',
+  'bank_transfer',
+  'cheque',
+  'online',
+  'advance',
 ]
 
 const numeric = (column: ReportColumn) => column.kind !== 'text' && column.kind !== 'date'
@@ -77,15 +96,19 @@ export function ReportsTab({
   const type = search.report ?? 'classes'
   const classes = useClasses()
   const installments = useInstallments()
+  const collectors = useCollectorOptions()
   const [downloading, setDownloading] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const dated = DATED.includes(type)
   const params: FeeReportParams = {
     class_id: search.class_id,
     section_id: search.section_id,
-    installment: type === 'collections' || type === 'benefits' ? undefined : search.installment,
+    installment: dated || type === 'benefits' ? undefined : search.installment,
     kind: type === 'benefits' ? search.kind : undefined,
     overdue_only: type === 'defaulters' && search.overdue ? true : undefined,
-    from: type === 'collections' ? search.from : undefined,
-    to: type === 'collections' ? search.to : undefined,
+    from: dated ? search.from : undefined,
+    to: dated ? search.to : undefined,
+    received_by: dated ? search.received_by : undefined,
   }
   const report = useFeeReport(type, params)
   const sections = (classes.data ?? []).find((item) => item.id === search.class_id)?.sections ?? []
@@ -97,7 +120,8 @@ export function ReportsTab({
     search.kind ||
     search.overdue ||
     search.from ||
-    search.to
+    search.to ||
+    search.received_by
   )
 
   useShortcut('app.refresh', () => void report.refetch())
@@ -137,29 +161,39 @@ export function ReportsTab({
             {report.data ? ` · ${report.data.academic_year}` : ''}. Cancelled invoices are left out.
           </p>
         </div>
-        <Button
-          size='sm'
-          variant='outline'
-          loading={downloading}
-          disabled={!report.data?.rows.length}
-          onClick={async () => {
-            setDownloading(true)
-            try {
-              await downloadFile(
-                `/admin/fees/reports/${type}/xlsx`,
-                `${report.data?.title ?? 'Fee report'}.xlsx`,
-                { ...params }
-              )
-            } catch (error) {
-              alerts.error(error instanceof Error ? error.message : 'Could not download the report')
-            } finally {
-              setDownloading(false)
-            }
-          }}
-        >
-          <Download />
-          Download Excel
-        </Button>
+        <div className='flex flex-wrap gap-2'>
+          {dated && (
+            <Button size='sm' variant='outline' onClick={() => setSheetOpen(true)}>
+              <FileText />
+              Day-end sheet
+            </Button>
+          )}
+          <Button
+            size='sm'
+            variant='outline'
+            loading={downloading}
+            disabled={!report.data?.rows.length}
+            onClick={async () => {
+              setDownloading(true)
+              try {
+                await downloadFile(
+                  `/admin/fees/reports/${type}/xlsx`,
+                  `${report.data?.title ?? 'Fee report'}.xlsx`,
+                  { ...params }
+                )
+              } catch (error) {
+                alerts.error(
+                  error instanceof Error ? error.message : 'Could not download the report'
+                )
+              } finally {
+                setDownloading(false)
+              }
+            }}
+          >
+            <Download />
+            Download Excel
+          </Button>
+        </div>
       </div>
       <div
         role='tablist'
@@ -196,6 +230,7 @@ export function ReportsTab({
                   overdue: undefined,
                   from: undefined,
                   to: undefined,
+                  received_by: undefined,
                 })
             : undefined
         }
@@ -226,7 +261,7 @@ export function ReportsTab({
             onChange={(value) => onChange({ section_id: value ? Number(value) : undefined })}
           />
         )}
-        {type !== 'collections' && type !== 'benefits' && (
+        {!dated && type !== 'benefits' && (
           <FilterSelect
             id='report-installment-filter'
             label='Filter by installment'
@@ -259,8 +294,16 @@ export function ReportsTab({
             Overdue only
           </label>
         )}
-        {type === 'collections' && (
+        {dated && (
           <>
+            <FilterSelect
+              id='report-collector-filter'
+              label='Filter by who received it'
+              allLabel='Received by anyone'
+              value={search.received_by ? String(search.received_by) : undefined}
+              options={collectors.data ?? []}
+              onChange={(value) => onChange({ received_by: value ? Number(value) : undefined })}
+            />
             <label className='flex w-full items-center gap-2 text-xs text-muted-foreground sm:w-auto'>
               <span className='w-10 shrink-0 sm:w-auto'>From</span>
               <Input
@@ -319,6 +362,12 @@ export function ReportsTab({
             </div>
           )
         }}
+      />
+      <DaySheetModal
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        defaultDate={search.to}
+        defaultCollector={search.received_by}
       />
       {totals && report.data && rows.length > 0 && (
         <div className='border-t bg-muted/40 px-4 py-3'>

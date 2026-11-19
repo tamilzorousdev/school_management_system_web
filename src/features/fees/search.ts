@@ -68,6 +68,7 @@ export const feesSearchSchema = z.object({
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   status: z.enum(INVOICE_STATUSES).optional().catch(undefined),
   class_id: z.coerce.number().int().min(1).optional().catch(undefined),
+  received_by: z.coerce.number().int().min(1).optional().catch(undefined),
   section_id: z.coerce.number().int().min(1).optional().catch(undefined),
   installment: z.string().optional().catch(undefined),
   overdue: z.boolean().optional().catch(undefined),
@@ -98,7 +99,15 @@ export const feesSearchSchema = z.object({
     .optional()
     .catch(undefined),
   report: z
-    .enum(['classes', 'heads', 'installments', 'benefits', 'defaulters', 'collections'])
+    .enum([
+      'classes',
+      'heads',
+      'installments',
+      'benefits',
+      'defaulters',
+      'collections',
+      'collectors',
+    ])
     .optional()
     .catch(undefined),
   route_id: z.coerce.number().int().min(1).optional().catch(undefined),

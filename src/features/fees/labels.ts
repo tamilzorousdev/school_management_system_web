@@ -4,7 +4,10 @@ import { alerts } from '@/lib/alerts'
 import { openFile } from '@/lib/files'
 import {
   advanceReceiptUrl,
+  DAY_SHEET_URL,
+  invoicePdfUrl,
   receiptUrl,
+  refundReceiptUrl,
   type AwardStatus,
   type BenefitCalcType,
   type BenefitKind,
@@ -193,6 +196,24 @@ export const invoicesText = (count: number) => `${count} ${count === 1 ? 'invoic
 export function openReceipt(paymentId: number) {
   void openFile(receiptUrl(paymentId)).catch((error: unknown) =>
     alerts.error(error instanceof Error ? error.message : 'Could not open the receipt')
+  )
+}
+
+export function openRefundReceipt(refundId: number) {
+  void openFile(refundReceiptUrl(refundId)).catch((error: unknown) =>
+    alerts.error(error instanceof Error ? error.message : 'Could not open the refund receipt')
+  )
+}
+
+export function openDaySheet(date: string, receivedBy?: number) {
+  void openFile(DAY_SHEET_URL, { date, received_by: receivedBy }).catch((error: unknown) =>
+    alerts.error(error instanceof Error ? error.message : 'Could not open the day-end sheet')
+  )
+}
+
+export function openInvoicePdf(invoiceId: number) {
+  void openFile(invoicePdfUrl(invoiceId)).catch((error: unknown) =>
+    alerts.error(error instanceof Error ? error.message : 'Could not open the invoice')
   )
 }
 

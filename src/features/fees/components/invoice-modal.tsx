@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Ban, BadgePercent, CalendarClock, IndianRupee, Undo2 } from 'lucide-react'
+import { Ban, BadgePercent, CalendarClock, FileDown, IndianRupee, Undo2 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { ErrorState } from '@/components/common/display'
 import { FormField } from '@/components/common/form-field'
@@ -20,7 +20,15 @@ import {
   type FeePayment,
 } from '../api'
 import type { FeeAccess } from '../access'
-import { BENEFIT_KINDS, INVOICE_STATUS, amountError, formErrors, round2, rupees } from '../labels'
+import {
+  BENEFIT_KINDS,
+  INVOICE_STATUS,
+  amountError,
+  formErrors,
+  openInvoicePdf,
+  round2,
+  rupees,
+} from '../labels'
 import { PaymentListItem, ReversePaymentModal } from './payment-reversal'
 import {
   PendingRequests,
@@ -71,9 +79,13 @@ export function InvoiceModal({
       )
     )
 
-  const footer = open ? (
+  const footer = data ? (
     <DialogFooter className='flex-wrap gap-2'>
-      {access.adjust && data.paid === 0 && !waiting('cancel') && (
+      <Button variant='outline' className='sm:mr-auto' onClick={() => openInvoicePdf(data.id)}>
+        <FileDown />
+        Invoice PDF
+      </Button>
+      {open && access.adjust && data.paid === 0 && !waiting('cancel') && (
         <Button
           variant='ghost'
           className='text-destructive hover:bg-destructive/10'
@@ -83,7 +95,7 @@ export function InvoiceModal({
           Cancel invoice
         </Button>
       )}
-      {access.adjust && data.balance > 0 && !waiting('write_off') && (
+      {open && access.adjust && data.balance > 0 && !waiting('write_off') && (
         <Button
           variant='ghost'
           className='text-destructive hover:bg-destructive/10'
@@ -92,25 +104,25 @@ export function InvoiceModal({
           Write off
         </Button>
       )}
-      {access.adjust && data.balance > 0 && !waiting('reschedule') && (
+      {open && access.adjust && data.balance > 0 && !waiting('reschedule') && (
         <Button variant='outline' onClick={() => setRescheduling(true)}>
           <CalendarClock />
           Due date
         </Button>
       )}
-      {access.adjust && data.paid > data.refunded && !waiting('refund') && (
+      {open && access.adjust && data.paid > data.refunded && !waiting('refund') && (
         <Button variant='outline' onClick={() => setRefunding(true)}>
           <Undo2 />
           Refund
         </Button>
       )}
-      {access.adjust && !waiting('discount') && (
+      {open && access.adjust && !waiting('discount') && (
         <Button variant='outline' onClick={() => setEditingDiscount(true)}>
           <BadgePercent />
           Discount
         </Button>
       )}
-      {access.collect && data.balance > 0 && (
+      {open && access.collect && data.balance > 0 && (
         <Button onClick={() => onRecordPayment(data)}>
           <IndianRupee />
           Record payment

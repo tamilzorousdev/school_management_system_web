@@ -38,6 +38,7 @@ import {
   studentsSearchSchema,
 } from '@/features/students/search'
 import { payrollSearchSchema } from '@/features/payroll/search'
+import { accountsSearchSchema } from '@/features/accounts/search'
 import { feesSearchSchema } from '@/features/fees/search'
 import { libraryDetailSearchSchema, librarySearchSchema } from '@/features/library/search'
 import { examsSearchSchema } from '@/features/exams/search'
@@ -385,6 +386,16 @@ const feesRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/fees/pages/fees-page'), 'FeesPage'),
 })
 
+const accountsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/accounts',
+  validateSearch: accountsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/accounts/pages/accounts-page'),
+    'AccountsPage'
+  ),
+})
+
 const libraryRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/library',
@@ -576,6 +587,7 @@ const routeTree = rootRoute.addChildren([
     tripHistoryRoute,
     maintenanceRoute,
     fleetAlertsRoute,
+    accountsRoute,
   ]),
 ])
 

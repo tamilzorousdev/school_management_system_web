@@ -1,15 +1,26 @@
 import { useState } from 'react'
-import { AlertTriangle, CalendarClock, IndianRupee, ReceiptIndianRupee, Wallet } from 'lucide-react'
+import {
+  AlertTriangle,
+  BellRing,
+  CalendarClock,
+  IndianRupee,
+  ReceiptIndianRupee,
+  Wallet,
+} from 'lucide-react'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { alerts } from '@/lib/alerts'
 import { formatDate } from '@/lib/format'
 import { useClasses } from '@/features/setup/api'
 import {
+  feesApi,
   useFeeInsights,
+  useFeesMutation,
   useInstallments,
   useInvoices,
   type FeeInvoice,
@@ -52,6 +63,8 @@ export function DuesTab({
   })
   const [paying, setPaying] = useState<FeeInvoice | null>(null)
   const [receiptPayment, setReceiptPayment] = useState<FeePayment | null>(null)
+  const [reminding, setReminding] = useState(false)
+  const remind = useFeesMutation(() => feesApi.sendOverdueReminders())
   const filtered = Boolean(
     search.search ||
     search.status ||
@@ -217,6 +230,49 @@ export function DuesTab({
           </Button>
         </div>
       )}
+      {access.collect && (stats?.overdue_amount ?? 0) > 0 && (
+        <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm'>
+          <span>
+            <span className='font-semibold'>
+              {wholeRupees(stats!.overdue_amount)} overdue from{' '}
+              {stats!.students_overdue === 1 ? '1 student' : `${stats!.students_overdue} students`}
+            </span>
+            <span className='text-muted-foreground'>
+              {' '}
+              · Parents are reminded at 8 AM every day, once a week for each invoice
+            </span>
+          </span>
+          <Button size='sm' variant='outline' onClick={() => setReminding(true)}>
+            <BellRing />
+            Send reminders now
+          </Button>
+        </div>
+      )}
+      <ConfirmDialog
+        open={reminding}
+        onOpenChange={setReminding}
+        title='Send overdue reminders now?'
+        description='Parents of every student with an overdue invoice get a reminder, except those reminded in the last 7 days. Invoices due within the reminder days get their due-soon reminder too.'
+        confirmText='Send reminders'
+        loading={remind.isPending}
+        onConfirm={() =>
+          remind.mutate(undefined, {
+            onSuccess: (result) => {
+              setReminding(false)
+              const sent = result.sent + result.due_soon
+              alerts.success(
+                sent
+                  ? `${sent} ${sent === 1 ? 'reminder' : 'reminders'} sent`
+                  : 'Everyone was already reminded',
+                sent
+                  ? { description: `${result.sent} overdue · ${result.due_soon} due soon` }
+                  : undefined
+              )
+            },
+            onError: (error) => alerts.error(error.message),
+          })
+        }
+      />
       <Card className='overflow-hidden'>
         <ListToolbar
           summary={invoices.data ? invoicesText(invoices.data.total) : ''}

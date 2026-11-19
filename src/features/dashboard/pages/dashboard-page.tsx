@@ -5,6 +5,7 @@ import {
   ClipboardList,
   GraduationCap,
   IndianRupee,
+  Landmark,
   Siren,
   TriangleAlert,
   UserRoundCheck,
@@ -17,6 +18,7 @@ import { Page, PageHeader } from '@/components/common/page'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAccountInsights, type AccountInsights } from '@/features/accounts/api'
 import { can, useMe, type Me } from '@/features/auth/api'
 import { SportsStarsCard } from '@/features/activities/components/sports-stars-card'
 import { TopRankHoldersCard } from '@/features/exams/components/top-rank-holders-card'
@@ -41,9 +43,10 @@ export function DashboardPage() {
   const library = landsOnLibrary(me)
   const dashboard = useDashboard(!landing && !library)
   const navigate = useNavigate()
+  const accounts = useAccountInsights(can(me, 'accounts.view') && !landing && !library)
   if (landing) return <Redirect to={landing} search={{ tab: 'dashboard' }} replace />
   if (library) return <Redirect to='/library' search={{ tab: 'dashboard' }} replace />
-  const items = insights(me, dashboard.data, navigate)
+  const items = insights(me, dashboard.data, navigate, accounts.data)
   return (
     <Page>
       <PageHeader
@@ -78,7 +81,12 @@ function attendanceTone(percent: number | null | undefined): Insight['tone'] {
   return percent >= 90 ? 'success' : percent >= 75 ? 'warning' : 'danger'
 }
 
-function insights(me: Me | undefined, data: Dashboard | undefined, navigate: Navigate): Insight[] {
+function insights(
+  me: Me | undefined,
+  data: Dashboard | undefined,
+  navigate: Navigate,
+  accounts: AccountInsights | undefined
+): Insight[] {
   const items: Insight[] = []
   if (can(me, 'students.view')) {
     items.push(
@@ -180,6 +188,32 @@ function insights(me: Me | undefined, data: Dashboard | undefined, navigate: Nav
       icon: IndianRupee,
       tone: data?.fees?.overdue_amount ? 'danger' : 'success',
       onClick: () => navigate({ to: '/fees', search: { tab: 'dues', overdue: true } }),
+    })
+  }
+  if (can(me, 'accounts.view')) {
+    items.push({
+      key: 'accounts',
+      label: 'Expenses this month',
+      value: accounts ? wholeRupees(accounts.expense_this_month) : '—',
+      hint: accounts
+        ? accounts.pending
+          ? `${accounts.pending} waiting for approval`
+          : `Other income ${wholeRupees(accounts.income_this_month)}`
+        : undefined,
+      icon: Landmark,
+      tone: accounts?.pending ? 'warning' : 'info',
+      onClick: () =>
+        navigate({
+          to: '/accounts',
+          search: {
+            tab:
+              accounts && !accounts.pending_expense && accounts.pending_income
+                ? 'income'
+                : 'expenses',
+            page: 1,
+            status: accounts?.pending ? 'pending' : undefined,
+          },
+        }),
     })
   }
   return items

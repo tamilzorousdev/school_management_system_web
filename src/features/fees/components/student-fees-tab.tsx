@@ -246,6 +246,39 @@ export function StudentFeesTab({ studentId }: { studentId: number }) {
         )}
       </Card>
 
+      {data.upcoming.length > 0 && (
+        <Card className='overflow-hidden'>
+          <div className='border-b px-4 py-3'>
+            <h2 className='font-bold'>Upcoming installments</h2>
+            <p className='text-xs text-muted-foreground'>
+              In this year’s fee plan, not billed yet. Amounts are estimates before concessions.
+            </p>
+          </div>
+          <ul className='divide-y'>
+            {data.upcoming.map((item) => (
+              <li
+                key={item.installment}
+                className='flex flex-wrap items-center justify-between gap-3 px-4 py-3'
+              >
+                <span className='grid min-w-0'>
+                  <span className='font-semibold'>{item.installment}</span>
+                  <span className='text-xs text-muted-foreground'>
+                    Due {formatDate(item.due_date)} ·{' '}
+                    {item.lines
+                      .map((line) => `${line.head_name} ${rupees(line.amount)}`)
+                      .join(', ')}
+                  </span>
+                </span>
+                <span className='flex items-center gap-2'>
+                  <span className='tabular text-sm font-bold'>≈ {rupees(item.amount)}</span>
+                  <Badge tone='neutral'>Not billed</Badge>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {data.payments.length > 0 && (
         <Card className='overflow-hidden'>
           <h2 className='border-b px-4 py-3 font-bold'>Payments</h2>

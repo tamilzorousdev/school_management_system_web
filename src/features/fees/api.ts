@@ -121,10 +121,18 @@ export interface FeeRequestParams {
   order?: 'asc' | 'desc'
 }
 
+export interface UpcomingInstallment {
+  installment: string
+  due_date: string
+  amount: number
+  lines: { head_name: string; amount: number }[]
+}
+
 export interface FeeSettings {
   grace_days: number
   late_fee_type: LateFeeType
   late_fee_value: number
+  reminder_days: number
   updated_by: PersonRef | null
   updated_at: string | null
 }
@@ -277,7 +285,7 @@ export interface CopyPlanResult {
 }
 
 export type FeeReportType =
-  'classes' | 'heads' | 'installments' | 'benefits' | 'defaulters' | 'collections'
+  'classes' | 'heads' | 'installments' | 'benefits' | 'defaulters' | 'collections' | 'collectors'
 
 export interface ReportColumn {
   key: string
@@ -306,6 +314,12 @@ export interface FeeReportParams {
   overdue_only?: boolean
   from?: string
   to?: string
+  received_by?: number
+}
+
+export interface CollectorOption {
+  id: number
+  name: string
 }
 
 export interface CollectionResult {
@@ -567,6 +581,7 @@ export interface StudentFees extends FeeTotals {
   invoices: FeeInvoiceDetail[]
   payments: FeePayment[]
   advances: AdvanceReceipt[]
+  upcoming: UpcomingInstallment[]
 }
 
 export interface FeeInsights {
@@ -620,6 +635,7 @@ export interface PaymentFilters {
   to?: string
   mode?: PaymentMode
   class_id?: number
+  received_by?: number
 }
 
 export type OnlineOrderStatus = 'created' | 'paid' | 'failed'
@@ -742,9 +758,13 @@ export const feeKeys = {
   reconciliation: () => [...feeKeys.all, 'reconciliation'] as const,
   fines: (params: FineListParams) => [...feeKeys.all, 'fines', params] as const,
   fineTypes: () => [...feeKeys.all, 'fine-types'] as const,
+  collectors: () => [...feeKeys.all, 'collectors'] as const,
 }
 
 export const receiptUrl = (paymentId: number) => `/admin/fees/payments/${paymentId}/receipt`
+export const refundReceiptUrl = (refundId: number) => `/admin/fees/refunds/${refundId}/receipt`
+export const invoicePdfUrl = (invoiceId: number) => `/admin/fees/invoices/${invoiceId}/pdf`
+export const DAY_SHEET_URL = '/admin/fees/reports/day-sheet'
 export const advanceReceiptUrl = (collectionId: number) =>
   `/admin/fees/collections/${collectionId}/advance-receipt`
 
@@ -824,8 +844,9 @@ export const feesApi = {
     api.post<FeeRequest>(`/admin/fees/requests/${id}/reject`, { comment }),
   withdrawRequest: (id: number) => api.post<FeeRequest>(`/admin/fees/requests/${id}/withdraw`),
   settings: () => api.get<FeeSettings>('/admin/fees/settings'),
-  saveSettings: (input: Pick<FeeSettings, 'grace_days' | 'late_fee_type' | 'late_fee_value'>) =>
-    api.put<FeeSettings>('/admin/fees/settings', input),
+  saveSettings: (
+    input: Pick<FeeSettings, 'grace_days' | 'late_fee_type' | 'late_fee_value' | 'reminder_days'>
+  ) => api.put<FeeSettings>('/admin/fees/settings', input),
   runLateFees: () => api.post<{ invoices: number; amount: number }>('/admin/fees/late-fees/run'),
   pay: (id: number, input: PaymentInput, idempotencyKey: string) =>
     api.post<FeePayment>(`/admin/fees/invoices/${id}/payments`, input, {
@@ -837,12 +858,15 @@ export const feesApi = {
     api.get<Paginated<FeePayment>>('/admin/fees/payments', { ...params }),
   paymentSummary: (filters: PaymentFilters) =>
     api.get<PaymentSummary>('/admin/fees/payments/summary', { ...filters }),
+  collectors: () => api.get<CollectorOption[]>('/admin/fees/reports/collector-options'),
   onlineOrders: (params: OnlineOrderParams) =>
     api.get<Paginated<OnlineOrder>>('/admin/fees/online-payments', { ...params }),
   student: (id: number) => api.get<StudentFees>(`/admin/students/${id}/fees`),
   auditLogs: (params: FeeAuditParams) =>
     api.get<Paginated<FeeAuditLog>>('/admin/fees/audit-logs', { ...params }),
   reconciliation: () => api.get<Reconciliation>('/admin/fees/reconciliation'),
+  sendOverdueReminders: () =>
+    api.post<{ sent: number; due_soon: number }>('/admin/fees/overdue-reminders'),
   fineTypes: () => api.get<FineType[]>('/admin/fees/fine-types'),
   createFineType: (input: FineTypeInput) => api.post<FineType>('/admin/fees/fine-types', input),
   updateFineType: (id: number, input: Partial<FineTypeInput>) =>
@@ -957,6 +981,15 @@ export function useOnlineOrders(params: OnlineOrderParams) {
     queryKey: feeKeys.onlineOrders(params),
     queryFn: () => feesApi.onlineOrders(params),
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useCollectorOptions() {
+  return useQuery({
+    queryKey: feeKeys.collectors(),
+    queryFn: feesApi.collectors,
+    staleTime: 5 * 60_000,
+    select: (rows) => rows.map((row) => ({ value: String(row.id), label: row.name })),
   })
 }
 
