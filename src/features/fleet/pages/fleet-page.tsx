@@ -544,7 +544,7 @@ function VehicleSheet({
                       </span>
                     </Tile>
                     <Tile icon={Wrench} label='Fault codes'>
-                      {vehicle.obd.dtc.length ? (
+                      {vehicle.obd?.dtc?.length ? (
                         <span className='font-mono text-destructive'>
                           {vehicle.obd.dtc.join(', ')}
                         </span>

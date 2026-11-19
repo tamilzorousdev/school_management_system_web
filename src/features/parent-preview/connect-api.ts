@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api, type Paginated } from '@/lib/api/client'
 import type { UploadedFile } from '@/lib/files'
-import type { DiaryType } from '@/features/diary/api'
+import type { DiarySubmission, DiaryType } from '@/features/diary/api'
 
 export type AppParty = 'parent' | 'teacher'
 
@@ -22,6 +22,7 @@ export interface DiaryFeedItem {
   published_at: string
   seen: boolean
   seen_at: string | null
+  submission?: DiarySubmission | null
 }
 
 export interface PreviewMessage {
