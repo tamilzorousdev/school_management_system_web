@@ -19,6 +19,7 @@ import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
 import { announcementsSearchSchema } from '@/features/announcements/search'
+import { eventsSearchSchema } from '@/features/events/search'
 import { chatSearchSchema } from '@/features/chat/search'
 import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
@@ -117,6 +118,13 @@ const announcementsRoute = createRoute({
     () => import('@/features/announcements/pages/announcements-page'),
     'AnnouncementsPage'
   ),
+})
+
+const eventsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/events',
+  validateSearch: eventsSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/events/pages/events-page'), 'EventsPage'),
 })
 
 const chatRoute = createRoute({
@@ -488,6 +496,7 @@ const routeTree = rootRoute.addChildren([
     meetingsRoute,
     diaryRoute,
     announcementsRoute,
+    eventsRoute,
     chatRoute,
     fleetRoute,
     tripRoute,

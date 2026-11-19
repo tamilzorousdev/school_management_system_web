@@ -210,6 +210,17 @@ export function AnnouncementsPage() {
             }))}
             onChange={(value) => setSearch({ audience: value as AnnouncementsSearch['audience'] })}
           />
+          <FilterSelect
+            id='announcement-priority-filter'
+            label='Filter by priority'
+            allLabel='Any priority'
+            value={search.priority}
+            options={[
+              { value: 'urgent', label: 'Urgent' },
+              { value: 'normal', label: 'Normal' },
+            ]}
+            onChange={(value) => setSearch({ priority: value as AnnouncementsSearch['priority'] })}
+          />
         </ListToolbar>
 
         <DataTable
