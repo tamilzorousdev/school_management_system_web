@@ -49,6 +49,11 @@ import { substitutesSearchSchema } from '@/features/substitutes/search'
 import { timetableSearchSchema } from '@/features/timetable/search'
 import { transportSearchSchema } from '@/features/transport/search'
 import { usersSearchSchema } from '@/features/users/search'
+import {
+  assetPageSearchSchema,
+  inventorySearchSchema,
+  stockItemSearchSchema,
+} from '@/features/inventory/search'
 import { parentPreviewSearchSchema } from '@/features/parent-preview/search'
 import { teacherPreviewSearchSchema } from '@/features/teacher-preview/search'
 
@@ -484,6 +489,33 @@ const teacherPreviewRoute = createRoute({
   ),
 })
 
+const inventoryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/inventory',
+  validateSearch: inventorySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/inventory/pages/inventory-page'),
+    'InventoryPage'
+  ),
+})
+
+const assetRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/inventory/assets/$assetId',
+  validateSearch: assetPageSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/inventory/pages/asset-page'), 'AssetPage'),
+})
+
+const stockItemRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/inventory/stock/$itemId',
+  validateSearch: stockItemSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/inventory/pages/stock-item-page'),
+    'StockItemPage'
+  ),
+})
+
 const schoolsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/schools',
@@ -518,6 +550,9 @@ const routeTree = rootRoute.addChildren([
     libraryRoute,
     libraryBookRoute,
     libraryMemberRoute,
+    inventoryRoute,
+    assetRoute,
+    stockItemRoute,
     examsRoute,
     activitiesRoute,
     transportRoute,
