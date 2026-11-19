@@ -22,10 +22,12 @@ export const ALERT_KIND: Record<AlertKind, { label: string; icon: LucideIcon }> 
 }
 
 export const ALERT_STATUS: Record<AlertStatus, { label: string; tone: BadgeTone }> = {
-  open: { label: 'Open', tone: 'danger' },
-  acknowledged: { label: 'Being handled', tone: 'warning' },
+  open: { label: 'Raised', tone: 'danger' },
+  acknowledged: { label: 'Acknowledged', tone: 'warning' },
   resolved: { label: 'Resolved', tone: 'success' },
 }
+
+export const SOS_MAP_COLOR = '#dc2626'
 
 export const ALERT_SEVERITY: Record<AlertSeverity, { label: string; tone: BadgeTone }> = {
   low: { label: 'Low', tone: 'info' },

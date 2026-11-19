@@ -11,6 +11,7 @@ import { NAV_ITEMS, type NavItem } from '@/config/nav'
 import { authApi, can, useMe, type Me } from '@/features/auth/api'
 import { session } from '@/lib/auth/session'
 import { cn } from '@/lib/utils'
+import { SosWatch } from '@/features/alerts/components/sos-watch'
 import { useTheme } from '@/providers/theme-context'
 import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
@@ -175,6 +176,7 @@ export function AppLayout() {
         />
         <SchoolGate me={me.data}>
           <PastYearBanner />
+          <SosWatch />
           <Outlet />
         </SchoolGate>
       </div>

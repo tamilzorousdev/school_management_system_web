@@ -114,12 +114,9 @@ const pickDate = async (trigger, iso) => {
   await trigger.click()
   const calendar = page.locator('[data-radix-popper-content-wrapper]').last()
   await calendar.waitFor({ state: 'visible', timeout: 5000 })
-  const shownMonth = (
-    await calendar
-      .getByRole('button', { name: new RegExp(`^(${MONTH_NAMES.join('|')})$`) })
-      .first()
-      .innerText()
-  ).trim()
+  await calendar
+    .getByRole('button', { name: new RegExp(`^(${MONTH_NAMES.join('|')}) [0-9]{4}$`) })
+    .click()
   const shownYear = Number(
     (
       await calendar
@@ -128,25 +125,16 @@ const pickDate = async (trigger, iso) => {
         .innerText()
     ).trim()
   )
-  let steps = (year - shownYear) * 12 + (month - 1 - MONTH_NAMES.indexOf(shownMonth))
-  while (steps >= 12) {
-    await calendar.getByTitle('Next year').click()
-    steps -= 12
-  }
-  while (steps <= -12) {
-    await calendar.getByTitle('Previous year').click()
-    steps += 12
-  }
-  while (steps > 0) {
-    await calendar.getByTitle('Next month').click()
-    steps -= 1
-  }
-  while (steps < 0) {
-    await calendar.getByTitle('Previous month').click()
-    steps += 1
-  }
+  for (let step = shownYear; step < year; step += 1)
+    await calendar.getByRole('button', { name: 'Next year' }).click()
+  for (let step = shownYear; step > year; step -= 1)
+    await calendar.getByRole('button', { name: 'Previous year' }).click()
+  await calendar
+    .getByRole('button', { name: MONTH_NAMES[month - 1].slice(0, 3), exact: true })
+    .click()
   const days = calendar.getByRole('button', { name: String(day), exact: true })
   await (day >= 15 ? days.last() : days.first()).click()
+  await calendar.getByRole('button', { name: 'Apply' }).click()
   await calendar
     .waitFor({ state: 'hidden', timeout: 5000 })
     .catch(() => page.keyboard.press('Escape'))
@@ -2382,7 +2370,7 @@ await D7W(
     expected: 'Field errors shown in the modal',
   },
   async () => {
-    await go('/fleet/maintenance')
+    await go('/fleet/maintenance?tab=tickets')
     await page
       .getByRole('button', { name: /^Add ticket/ })
       .first()
@@ -2794,6 +2782,95 @@ await test(
     return 'Road-worthiness shown; renewal needs the valid-till date'
   }
 )
+const VMM = (meta, fn) => test({ ...meta, module: 'Maintenance', day: 'Vehicle maintenance' }, fn)
+await VMM(
+  {
+    id: 'VMM-01',
+    type: 'View',
+    title: 'Maintenance opens on the overview with cards and the due lists',
+    steps: 'Fleet, Maintenance.',
+    expected: 'Spend, services, fuel to check and pay-back cards; services due and documents lists',
+  },
+  async () => {
+    await go('/fleet/maintenance')
+    await page.getByRole('tab', { name: 'Overview', selected: true }).waitFor({ timeout: 10000 })
+    await see('Spent this month')
+    await see('Fuel to check')
+    await see('Services due')
+    await see('Documents expiring')
+  }
+)
+await VMM(
+  {
+    id: 'VMM-02',
+    type: 'Validation',
+    title: 'A service rule needs buses, a service and an interval',
+    steps: 'Maintenance, Schedules, Add rule, save empty.',
+    expected: 'Choose at least one bus, choose the service, and every km or months errors',
+  },
+  async () => {
+    await go('/fleet/maintenance?tab=schedules')
+    await see('Standard service plan')
+    await page
+      .getByRole('button', { name: /^Add rule/ })
+      .first()
+      .click()
+    await dialog()
+      .getByRole('button', { name: /^Add rule/ })
+      .click()
+    await see('Choose at least one bus', dialog())
+    await see('Choose the kind of service', dialog())
+    await see('Enter every how many km, months, or both', dialog())
+    await page.keyboard.press('Escape')
+  }
+)
+await VMM(
+  {
+    id: 'VMM-03',
+    type: 'Validation',
+    title: 'An insurance expense asks for the new expiry and says it updates Vehicle Master',
+    steps: 'Maintenance, Expenses, Add expense, choose Insurance, save without a bus.',
+    expected: 'New insurance expiry field with the Vehicle Master note; bus and amount errors',
+  },
+  async () => {
+    await go('/fleet/maintenance?tab=expenses')
+    await page
+      .getByRole('button', { name: /^Add expense/ })
+      .first()
+      .click()
+    await pick(dialog(), 'For', 'Insurance')
+    await see('Also updates this expiry date in Vehicle Master', dialog())
+    await dialog()
+      .getByRole('button', { name: /^Add expense/ })
+      .click()
+    await see('Choose the bus', dialog())
+    await page.keyboard.press('Escape')
+  }
+)
+await VMM(
+  {
+    id: 'VMM-04',
+    type: 'View',
+    title: 'Pre-trip, bus log, reports and settings tabs load',
+    steps: 'Maintenance, open Pre-trip checks, Bus log, Reports and Settings.',
+    expected: 'Today’s board, bus summary, cost report with Excel, thresholds and month lock',
+  },
+  async () => {
+    await go('/fleet/maintenance?tab=checks')
+    await see('Today’s checks')
+    await go('/fleet/maintenance?tab=bus-log')
+    await see('Odometer')
+    await go('/fleet/maintenance?tab=reports')
+    await page
+      .getByRole('radio', { name: 'Cost per bus', checked: true })
+      .waitFor({ timeout: 8000 })
+    await page.getByRole('button', { name: 'Excel' }).waitFor()
+    await go('/fleet/maintenance?tab=settings')
+    await see('Due soon within (km)')
+    await see('Month lock')
+    await see('Garages and fuel stations')
+  }
+)
 await test(
   {
     id: 'EMB-01',
@@ -3157,11 +3234,19 @@ await test(
     ['RS-11', '/fees', 'Fee plans'],
     ['RS-12', '/activities', 'Leaderboard'],
     ['RS-13', '/fleet/alerts', 'SOS active'],
-    ['RS-14', '/fleet/maintenance', 'Tickets'],
+    ['RS-14', '/fleet/maintenance', 'Spent this month'],
     ['RS-15', '/parent-preview', /Parent app/],
     ['RS-16', '/meetings', /Meetings/],
     ['RS-17', '/app-banners', 'Live now'],
     ['RS-18', '/students/30?tab=report-card', /annual report card/i],
+    ['RS-19', '/fleet/maintenance?tab=schedules', 'Standard service plan'],
+    ['RS-20', '/fleet/maintenance?tab=tickets', 'Cost this month'],
+    ['RS-21', '/fleet/maintenance?tab=fuel', 'Waiting for check'],
+    ['RS-22', '/fleet/maintenance?tab=expenses', 'Biggest category'],
+    ['RS-23', '/fleet/maintenance?tab=checks', 'Today’s checks'],
+    ['RS-24', '/fleet/maintenance?tab=bus-log', /Every fill, service/],
+    ['RS-25', '/fleet/maintenance?tab=reports', 'Cost per bus'],
+    ['RS-26', '/fleet/maintenance?tab=settings', 'Month lock'],
   ]) {
     await test(
       {

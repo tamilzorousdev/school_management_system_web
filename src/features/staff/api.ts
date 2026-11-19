@@ -207,6 +207,15 @@ export interface MatrixRow {
   section_name: string
   class_teacher: string | null
   cells: MatrixCell[]
+  periods_total: number
+}
+
+export interface AssignmentWeek {
+  start: string
+  end: string
+  is_current: boolean
+  read_only: boolean
+  changes: number
 }
 
 export interface AssignmentMatrix {
@@ -214,11 +223,28 @@ export interface AssignmentMatrix {
   teachers: MatrixTeacher[]
   rows: MatrixRow[]
   unassigned: number
+  class_periods_per_week: number
+  week: AssignmentWeek
 }
 
 export interface AssignmentParams {
   academic_year_id?: number
   class_id?: number
+  week?: string
+}
+
+export interface AssignmentChange {
+  id: number
+  week_start: string
+  section: Ref
+  subject: Ref
+  from_teacher: Ref | null
+  to_teacher: Ref | null
+  from_periods: number | null
+  to_periods: number | null
+  changed_by: Ref | null
+  at: string
+  summary: string
 }
 
 export interface AssignmentItem {
@@ -235,6 +261,7 @@ export const staffKeys = {
   detail: (id: number) => [...staffKeys.all, 'detail', id] as const,
   bank: (id: number) => [...staffKeys.all, 'bank', id] as const,
   assignments: (params: AssignmentParams) => [...staffKeys.all, 'assignments', params] as const,
+  assignmentChanges: (week: string) => [...staffKeys.all, 'assignment-changes', week] as const,
 }
 
 export const staffApi = {
@@ -282,6 +309,8 @@ export const staffApi = {
     api.delete<StaffDetail>(`/admin/staff/${id}/bank/${bankId}`),
   assignments: (params: AssignmentParams) =>
     api.get<AssignmentMatrix>('/admin/teacher-assignments', { ...params }),
+  assignmentChanges: (week: string) =>
+    api.get<AssignmentChange[]>('/admin/teacher-assignments/changes', { week }),
   saveAssignments: (input: { academic_year_id?: number; items: AssignmentItem[] }) =>
     api.put<AssignmentMatrix>('/admin/teacher-assignments', input),
 }
@@ -321,6 +350,14 @@ export function useAssignments(params: AssignmentParams) {
     queryKey: staffKeys.assignments(params),
     queryFn: () => staffApi.assignments(params),
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useAssignmentChanges(week: string | null) {
+  return useQuery({
+    queryKey: staffKeys.assignmentChanges(week ?? ''),
+    queryFn: () => staffApi.assignmentChanges(week!),
+    enabled: Boolean(week),
   })
 }
 

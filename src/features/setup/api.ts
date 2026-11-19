@@ -115,6 +115,7 @@ export interface SchoolProfile {
   geofence_radius_m: number
   staff_reporting_time: string
   attendance_grace_minutes: number
+  class_periods_per_week: number
   attendance_mode: 'session' | 'period'
   diary_review_mode: DiaryReviewMode
   chat_office_start: string

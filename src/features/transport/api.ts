@@ -153,6 +153,44 @@ export interface RouteBus {
   capacity: number
 }
 
+export interface RouteTimings {
+  leaves_at: string | null
+  reaches_school_at: string | null
+  leaves_school_at: string | null
+  last_drop_at: string | null
+}
+
+export interface ScheduleProblem {
+  code: string
+  severity: 'error' | 'warning'
+  stop: string | null
+  field: string | null
+  message: string
+}
+
+export type RouteFlag = 'no_bus' | 'inactive' | 'has_problems'
+export type PassStatus = 'active' | 'on_hold'
+
+export interface RouteChange {
+  id: number
+  kind: string
+  summary: string
+  stop: Ref | null
+  student: Ref | null
+  parents_told: number
+  changed_by: Ref | null
+  at: string
+}
+
+export interface RouteInsights {
+  routes: number
+  active: number
+  stops: number
+  students: number
+  no_bus: number
+  with_problems: number
+}
+
 export interface BusRoute {
   id: number
   code: string
@@ -161,7 +199,13 @@ export interface BusRoute {
   is_active: boolean
   stops: number
   students: number
+  morning_riders: number
+  evening_riders: number
   first_pickup: string | null
+  monthly_fee: number
+  timings: RouteTimings
+  problems: number
+  swap_today: { vehicle: RouteBus; reason: string | null } | null
 }
 
 export interface Stop {
@@ -175,6 +219,7 @@ export interface Stop {
   drop_time: string | null
   geofence_radius_m: number
   monthly_fee: number
+  fee_override: number | null
   students: number
 }
 
@@ -182,6 +227,8 @@ export interface RouteDetail extends BusRoute {
   stop_list: Stop[]
   school_location: { lat: number; lng: number } | null
   distance_km: number
+  schedule_problems: ScheduleProblem[]
+  warnings: string[]
 }
 
 export interface RouteInput {
@@ -189,6 +236,20 @@ export interface RouteInput {
   name: string
   vehicle_id?: number | null
   is_active?: boolean
+  monthly_fee?: number
+  reason?: string
+}
+
+export interface BusSwap {
+  id: number
+  route: { id: number; name: string }
+  date: string
+  vehicle: RouteBus
+  usual_vehicle: RouteBus | null
+  reason: string | null
+  by: { id: number; name: string } | null
+  parents_told: number
+  warning: string | null
 }
 
 export interface StopInput {
@@ -200,25 +261,94 @@ export interface StopInput {
   pickup_time?: string | null
   drop_time?: string | null
   geofence_radius_m?: number
-  monthly_fee?: number
+  monthly_fee?: number | null
+}
+
+export interface RiderStop {
+  id: number
+  name: string
+  pickup_time: string | null
+  drop_time: string | null
+}
+
+export interface RiderStudent {
+  id: number
+  full_name: string
+  admission_no: string
+  class_section: string | null
 }
 
 export interface Rider {
   id: number
-  student: { id: number; full_name: string; admission_no: string; class_section: string | null }
+  student: RiderStudent
   route: Ref
-  stop: { id: number; name: string; pickup_time: string | null; drop_time: string | null }
+  stop: RiderStop
+  drop_stop: RiderStop | null
   mode: TransportMode
   start_date: string
   passenger_ref: string
   monthly_fee: number
+  pass_status: PassStatus
+  pass_note: string | null
+  pass_changed_at: string | null
 }
 
 export interface RiderInput {
   route_id: number
   stop_id: number
+  drop_stop_id?: number | null
   mode?: TransportMode
   start_date?: string
+}
+
+export interface RosterStudent extends RiderStudent {
+  mode: TransportMode
+  guardian_name: string | null
+  guardian_mobile: string | null
+  pass_status: PassStatus
+  away_morning: string | null
+  away_evening: string | null
+}
+
+export interface RosterStop {
+  id: number
+  sequence: number
+  name: string
+  landmark: string | null
+  pickup_time: string | null
+  drop_time: string | null
+  pickup_students: RosterStudent[]
+  drop_students: RosterStudent[]
+}
+
+export interface RouteRoster {
+  id: number
+  code: string
+  name: string
+  vehicle: RouteBus | null
+  morning_riders: number
+  evening_riders: number
+  bus_morning_riders: number
+  bus_evening_riders: number
+  stops: RosterStop[]
+}
+
+export type TransportChangeAction = 'assigned' | 'moved' | 'removed'
+
+export interface TransportChangePlace {
+  route: Ref
+  stop: Ref
+  drop_stop: Ref | null
+}
+
+export interface TransportChange {
+  id: number
+  action: TransportChangeAction
+  from: TransportChangePlace | null
+  to: TransportChangePlace | null
+  mode: TransportMode | null
+  by: Ref | null
+  at: string
 }
 
 export interface AssignResult {
@@ -250,12 +380,142 @@ export interface BusListParams {
   flag?: BusFlag
 }
 
+export type RiderSort = 'name' | 'admission_no' | 'class' | 'stop' | 'created_at'
+
 export interface RiderListParams {
   page: number
   limit: number
   search?: string
   route_id?: number
   stop_id?: number
+  class_id?: number
+  mode?: TransportMode
+  sort?: RiderSort
+  order?: 'asc' | 'desc'
+  pass_status?: PassStatus
+}
+
+export interface RatingTag {
+  code: string
+  label: string
+  positive: boolean
+}
+
+export interface RatedDriver {
+  id: number
+  name: string
+  photo_url: string | null
+}
+
+export interface RatedBus {
+  id: number
+  registration_no: string
+  name: string
+}
+
+export interface DriverRating {
+  id: number
+  rating: number
+  tags: RatingTag[]
+  comment: string | null
+  month: string
+  driver: { id: number; name: string }
+  vehicle: RatedBus | null
+  student: { id: number; full_name: string; class_section: string | null }
+  parent: { id: number; name: string }
+  created_at: string
+  updated_at: string
+}
+
+export interface DriverRatingSummary {
+  driver: RatedDriver
+  vehicle: RatedBus | null
+  average: number | null
+  count: number
+  month_average: number | null
+  month_count: number
+  low_count: number
+  distribution: number[]
+  top_tags: (RatingTag & { count: number })[]
+}
+
+export interface DriverRatingInsights {
+  average: number | null
+  count: number
+  month_count: number
+  month_low: number
+  drivers_rated: number
+}
+
+export interface DriverRatingParams {
+  page: number
+  limit: number
+  search?: string
+  driver_user_id?: number
+  rating?: number
+  low?: boolean
+}
+
+export type BusPassState = 'awaiting_payment' | 'active' | 'on_hold' | 'expired'
+export type FeeStanding = 'clear' | 'due' | 'past_grace'
+
+export interface BusPassStop {
+  id: number
+  name: string
+  time: string | null
+}
+
+export interface BusPass {
+  pass_no: string
+  state: BusPassState
+  hold_kind: 'fee' | 'office' | null
+  hold_note: string | null
+  student: {
+    id: number
+    full_name: string
+    admission_no: string
+    class_section: string | null
+    photo_url: string | null
+  }
+  valid_from: string
+  valid_until: string
+  issued_at: string | null
+  route: { id: number; name: string }
+  pickup: BusPassStop | null
+  drop: BusPassStop | null
+  bus: { id: number; name: string; registration_no: string; today_only: boolean } | null
+  fee: {
+    standing: FeeStanding
+    oldest_due: string | null
+    grace_ends: string | null
+    pending_amount: number
+    billed: boolean
+  }
+}
+
+export interface BusPassInsights {
+  total: number
+  active: number
+  awaiting_payment: number
+  on_hold: number
+  fee_due: number
+  fee_past_grace: number
+  expired: number
+}
+
+export interface BusPassSettings {
+  grace_days: number
+  valid_until: string | null
+  year_ends: string
+}
+
+export interface BusPassParams {
+  page: number
+  limit: number
+  search?: string
+  state?: BusPassState
+  fee?: FeeStanding
+  route_id?: number
 }
 
 export const transportKeys = {
@@ -266,14 +526,46 @@ export const transportKeys = {
   trackers: () => [...transportKeys.all, 'trackers'] as const,
   crew: () => [...transportKeys.all, 'crew'] as const,
   expiries: (days: number) => [...transportKeys.all, 'expiries', days] as const,
-  routes: () => [...transportKeys.all, 'routes'] as const,
+  routes: (flag?: RouteFlag) => [...transportKeys.all, 'routes', flag ?? 'all'] as const,
+  routeInsights: () => [...transportKeys.all, 'route-insights'] as const,
+  routeHistory: (id: number) => [...transportKeys.all, 'route-history', id] as const,
   route: (id: number) => [...transportKeys.all, 'route', id] as const,
   riders: (params: RiderListParams) => [...transportKeys.all, 'riders', params] as const,
+  roster: (routeId: number) => [...transportKeys.all, 'roster', routeId] as const,
+  student: (studentId: number) => [...transportKeys.all, 'student', studentId] as const,
+  history: (studentId: number) => [...transportKeys.all, 'history', studentId] as const,
+  ratings: (params: DriverRatingParams) => [...transportKeys.all, 'ratings', params] as const,
+  ratingSummary: () => [...transportKeys.all, 'rating-summary'] as const,
+  ratingInsights: () => [...transportKeys.all, 'rating-insights'] as const,
+  passes: (params: BusPassParams) => [...transportKeys.all, 'passes', params] as const,
+  passInsights: () => [...transportKeys.all, 'pass-insights'] as const,
+  passSettings: () => [...transportKeys.all, 'pass-settings'] as const,
 }
 
 const base = '/admin/transport'
 
 export const transportApi = {
+  busPasses: (params: BusPassParams) =>
+    api.get<Paginated<BusPass>>(`${base}/bus-passes`, { ...params }),
+  busPassInsights: () => api.get<BusPassInsights>(`${base}/bus-passes/insights`),
+  busPassSettings: () => api.get<BusPassSettings>(`${base}/bus-passes/settings`),
+  saveBusPassSettings: (input: { grace_days?: number; valid_until?: string | null }) =>
+    api.put<BusPassSettings>(`${base}/bus-passes/settings`, input),
+  restrictPasses: (studentIds: number[], note?: string) =>
+    api.post<{ changed: number; parents_told: number }>(`${base}/bus-passes/restrict`, {
+      student_ids: studentIds,
+      ...(note ? { note } : {}),
+    }),
+  activatePasses: (studentIds: number[]) =>
+    api.post<{ changed: number; parents_told: number }>(`${base}/bus-passes/activate`, {
+      student_ids: studentIds,
+    }),
+  setPassEnd: (studentId: number, validUntil: string) =>
+    api.patch<BusPass>(`${base}/bus-passes/${studentId}`, { valid_until: validUntil }),
+  driverRatings: (params: DriverRatingParams) =>
+    api.get<Paginated<DriverRating>>(`${base}/driver-ratings`, { ...params }),
+  driverRatingSummary: () => api.get<DriverRatingSummary[]>(`${base}/driver-ratings/summary`),
+  driverRatingInsights: () => api.get<DriverRatingInsights>(`${base}/driver-ratings/insights`),
   buses: (params: BusListParams) => api.get<Paginated<Bus>>(`${base}/vehicles`, { ...params }),
   createBus: (input: BusInput) => api.post<Bus>(`${base}/vehicles`, input),
   updateBus: (id: number, input: Partial<BusInput>) =>
@@ -301,14 +593,24 @@ export const transportApi = {
   crew: () => api.get<Crew[]>(`${base}/drivers`),
   expiries: (days: number) => api.get<Expiry[]>(`${base}/expiries`, { days }),
   checkExpiries: () => api.post<ExpiryRun>(`${base}/expiries/check`),
-  routes: () => api.get<BusRoute[]>(`${base}/routes`),
+  routes: (flag?: RouteFlag) => api.get<BusRoute[]>(`${base}/routes`, { flag }),
+  routeInsights: () => api.get<RouteInsights>(`${base}/routes/insights`),
+  routeHistory: (id: number) => api.get<RouteChange[]>(`${base}/routes/${id}/history`),
+  setPass: (studentId: number, status: PassStatus, note: string | null) =>
+    api.put<Rider>(`/admin/students/${studentId}/transport/pass`, { status, note }),
   route: (id: number) => api.get<RouteDetail>(`${base}/routes/${id}`),
   createRoute: (input: RouteInput) => api.post<RouteDetail>(`${base}/routes`, input),
   updateRoute: (id: number, input: Partial<RouteInput>) =>
     api.patch<RouteDetail>(`${base}/routes/${id}`, input),
   removeRoute: (id: number) => api.delete<null>(`${base}/routes/${id}`),
-  saveStops: (id: number, items: StopInput[]) =>
-    api.put<RouteDetail>(`${base}/routes/${id}/stops`, { items }),
+  saveStops: (id: number, items: StopInput[], reason?: string) =>
+    api.put<RouteDetail>(`${base}/routes/${id}/stops`, { items, ...(reason ? { reason } : {}) }),
+  swapBus: (
+    id: number,
+    input: { vehicle_id: number; date?: string; reason?: string; force?: boolean }
+  ) => api.put<BusSwap>(`${base}/routes/${id}/swap`, input),
+  clearSwap: (id: number, date?: string) =>
+    api.delete<null>(`${base}/routes/${id}/swap${date ? `?date=${date}` : ''}`),
   autoSequence: (id: number) => api.post<RouteDetail>(`${base}/routes/${id}/auto-sequence`),
   assignStop: (routeId: number, stopId: number, studentIds: number[], mode: TransportMode) =>
     api.post<AssignResult>(`${base}/routes/${routeId}/stops/${stopId}/students`, {
@@ -319,6 +621,11 @@ export const transportApi = {
   setRider: (studentId: number, input: RiderInput) =>
     api.put<Rider>(`/admin/students/${studentId}/transport`, input),
   removeRider: (studentId: number) => api.delete<null>(`/admin/students/${studentId}/transport`),
+  studentTransport: (studentId: number) =>
+    api.get<Rider | null>(`/admin/students/${studentId}/transport`),
+  history: (studentId: number) =>
+    api.get<TransportChange[]>(`/admin/students/${studentId}/transport/history`),
+  roster: (routeId: number) => api.get<RouteRoster>(`${base}/routes/${routeId}/roster`),
 }
 
 export function useBuses(params: BusListParams) {
@@ -363,6 +670,44 @@ export function useCrew() {
   return useQuery({ queryKey: transportKeys.crew(), queryFn: transportApi.crew })
 }
 
+export function useDriverRatings(params: DriverRatingParams) {
+  return useQuery({
+    queryKey: transportKeys.ratings(params),
+    queryFn: () => transportApi.driverRatings(params),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useDriverRatingSummary() {
+  return useQuery({
+    queryKey: transportKeys.ratingSummary(),
+    queryFn: transportApi.driverRatingSummary,
+  })
+}
+
+export function useDriverRatingInsights() {
+  return useQuery({
+    queryKey: transportKeys.ratingInsights(),
+    queryFn: transportApi.driverRatingInsights,
+  })
+}
+
+export function useBusPasses(params: BusPassParams) {
+  return useQuery({
+    queryKey: transportKeys.passes(params),
+    queryFn: () => transportApi.busPasses(params),
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useBusPassInsights() {
+  return useQuery({ queryKey: transportKeys.passInsights(), queryFn: transportApi.busPassInsights })
+}
+
+export function useBusPassSettings() {
+  return useQuery({ queryKey: transportKeys.passSettings(), queryFn: transportApi.busPassSettings })
+}
+
 export function useExpiries(days = 30) {
   return useQuery({
     queryKey: transportKeys.expiries(days),
@@ -370,8 +715,23 @@ export function useExpiries(days = 30) {
   })
 }
 
-export function useBusRoutes() {
-  return useQuery({ queryKey: transportKeys.routes(), queryFn: transportApi.routes })
+export function useBusRoutes(flag?: RouteFlag) {
+  return useQuery({
+    queryKey: transportKeys.routes(flag),
+    queryFn: () => transportApi.routes(flag),
+  })
+}
+
+export function useRouteInsights() {
+  return useQuery({ queryKey: transportKeys.routeInsights(), queryFn: transportApi.routeInsights })
+}
+
+export function useRouteHistory(id: number | undefined) {
+  return useQuery({
+    queryKey: transportKeys.routeHistory(id ?? 0),
+    queryFn: () => transportApi.routeHistory(id!),
+    enabled: Boolean(id),
+  })
 }
 
 export function useRouteDetail(id: number | undefined) {
@@ -388,6 +748,28 @@ export function useRiders(params: RiderListParams, enabled = true) {
     queryFn: () => transportApi.riders(params),
     placeholderData: keepPreviousData,
     enabled,
+  })
+}
+
+export function useRouteRoster(routeId: number | undefined) {
+  return useQuery({
+    queryKey: transportKeys.roster(routeId ?? 0),
+    queryFn: () => transportApi.roster(routeId!),
+    enabled: Boolean(routeId),
+  })
+}
+
+export function useStudentTransport(studentId: number) {
+  return useQuery({
+    queryKey: transportKeys.student(studentId),
+    queryFn: () => transportApi.studentTransport(studentId),
+  })
+}
+
+export function useTransportHistory(studentId: number) {
+  return useQuery({
+    queryKey: transportKeys.history(studentId),
+    queryFn: () => transportApi.history(studentId),
   })
 }
 

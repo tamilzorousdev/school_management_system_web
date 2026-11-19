@@ -17,6 +17,7 @@ export const SHORTCUTS = {
   'nav.substitutes': { combo: 'g v', label: 'Go to proxy', group: 'Navigation' },
   'nav.payroll': { combo: 'g y', label: 'Go to payroll', group: 'Navigation' },
   'nav.fees': { combo: 'g f', label: 'Go to fees', group: 'Navigation' },
+  'nav.library': { combo: 'g 8', label: 'Go to library', group: 'Navigation' },
   'nav.exams': { combo: 'g x', label: 'Go to exams', group: 'Navigation' },
   'nav.performance': { combo: 'g 4', label: 'Go to class performance', group: 'Navigation' },
   'nav.feedback': { combo: 'g 5', label: 'Go to teacher feedback', group: 'Navigation' },
@@ -54,7 +55,7 @@ export const SHORTCUTS = {
   'students.create': { combo: 'alt+n', label: 'Add a student or application', group: 'Users' },
   'maintenance.create': {
     combo: 'alt+n',
-    label: 'Add a maintenance ticket or fuel entry',
+    label: 'Add a ticket, fuel entry, expense or rule in Maintenance',
     group: 'Users',
   },
   'banners.create': {

@@ -3,15 +3,41 @@ import { config } from '@/config/env'
 import { alerts } from '@/lib/alerts'
 import type { TripEventMessage, TripPositionMessage } from '@/lib/live/socket'
 import type {
+  BoardingMethod,
   HealthStatus,
+  RiderStatus,
   SafetyKind,
   Severity,
   StopStatus,
   TripDetail,
   TripKind,
   TripStatus,
+  TripFlag,
   TripStop,
 } from './api'
+
+export const RIDER_STATUS: Record<RiderStatus, { label: string; tone: BadgeTone }> = {
+  waiting: { label: 'Waiting', tone: 'warning' },
+  on_bus: { label: 'On the bus', tone: 'info' },
+  off_bus: { label: 'Got off', tone: 'success' },
+  away: { label: 'Away today', tone: 'neutral' },
+}
+
+export const TRIP_FLAG: Record<TripFlag, { label: string; tone: BadgeTone }> = {
+  not_boarded: { label: 'Never got on', tone: 'warning' },
+  not_alighted: { label: 'Not marked off', tone: 'danger' },
+}
+
+export const TRIP_FLAG_OPTIONS = [
+  { value: 'any', label: 'Any boarding problem' },
+  { value: 'not_alighted', label: 'Left marked on the bus' },
+  { value: 'not_boarded', label: 'A child never got on' },
+]
+
+export const BOARDING_METHOD: Record<BoardingMethod, string> = {
+  qr: 'ID card',
+  manual: 'Tapped',
+}
 
 export const TRIP_KIND: Record<TripKind, string> = {
   pickup: 'Morning pickup',

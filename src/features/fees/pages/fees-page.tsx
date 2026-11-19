@@ -2,6 +2,7 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   BadgePercent,
   BarChart3,
+  Bus,
   ClipboardCheck,
   CreditCard,
   Gavel,
@@ -25,6 +26,7 @@ import { PaymentsTab } from '../components/payments-tab'
 import { PlansTab } from '../components/plans-tab'
 import { ReportsTab } from '../components/reports-tab'
 import { ApprovalsTab } from '../components/requests'
+import { TransportFeesTab } from '../components/transport-fees-tab'
 import type { FeeTab, FeesSearch } from '../search'
 
 const route = getRouteApi('/_app/fees')
@@ -81,6 +83,7 @@ export function FeesPage() {
           { value: 'plans', label: 'Fee plans', icon: Layers },
           { value: 'benefits', label: 'Concessions', icon: BadgePercent },
           { value: 'payments', label: 'Payments', icon: Wallet },
+          { value: 'transport', label: 'Bus fees', icon: Bus },
           { value: 'online', label: 'Online', icon: CreditCard },
           ...(approvals
             ? [{ value: 'approvals' as const, label: 'Approvals', icon: ClipboardCheck }]
@@ -141,6 +144,7 @@ export function FeesPage() {
           }
         />
       )}
+      {tab === 'transport' && <TransportFeesTab search={search} onChange={setSearch} />}
     </Page>
   )
 }

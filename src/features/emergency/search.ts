@@ -7,7 +7,10 @@ export const emergencySearchSchema = z.object({
     .enum(['weather', 'school_closed', 'security', 'health', 'transport', 'all_clear', 'other'])
     .optional()
     .catch(undefined),
-  status: z.enum(['sending', 'sent', 'partly_failed']).optional().catch(undefined),
+  state: z
+    .enum(['pending_approval', 'scheduled', 'active', 'expired', 'ended', 'rejected', 'cancelled'])
+    .optional()
+    .catch(undefined),
   id: z.coerce.number().int().min(1).optional().catch(undefined),
 })
 

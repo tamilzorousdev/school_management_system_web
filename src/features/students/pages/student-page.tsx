@@ -11,6 +11,7 @@ import {
   HeartPulse,
   IdCard,
   IndianRupee,
+  Library,
   Link2,
   LogOut,
   NotebookPen,
@@ -31,7 +32,7 @@ import {
 import { Avatar, ImagePreviewModal } from '@/components/common/avatar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DocumentList } from '@/components/common/document-list'
-import { EmptyState, ErrorState } from '@/components/common/display'
+import { ErrorState } from '@/components/common/display'
 import { Page } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { Badge } from '@/components/ui/badge'
@@ -49,6 +50,7 @@ import { can, useMe } from '@/features/auth/api'
 import { ReportCard } from '@/features/exams/components/report-card'
 import { StudentResults } from '@/features/exams/components/student-results'
 import { StudentFeesTab } from '@/features/fees/components/student-fees-tab'
+import { PersonLibraryTab } from '@/features/library/components/person-library-tab'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi, openFile } from '@/lib/files'
@@ -64,6 +66,7 @@ import { AchievementsTab } from '../components/achievements-tab'
 import { BehaviourTab } from '../components/behaviour-tab'
 import { ExitModal } from '../components/exit-modal'
 import { HealthTab } from '../components/health-tab'
+import { TransportTab } from '../components/transport-tab'
 import {
   Block,
   EditStudentModal,
@@ -95,9 +98,11 @@ export function StudentPage() {
   const { tab } = route.useSearch()
   const id = Number(studentId)
   const navigate = useNavigate()
-  const canManage = can(useMe().data, 'students.manage')
+  const me = useMe().data
+  const canManage = can(me, 'students.manage')
   const canSeeResults = can(useMe().data, 'exams.view')
   const canSeeFees = can(useMe().data, 'fees.view')
+  const canSeeLibrary = can(me, 'library.view')
   const student = useStudent(id)
   const counts = useRecordCounts(id)
   const data = student.data
@@ -374,6 +379,9 @@ export function StudentPage() {
               ]
             : []),
           ...(canSeeFees ? [{ value: 'fees' as const, label: 'Fees', icon: IndianRupee }] : []),
+          ...(canSeeLibrary
+            ? [{ value: 'library' as const, label: 'Library', icon: Library }]
+            : []),
         ]}
       />
 
@@ -390,18 +398,18 @@ export function StudentPage() {
       {tab === 'behaviour' && <BehaviourTab studentId={id} canManage={canManage} />}
       {tab === 'achievements' && <AchievementsTab studentId={id} canManage={canManage} />}
       {tab === 'transport' && (
-        <Card className='p-4 sm:p-6'>
-          <EmptyState
-            icon={Bus}
-            title='No bus stop yet'
-            description='Bus routes and stops are set up in Fleet. Once this student has a stop, the route, pickup time and boarding history show here.'
-          />
-        </Card>
+        <TransportTab
+          studentId={id}
+          studentName={data.full_name}
+          canView={can(me, 'fleet.view')}
+          canManage={can(me, 'fleet.manage') && active}
+        />
       )}
 
       {tab === 'results' && canSeeResults && <StudentResults studentId={id} />}
       {tab === 'report-card' && canSeeResults && <ReportCard studentId={id} />}
       {tab === 'fees' && canSeeFees && <StudentFeesTab studentId={id} />}
+      {tab === 'library' && canSeeLibrary && <PersonLibraryTab kind='student' id={id} />}
 
       {modal === 'edit' && <EditStudentModal student={data} onClose={() => setModal(null)} />}
       {modal === 'class' && (

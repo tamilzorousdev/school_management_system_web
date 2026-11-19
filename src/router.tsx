@@ -37,6 +37,7 @@ import {
 } from '@/features/students/search'
 import { payrollSearchSchema } from '@/features/payroll/search'
 import { feesSearchSchema } from '@/features/fees/search'
+import { libraryDetailSearchSchema, librarySearchSchema } from '@/features/library/search'
 import { examsSearchSchema } from '@/features/exams/search'
 import { tripHistorySearchSchema } from '@/features/fleet/search'
 import { maintenanceSearchSchema } from '@/features/maintenance/search'
@@ -363,6 +364,30 @@ const feesRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/fees/pages/fees-page'), 'FeesPage'),
 })
 
+const libraryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/library',
+  validateSearch: librarySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/library/pages/library-page'),
+    'LibraryPage'
+  ),
+})
+
+const libraryBookRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/library/books/$bookId',
+  validateSearch: libraryDetailSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/library/pages/book-page'), 'BookPage'),
+})
+
+const libraryMemberRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/library/members/$memberId',
+  validateSearch: libraryDetailSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/library/pages/member-page'), 'MemberPage'),
+})
+
 const examsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/exams',
@@ -387,6 +412,19 @@ const transportRoute = createRoute({
   component: lazyRouteComponent(
     () => import('@/features/transport/pages/transport-page'),
     'TransportPage'
+  ),
+})
+
+const routeRosterRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/routes/$routeId/students',
+  params: {
+    parse: (raw) => ({ routeId: z.coerce.number().int().min(1).parse(raw.routeId) }),
+    stringify: (params) => ({ routeId: String(params.routeId) }),
+  },
+  component: lazyRouteComponent(
+    () => import('@/features/transport/pages/route-roster-page'),
+    'RouteRosterPage'
   ),
 })
 
@@ -460,10 +498,14 @@ const routeTree = rootRoute.addChildren([
     substitutesRoute,
     payrollRoute,
     feesRoute,
+    libraryRoute,
+    libraryBookRoute,
+    libraryMemberRoute,
     examsRoute,
     activitiesRoute,
     transportRoute,
     routeBuilderRoute,
+    routeRosterRoute,
     setupRoute,
     schoolsRoute,
     parentPreviewRoute,

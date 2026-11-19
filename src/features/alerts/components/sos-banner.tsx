@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, Check, MapPin, Phone, Siren } from 'lucide-react'
+import { ArrowRight, Check, Eye, MapPin, Phone, Siren, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { can, useMe } from '@/features/auth/api'
 import { useNow } from '@/hooks/use-now'
@@ -11,7 +11,13 @@ import { useAcknowledgeAlert, useActiveSos, type FleetAlert } from '../api'
 import { mapLink, telLink } from '../labels'
 import { useAlertsLive } from '../live'
 
-export function SosBanner({ className }: { className?: string }) {
+interface SosBannerProps {
+  className?: string
+  onOpen?: (id: number) => void
+  sound?: { muted: boolean; toggle: () => void }
+}
+
+export function SosBanner({ className, onOpen, sound }: SosBannerProps) {
   const me = useMe().data
   const allowed = can(me, 'fleet.view')
   const socket = useAlertsLive(allowed)
@@ -25,14 +31,30 @@ export function SosBanner({ className }: { className?: string }) {
       aria-label='Active SOS'
       className={cn('grid gap-2', className)}
     >
-      {items.map((alert) => (
-        <SosRow key={alert.id} alert={alert} canManage={can(me, 'fleet.manage')} />
+      {items.map((alert, index) => (
+        <SosRow
+          key={alert.id}
+          alert={alert}
+          canManage={can(me, 'fleet.manage')}
+          onOpen={onOpen}
+          sound={index === 0 ? sound : undefined}
+        />
       ))}
     </section>
   )
 }
 
-function SosRow({ alert, canManage }: { alert: FleetAlert; canManage: boolean }) {
+function SosRow({
+  alert,
+  canManage,
+  onOpen,
+  sound,
+}: {
+  alert: FleetAlert
+  canManage: boolean
+  onOpen?: (id: number) => void
+  sound?: { muted: boolean; toggle: () => void }
+}) {
   const now = useNow(15_000)
   const acknowledge = useAcknowledgeAlert()
   const call = telLink(alert.raised_by?.mobile)
@@ -72,6 +94,23 @@ function SosRow({ alert, canManage }: { alert: FleetAlert; canManage: boolean })
         </p>
       </div>
       <div className='flex flex-wrap gap-2'>
+        {onOpen && (
+          <Button size='sm' variant='secondary' onClick={() => onOpen(alert.id)}>
+            <Eye />
+            Details
+          </Button>
+        )}
+        {sound && (
+          <Button
+            size='sm'
+            variant='secondary'
+            onClick={sound.toggle}
+            aria-label={sound.muted ? 'Turn the alarm sound on' : 'Mute the alarm sound'}
+          >
+            {sound.muted ? <VolumeX /> : <Volume2 />}
+            {sound.muted ? 'Sound off' : 'Mute'}
+          </Button>
+        )}
         {call && (
           <Button asChild size='sm' variant='secondary'>
             <a href={call}>

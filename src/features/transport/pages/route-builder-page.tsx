@@ -1,13 +1,22 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useBlocker, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, ListOrdered, Pencil, RotateCcw, Save, Route as RouteIcon } from 'lucide-react'
+import {
+  ArrowLeft,
+  ListOrdered,
+  Pencil,
+  RotateCcw,
+  Save,
+  Route as RouteIcon,
+  UsersRound,
+} from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { ErrorState } from '@/components/common/display'
 import { Page, PageHeader } from '@/components/common/page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
@@ -26,6 +35,7 @@ import { AssignStudentsModal } from '../components/assign-students-modal'
 import { RouteFormModal } from '../components/route-form-modal'
 import { RouteMap, type MapStop } from '../components/route-map'
 import { StopFormModal, type DraftStop } from '../components/stop-form-modal'
+import { RouteHistory, RouteTimingsPanel } from '../components/route-insights'
 import { StopList } from '../components/stop-list'
 
 const route = getRouteApi('/_app/transport/routes/$routeId')
@@ -41,7 +51,7 @@ const toDraft = (detail: RouteDetail): DraftStop[] =>
     pickup_time: stop.pickup_time,
     drop_time: stop.drop_time,
     geofence_radius_m: stop.geofence_radius_m,
-    monthly_fee: stop.monthly_fee,
+    fee_override: stop.fee_override,
   }))
 
 const toInput = (stops: DraftStop[]): StopInput[] =>
@@ -54,7 +64,7 @@ const toInput = (stops: DraftStop[]): StopInput[] =>
     pickup_time: stop.pickup_time,
     drop_time: stop.drop_time,
     geofence_radius_m: stop.geofence_radius_m,
-    monthly_fee: stop.monthly_fee,
+    monthly_fee: stop.fee_override,
   }))
 
 const signature = (stops: DraftStop[]) => JSON.stringify(toInput(stops))
@@ -82,7 +92,8 @@ const stopError = (error: unknown, stops: DraftStop[]) => {
   if (!first) return apiError.message
   const index = Number(/items\.(\d+)/.exec(first.field)?.[1])
   const stop = Number.isInteger(index) ? stops[index] : undefined
-  return stop ? `Stop ${index + 1} (${stop.name}): ${first.message}` : first.message
+  if (!stop || first.message.includes(stop.name)) return first.message
+  return `Stop ${index + 1} (${stop.name}): ${first.message}`
 }
 
 let nextKey = 0
@@ -104,6 +115,7 @@ export function RouteBuilderPage() {
   const [confirmOrder, setConfirmOrder] = useState(false)
   const [editingRoute, setEditingRoute] = useState(false)
   const [busy, setBusy] = useState<'save' | 'order' | 'bus' | null>(null)
+  const [reason, setReason] = useState('')
 
   const data = detail.data
   const baseline = useMemo(() => (data ? toDraft(data) : []), [data])
@@ -151,8 +163,13 @@ export function RouteBuilderPage() {
   const saveStops = async () => {
     setBusy('save')
     try {
-      const result = await transportApi.saveStops(routeId, toInput(draft))
+      const result = await transportApi.saveStops(
+        routeId,
+        toInput(draft),
+        reason.trim() || undefined
+      )
       applyDetail(result)
+      setReason('')
       alerts.success('Stops saved')
       return result
     } catch (error) {
@@ -219,7 +236,7 @@ export function RouteBuilderPage() {
         pickup_time: null,
         drop_time: null,
         geofence_radius_m: 100,
-        monthly_fee: 0,
+        fee_override: null,
       },
     })
 
@@ -287,6 +304,20 @@ export function RouteBuilderPage() {
               <ArrowLeft />
               All routes
             </Button>
+            {data && (
+              <Button
+                variant='outline'
+                onClick={() =>
+                  navigate({
+                    to: '/transport/routes/$routeId/students',
+                    params: { routeId: data.id },
+                  })
+                }
+              >
+                <UsersRound />
+                Student list
+              </Button>
+            )}
             {canManage && data && (
               <Button variant='outline' onClick={() => setEditingRoute(true)}>
                 <Pencil />
@@ -370,6 +401,16 @@ export function RouteBuilderPage() {
               Distance through every stop to school{' '}
               <span className='font-bold text-foreground'>{distance} km</span>
             </p>
+            {data && <RouteTimingsPanel route={data} />}
+            {canManage && dirty && (
+              <Input
+                aria-label='Reason for the change'
+                placeholder='Reason for the change (optional, parents see it)'
+                maxLength={200}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
             {canManage && (
               <div className='flex flex-wrap gap-2'>
                 <Button
@@ -406,6 +447,7 @@ export function RouteBuilderPage() {
             {data ? (
               <StopList
                 routeId={routeId}
+                routeFee={data?.monthly_fee ?? 0}
                 stops={draft}
                 counts={counts}
                 selectedKey={selectedKey}
@@ -423,6 +465,11 @@ export function RouteBuilderPage() {
                 ))}
               </div>
             )}
+            {data && (
+              <div className='mt-4 border-t pt-3'>
+                <RouteHistory routeId={routeId} />
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -431,6 +478,7 @@ export function RouteBuilderPage() {
         <StopFormModal
           stop={editing.stop}
           isNew={editing.isNew}
+          routeFee={data?.monthly_fee ?? 0}
           onClose={() => setEditing(null)}
           onSave={(stop) => {
             setDraft((prev) =>

@@ -5,21 +5,21 @@ import {
   Clock,
   Palmtree,
   PenLine,
+  RotateCw,
   UserRoundX,
   UsersRound,
-  X,
 } from 'lucide-react'
-import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useStaffBoard, type StaffBoardRow } from '../api'
 import { SOURCE_LABELS, STAFF_DAY_STATUS, clockTime } from '../labels'
 import type { AttendanceSearch } from '../search'
+import { TableCheckbox, StatusPill } from './students-tab'
+import { BulkActionBar } from './bulk-action-bar'
 import { BulkStaffModal } from './bulk-mark-modal'
 import { CorrectModal } from './correct-modal'
 import { DateStepper } from './date-stepper'
@@ -123,17 +123,6 @@ export function StaffTab({
     },
   ]
 
-  const checkbox = (row: StaffBoardRow) => (
-    <input
-      type='checkbox'
-      aria-label={`Select ${row.name}`}
-      className='size-4 cursor-pointer accent-primary'
-      checked={selected.has(row.user_id)}
-      onChange={() => toggle(row.user_id)}
-      onClick={(event) => event.stopPropagation()}
-    />
-  )
-
   const correctButton = (row: StaffBoardRow) =>
     canManage && (
       <Button
@@ -144,8 +133,9 @@ export function StaffTab({
           event.stopPropagation()
           setCorrecting(row)
         }}
+        className='h-7.5 px-2.5 text-[12px] font-medium'
       >
-        <PenLine />
+        <PenLine className='size-3.5' />
         Correct
       </Button>
     )
@@ -156,61 +146,82 @@ export function StaffTab({
           {
             key: 'select',
             header: (
-              <input
-                type='checkbox'
-                aria-label='Select everyone on this page'
-                className='size-4 cursor-pointer accent-primary'
+              <TableCheckbox
+                ariaLabel='Select everyone on this page'
                 checked={allOnPage}
                 onChange={togglePage}
               />
             ),
-            className: 'w-10',
-            cell: checkbox,
+            className: 'w-12 text-center',
+            cell: (row: StaffBoardRow) => (
+              <TableCheckbox
+                ariaLabel={`Select ${row.name}`}
+                checked={selected.has(row.user_id)}
+                onChange={() => toggle(row.user_id)}
+              />
+            ),
           },
         ]
       : []),
     {
       key: 'name',
-      header: 'Staff',
+      header: 'STAFF ⇅',
       cell: (row) => (
-        <div className='flex items-center gap-3'>
-          <Avatar name={row.name} />
-          <div className='grid min-w-0'>
-            <span className='truncate font-bold'>{row.name}</span>
-            <span className='truncate text-xs text-muted-foreground'>
-              {row.designation}
-              {row.department ? ` · ${row.department}` : ''}
-            </span>
-          </div>
+        <div className='grid min-w-0'>
+          <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+            {row.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {row.designation}
+            {row.department ? ` · ${row.department}` : ''}
+          </span>
         </div>
       ),
     },
     {
       key: 'status',
-      header: 'Status',
-      cell: (row) => (
-        <Badge tone={STAFF_DAY_STATUS[row.status].tone}>{STAFF_DAY_STATUS[row.status].label}</Badge>
-      ),
+      header: 'STATUS',
+      cell: (row) => {
+        const info = STAFF_DAY_STATUS[row.status]
+        const toneMap: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'neutral'> = {
+          success: 'success',
+          warning: 'warning',
+          danger: 'danger',
+          info: 'info',
+          neutral: 'neutral',
+        }
+        return <StatusPill tone={toneMap[info.tone] ?? 'neutral'} label={info.label} />
+      },
     },
     {
       key: 'in',
-      header: 'Check-in',
-      cell: (row) => <span className='tabular'>{timeText(row.check_in_at)}</span>,
+      header: 'CHECK-IN',
+      cell: (row) => (
+        <span className='tabular-nums text-[13px] leading-[18px] font-normal text-slate-700 dark:text-slate-300'>
+          {timeText(row.check_in_at)}
+        </span>
+      ),
     },
     {
       key: 'out',
-      header: 'Check-out',
-      cell: (row) => <span className='tabular'>{timeText(row.check_out_at)}</span>,
+      header: 'CHECK-OUT',
+      cell: (row) => (
+        <span className='tabular-nums text-[13px] leading-[18px] font-normal text-slate-700 dark:text-slate-300'>
+          {timeText(row.check_out_at)}
+        </span>
+      ),
     },
     {
       key: 'distance',
-      header: 'Distance',
+      header: 'DISTANCE',
       hideBelow: 'lg',
       cell: (row) =>
         row.check_in_distance_m !== null ? (
-          <span className='tabular'>{row.check_in_distance_m} m</span>
+          <span className='tabular-nums text-[13px] leading-[18px] font-normal text-slate-700 dark:text-slate-300'>
+            {row.check_in_distance_m} m
+          </span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
@@ -289,22 +300,24 @@ export function StaffTab({
           />
         </ListToolbar>
         {canManage && selected.size > 0 && (
-          <div className='flex flex-wrap items-center justify-between gap-2 border-b bg-primary/5 px-4 py-2'>
-            <span className='text-sm font-semibold'>
-              {selected.size} selected
-              <span className='font-normal text-muted-foreground'> · kept across pages</span>
-            </span>
-            <div className='flex flex-wrap gap-2'>
-              <Button size='sm' variant='ghost' onClick={() => setSelected(new Set())}>
-                <X />
-                Clear
-              </Button>
-              <Button size='sm' onClick={() => setBulk([...selected])}>
-                <CheckCheck />
-                Mark selected
-              </Button>
-            </div>
-          </div>
+          <BulkActionBar
+            count={selected.size}
+            label='selected'
+            onClear={() => setSelected(new Set())}
+            actions={[
+              {
+                label: 'Change status',
+                icon: <RotateCw className='size-3.5' />,
+                onClick: () => setBulk([...selected]),
+              },
+            ]}
+            primaryAction={{
+              label: 'Mark attendance',
+              icon: <CheckCheck className='size-3.5' />,
+              onClick: () => setBulk([...selected]),
+              variant: 'primary',
+            }}
+          />
         )}
         <DataTable
           rows={rows}
@@ -338,22 +351,42 @@ export function StaffTab({
                 }
           }
           card={(row) => (
-            <div className='flex items-start gap-3'>
-              {canManage && <span className='pt-2'>{checkbox(row)}</span>}
-              <Avatar name={row.name} />
+            <div className='flex items-start gap-3 table-typography'>
+              {canManage && (
+                <span className='pt-1'>
+                  <TableCheckbox
+                    ariaLabel={`Select ${row.name}`}
+                    checked={selected.has(row.user_id)}
+                    onChange={() => toggle(row.user_id)}
+                  />
+                </span>
+              )}
               <div className='grid min-w-0 flex-1 gap-1.5'>
                 <div className='flex items-start justify-between gap-2'>
                   <span className='grid min-w-0'>
-                    <span className='truncate font-bold'>{row.name}</span>
-                    <span className='truncate text-xs text-muted-foreground'>
+                    <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+                      {row.name}
+                    </span>
+                    <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                       {row.designation}
                     </span>
                   </span>
-                  <Badge tone={STAFF_DAY_STATUS[row.status].tone}>
-                    {STAFF_DAY_STATUS[row.status].label}
-                  </Badge>
+                  {(() => {
+                    const info = STAFF_DAY_STATUS[row.status]
+                    const toneMap: Record<
+                      string,
+                      'success' | 'warning' | 'danger' | 'info' | 'neutral'
+                    > = {
+                      success: 'success',
+                      warning: 'warning',
+                      danger: 'danger',
+                      info: 'info',
+                      neutral: 'neutral',
+                    }
+                    return <StatusPill tone={toneMap[info.tone] ?? 'neutral'} label={info.label} />
+                  })()}
                 </div>
-                <span className='tabular text-xs text-muted-foreground'>
+                <span className='tabular-nums text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                   In {timeText(row.check_in_at)} · Out {timeText(row.check_out_at)}
                   {row.check_in_distance_m !== null && ` · ${row.check_in_distance_m} m`}
                   {row.source && ` · ${SOURCE_LABELS[row.source]}`}

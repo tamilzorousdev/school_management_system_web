@@ -29,6 +29,8 @@ export function RouteFormModal({
   const [name, setName] = useState(route?.name ?? '')
   const [busId, setBusId] = useState(route?.vehicle ? String(route.vehicle.id) : undefined)
   const [active, setActive] = useState(route?.is_active ?? true)
+  const [fee, setFee] = useState(String(route?.monthly_fee ?? 0))
+  const [reason, setReason] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useTransportMutation((input: RouteInput) =>
     route ? transportApi.updateRoute(route.id, input) : transportApi.createRoute(input)
@@ -56,6 +58,9 @@ export function RouteFormModal({
           const next: Record<string, string> = {}
           if (!cleanCode) next.code = 'Enter a code, like R1'
           if (name.trim().length < 2) next.name = 'Enter the route name'
+          const feeValue = fee.trim() === '' ? 0 : Number(fee)
+          if (!Number.isFinite(feeValue) || feeValue < 0 || feeValue > 100000)
+            next.monthly_fee = 'Enter an amount from 0 to 100000'
           setErrors(next)
           if (Object.keys(next).length) return
           try {
@@ -63,7 +68,9 @@ export function RouteFormModal({
               code: cleanCode,
               name: name.trim(),
               vehicle_id: busId ? Number(busId) : null,
+              monthly_fee: Math.round((fee.trim() === '' ? 0 : Number(fee)) * 100) / 100,
               ...(route ? { is_active: active } : {}),
+              ...(route && reason.trim() ? { reason: reason.trim() } : {}),
             })
             alerts.success(route ? `Route ${cleanCode} updated` : `Route ${cleanCode} created`)
             onClose()
@@ -95,6 +102,24 @@ export function RouteFormModal({
           />
         </FormField>
         <FormField
+          id='route-fee'
+          label='Monthly bus fee (₹)'
+          error={errors.monthly_fee}
+          className='sm:col-span-2'
+          hint='Charged to every student on this route. A stop can have its own fee instead. Unpaid invoices update when you change it for a student.'
+        >
+          <Input
+            id='route-fee'
+            type='number'
+            inputMode='decimal'
+            min={0}
+            max={100000}
+            value={fee}
+            aria-invalid={Boolean(errors.monthly_fee) || undefined}
+            onChange={(event) => setFee(event.target.value)}
+          />
+        </FormField>
+        <FormField
           id='route-bus'
           label='Bus'
           error={errors.vehicle_id}
@@ -115,6 +140,22 @@ export function RouteFormModal({
             onChange={setBusId}
           />
         </FormField>
+        {route && String(route.vehicle?.id ?? '') !== (busId ?? '') && (
+          <FormField
+            id='route-reason'
+            label='Reason for the bus change'
+            hint='Optional. Parents see it in their note. For one day only, use Bus for a day instead.'
+            className='sm:col-span-2'
+          >
+            <Input
+              id='route-reason'
+              maxLength={200}
+              placeholder='e.g. Bus 2 needs a new engine'
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </FormField>
+        )}
         {route && (
           <div className='flex items-center justify-between gap-3 rounded-lg border p-3 sm:col-span-2'>
             <span className='grid gap-0.5'>

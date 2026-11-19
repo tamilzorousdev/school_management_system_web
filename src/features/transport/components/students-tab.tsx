@@ -1,11 +1,27 @@
 import { useState } from 'react'
-import { ArrowRightLeft, CircleOff, UserMinus, UsersRound } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import {
+  ArrowRightLeft,
+  CircleOff,
+  ListOrdered,
+  PauseCircle,
+  PlayCircle,
+  Plus,
+  UserMinus,
+  UsersRound,
+} from 'lucide-react'
+import { AppModal } from '@/components/common/app-modal'
+import { FormField } from '@/components/common/form-field'
+import { Textarea } from '@/components/ui/input'
+import { alerts } from '@/lib/alerts'
+import { toApiError } from '@/lib/api/errors'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useClasses } from '@/features/setup/api'
 import { run } from '@/features/setup/form-actions'
 import {
   transportApi,
@@ -14,9 +30,11 @@ import {
   useRouteDetail,
   useTransportMutation,
   type Rider,
+  type RiderSort,
+  type TransportMode,
 } from '../api'
-import { MODE_LABELS, rupees } from '../labels'
-import { RiderModal } from './rider-modal'
+import { MODE_LABELS, MODE_OPTIONS, rupees } from '../labels'
+import { AssignTransportModal } from './assign-transport-modal'
 
 const LIMIT = 20
 
@@ -25,6 +43,10 @@ interface Filters {
   page: number
   route_id?: number
   stop_id?: number
+  class_id?: number
+  mode?: TransportMode
+  sort?: RiderSort
+  order?: 'asc' | 'desc'
 }
 
 export function StudentsTab({
@@ -38,16 +60,54 @@ export function StudentsTab({
 }) {
   const riders = useRiders({ ...filters, limit: LIMIT })
   const routes = useBusRoutes()
+  const classes = useClasses()
   const detail = useRouteDetail(filters.route_id)
   const [editing, setEditing] = useState<Rider | null>(null)
+  const [adding, setAdding] = useState(false)
   const [removing, setRemoving] = useState<Rider | null>(null)
+  const [holding, setHolding] = useState<Rider | null>(null)
   const remove = useTransportMutation((studentId: number) => transportApi.removeRider(studentId))
+  const pass = useTransportMutation(
+    (input: { studentId: number; status: 'active' | 'on_hold'; note: string | null }) =>
+      transportApi.setPass(input.studentId, input.status, input.note)
+  )
+  const activate = async (rider: Rider) => {
+    try {
+      await pass.mutateAsync({ studentId: rider.student.id, status: 'active', note: null })
+      alerts.success(`${rider.student.full_name}'s bus pass is active again`)
+    } catch (error) {
+      alerts.error(toApiError(error).message)
+    }
+  }
   const rows = riders.data?.items ?? []
-  const filtered = Boolean(filters.search || filters.route_id || filters.stop_id)
+  const filtered = Boolean(
+    filters.search || filters.route_id || filters.stop_id || filters.class_id || filters.mode
+  )
 
   const actions = (rider: Rider) =>
     canManage && (
       <span className='flex flex-wrap justify-end gap-1 lg:flex-nowrap'>
+        {rider.pass_status === 'on_hold' ? (
+          <Button
+            size='sm'
+            variant='outline'
+            aria-label={`Make ${rider.student.full_name}'s bus pass active`}
+            onClick={() => void activate(rider)}
+          >
+            <PlayCircle className='text-success' />
+            Activate pass
+          </Button>
+        ) : (
+          <Button
+            size='sm'
+            variant='outline'
+            aria-label={`Put ${rider.student.full_name}'s bus pass on hold`}
+            onClick={() => setHolding(rider)}
+          >
+            <PauseCircle className='text-warning' />
+            Hold pass
+          </Button>
+        )}
         <Button
           size='sm'
           variant='outline'
@@ -55,7 +115,7 @@ export function StudentsTab({
           onClick={() => setEditing(rider)}
         >
           <ArrowRightLeft />
-          Change stop
+          Change
         </Button>
         <Button
           size='sm'
@@ -72,7 +132,14 @@ export function StudentsTab({
 
   const student = (rider: Rider) => (
     <span className='grid min-w-0'>
-      <span className='truncate font-bold'>{rider.student.full_name}</span>
+      <span className='flex min-w-0 items-center gap-1.5'>
+        <span className='truncate font-bold'>{rider.student.full_name}</span>
+        {rider.pass_status === 'on_hold' && (
+          <Badge tone='warning' title={rider.pass_note ?? undefined}>
+            Pass on hold
+          </Badge>
+        )}
+      </span>
       <span className='truncate font-mono text-xs text-muted-foreground'>
         {rider.student.admission_no}
       </span>
@@ -84,19 +151,46 @@ export function StudentsTab({
     </span>
   )
 
-  const stop = (rider: Rider) => (
-    <span className='grid'>
-      <span className='font-semibold'>{rider.stop.name}</span>
-      <span className='tabular text-xs text-muted-foreground'>
-        Pickup {rider.stop.pickup_time ?? '—'} · Drop {rider.stop.drop_time ?? '—'}
+  const stop = (rider: Rider) =>
+    rider.drop_stop ? (
+      <span className='grid gap-0.5'>
+        <span>
+          <span className='text-xs text-muted-foreground'>Pickup </span>
+          <span className='font-semibold'>{rider.stop.name}</span>
+          <span className='tabular text-xs text-muted-foreground'>
+            {' '}
+            {rider.stop.pickup_time ?? ''}
+          </span>
+        </span>
+        <span>
+          <span className='text-xs text-muted-foreground'>Drop </span>
+          <span className='font-semibold'>{rider.drop_stop.name}</span>
+          <span className='tabular text-xs text-muted-foreground'>
+            {' '}
+            {rider.drop_stop.drop_time ?? ''}
+          </span>
+        </span>
       </span>
-    </span>
-  )
+    ) : (
+      <span className='grid'>
+        <span className='font-semibold'>{rider.stop.name}</span>
+        <span className='tabular text-xs text-muted-foreground'>
+          Pickup {rider.stop.pickup_time ?? '—'} · Drop {rider.stop.drop_time ?? '—'}
+        </span>
+      </span>
+    )
 
   const columns: Column<Rider>[] = [
-    { key: 'student', header: 'Student', cell: student },
-    { key: 'route', header: 'Route', cell: (rider) => rider.route.name, hideBelow: 'xl' },
-    { key: 'stop', header: 'Stop', cell: stop },
+    { key: 'student', header: 'Student', sortKey: 'name', cell: student },
+    {
+      key: 'class',
+      header: 'Class',
+      sortKey: 'class',
+      hideBelow: 'xl',
+      cell: (rider) => rider.student.class_section ?? '—',
+    },
+    { key: 'route', header: 'Route', cell: (rider) => rider.route.name, hideBelow: 'lg' },
+    { key: 'stop', header: 'Stop', sortKey: 'stop', cell: stop },
     {
       key: 'mode',
       header: 'Uses the bus for',
@@ -118,7 +212,14 @@ export function StudentsTab({
         summary={riders.data ? `${riders.data.total} students` : ''}
         onClear={
           filtered
-            ? () => onChange({ search: undefined, route_id: undefined, stop_id: undefined })
+            ? () =>
+                onChange({
+                  search: undefined,
+                  route_id: undefined,
+                  stop_id: undefined,
+                  class_id: undefined,
+                  mode: undefined,
+                })
             : undefined
         }
       >
@@ -156,6 +257,41 @@ export function StudentsTab({
             onChange={(value) => onChange({ stop_id: value ? Number(value) : undefined })}
           />
         )}
+        <FilterSelect
+          id='transport-class-filter'
+          label='Filter by class'
+          allLabel='All classes'
+          value={filters.class_id ? String(filters.class_id) : undefined}
+          options={(classes.data ?? []).map((item) => ({
+            value: String(item.id),
+            label: item.name,
+          }))}
+          onChange={(value) => onChange({ class_id: value ? Number(value) : undefined })}
+        />
+        <FilterSelect
+          id='transport-mode-filter'
+          label='Filter by trips'
+          allLabel='Any trips'
+          value={filters.mode}
+          options={MODE_OPTIONS}
+          onChange={(value) =>
+            onChange({ mode: (value || undefined) as TransportMode | undefined })
+          }
+        />
+        {filters.route_id && (
+          <Button variant='outline' asChild>
+            <Link to='/transport/routes/$routeId/students' params={{ routeId: filters.route_id }}>
+              <ListOrdered />
+              Route list
+            </Link>
+          </Button>
+        )}
+        {canManage && (
+          <Button onClick={() => setAdding(true)}>
+            <Plus />
+            Assign student
+          </Button>
+        )}
       </ListToolbar>
       <DataTable
         rows={rows}
@@ -164,12 +300,20 @@ export function StudentsTab({
         loading={riders.isFetching}
         error={riders.isError ? riders.error.message : null}
         onRetry={() => riders.refetch()}
+        sort={{ sort: filters.sort, order: filters.order ?? 'asc' }}
+        onSortChange={(next) => onChange(next as Partial<Filters>)}
         empty={{
           icon: filtered ? CircleOff : UsersRound,
           title: filtered ? 'No students match these filters' : 'No students on the bus yet',
           description: filtered
             ? 'Try another name, or clear the filters.'
-            : 'Open a route in the builder and add students to its stops.',
+            : 'Assign students to a route and stop, or add them from the route builder.',
+          action: !filtered && canManage && (
+            <Button onClick={() => setAdding(true)}>
+              <Plus />
+              Assign student
+            </Button>
+          ),
         }}
         card={(rider) => (
           <div className='grid gap-2'>
@@ -190,12 +334,22 @@ export function StudentsTab({
           onPageChange: (page) => onChange({ page }),
         }}
       />
-      {editing && <RiderModal rider={editing} onClose={() => setEditing(null)} />}
+      <AssignTransportModal
+        open={adding || Boolean(editing)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAdding(false)
+            setEditing(null)
+          }
+        }}
+        rider={editing}
+        defaultRouteId={filters.route_id}
+      />
       <ConfirmDialog
         open={Boolean(removing)}
         onOpenChange={(open) => !open && setRemoving(null)}
         title={`Take ${removing?.student.full_name ?? ''} off the bus?`}
-        description='The student no longer has a bus stop. Parents stop getting bus alerts.'
+        description='The student no longer has a bus stop. Parents and the bus crew are told, and parents stop getting bus alerts.'
         confirmText='Remove from bus'
         destructive
         loading={remove.isPending}
@@ -208,6 +362,72 @@ export function StudentsTab({
           setRemoving(null)
         }}
       />
+      {holding && (
+        <HoldPassModal
+          rider={holding}
+          onHold={(note) =>
+            pass.mutateAsync({ studentId: holding.student.id, status: 'on_hold', note })
+          }
+          onClose={() => setHolding(null)}
+        />
+      )}
     </Card>
+  )
+}
+
+function HoldPassModal({
+  rider,
+  onHold,
+  onClose,
+}: {
+  rider: Rider
+  onHold: (note: string | null) => Promise<unknown>
+  onClose: () => void
+}) {
+  const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  return (
+    <AppModal
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={`Put ${rider.student.full_name}'s bus pass on hold?`}
+      description='The driver sees only "Bus pass on hold – contact office", never fees, and must not leave the child behind. Parents get an in-app note.'
+      formId='hold-pass-form'
+      submitText='Hold pass'
+      loading={saving}
+    >
+      <form
+        id='hold-pass-form'
+        noValidate
+        onSubmit={async (event) => {
+          event.preventDefault()
+          setSaving(true)
+          try {
+            await onHold(note.trim() || null)
+            alerts.success(`${rider.student.full_name}'s bus pass is on hold`)
+            onClose()
+          } catch (error) {
+            alerts.error(toApiError(error).message)
+          } finally {
+            setSaving(false)
+          }
+        }}
+      >
+        <FormField
+          id='hold-note'
+          label='Note for the parents'
+          hint='Optional. The driver does not see it.'
+        >
+          <Textarea
+            id='hold-note'
+            rows={3}
+            maxLength={255}
+            value={note}
+            placeholder='Transport fee due since October'
+            onChange={(event) => setNote(event.target.value)}
+          />
+        </FormField>
+      </form>
+    </AppModal>
   )
 }

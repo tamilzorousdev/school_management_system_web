@@ -5,6 +5,7 @@ export const FEE_TABS = [
   'plans',
   'benefits',
   'payments',
+  'transport',
   'online',
   'approvals',
   'fines',
@@ -100,6 +101,9 @@ export const feesSearchSchema = z.object({
     .enum(['classes', 'heads', 'installments', 'benefits', 'defaulters', 'collections'])
     .optional()
     .catch(undefined),
+  route_id: z.coerce.number().int().min(1).optional().catch(undefined),
+  stop_id: z.coerce.number().int().min(1).optional().catch(undefined),
+  bus_status: z.enum(['paid', 'pending', 'overdue', 'not_billed']).optional().catch(undefined),
 })
 
 export type FeesSearch = z.infer<typeof feesSearchSchema>

@@ -4,6 +4,7 @@ import { AppModal } from '@/components/common/app-modal'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FormField } from '@/components/common/form-field'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
+import { SegmentedControl } from '@/components/common/segmented-control'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,13 +19,17 @@ import {
   useAttendanceMutation,
   useLeaveBalances,
   useStaffLeaves,
+  useStudentLeaves,
   type DecisionInput,
   type StaffLeave,
   type StaffLeaveStatus,
   type StudentLeave,
+  type StudentLeaveStatus,
 } from '../api'
-import { STAFF_LEAVE_STATUS } from '../labels'
+import { STAFF_LEAVE_STATUS, STUDENT_LEAVE_STATUS } from '../labels'
 import type { AttendanceSearch, LeaveKind } from '../search'
+import { BulkActionBar } from './bulk-action-bar'
+import { TableCheckbox, StatusPill } from './students-tab'
 
 const LIMIT = 20
 
@@ -58,6 +63,11 @@ const STAFF_STATUS_OPTIONS = [
   ...optionsOf(STAFF_LEAVE_STATUS),
 ]
 
+const STUDENT_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Waiting for approval' },
+  ...optionsOf(STUDENT_LEAVE_STATUS),
+]
+
 const statusOf = (search: AttendanceSearch, kind: LeaveKind) =>
   search.status ?? DEFAULT_STATUS[kind]
 
@@ -71,22 +81,48 @@ export function LeaveTab({
   onSearchChange: (patch: Partial<AttendanceSearch>) => void
 }) {
   const [rejecting, setRejecting] = useState<Rejecting | null>(null)
-  const filtered = Boolean(search.search) || statusOf(search, 'staff') !== DEFAULT_STATUS.staff
+  const kind: LeaveKind = search.leave === 'student' ? 'student' : 'staff'
+  const filtered = Boolean(search.search) || statusOf(search, kind) !== DEFAULT_STATUS[kind]
 
   return (
     <div className='grid gap-4'>
-      <p className='text-sm text-muted-foreground'>
-        Staff leave waiting for a decision. Student leave from parents is approved by the class
-        teacher in the Staff app.
-      </p>
-      <Card className='overflow-hidden'>
-        <StaffLeaves
-          search={search}
-          filtered={filtered}
-          canDecide={canDecideStaff}
-          onSearchChange={onSearchChange}
-          onReject={setRejecting}
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <SegmentedControl
+          label='Leave requests type'
+          value={kind}
+          onChange={(next) =>
+            onSearchChange({ leave: next as LeaveKind, page: 1, search: undefined, status: undefined })
+          }
+          options={[
+            { value: 'staff', label: 'Staff leaves' },
+            { value: 'student', label: 'Student leaves' },
+          ]}
         />
+        <p className='text-xs text-muted-foreground'>
+          {kind === 'staff'
+            ? 'Staff leave requests waiting for a decision by HOD or Principal.'
+            : 'Student leave requests from parents.'}
+        </p>
+      </div>
+
+      <Card className='overflow-hidden'>
+        {kind === 'staff' ? (
+          <StaffLeaves
+            search={search}
+            filtered={filtered}
+            canDecide={canDecideStaff}
+            onSearchChange={onSearchChange}
+            onReject={setRejecting}
+          />
+        ) : (
+          <StudentLeaves
+            search={search}
+            filtered={filtered}
+            canDecide={canDecideStaff}
+            onSearchChange={onSearchChange}
+            onReject={setRejecting}
+          />
+        )}
       </Card>
       {rejecting && <RejectModal target={rejecting} onClose={() => setRejecting(null)} />}
     </div>
@@ -212,6 +248,7 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
   })
   const approve = useApprove('staff')
   const [busy, setBusy] = useState<number | null>(null)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
 
   useShortcut('app.refresh', () => void leaves.refetch())
 
@@ -250,31 +287,76 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
 
   const stage = (leave: StaffLeave) => (
     <span className='grid gap-0.5'>
-      <Badge tone={STAFF_LEAVE_STATUS[leave.status].tone} className='justify-self-start'>
-        {STAFF_LEAVE_STATUS[leave.status].label}
-      </Badge>
+      <StatusPill
+        label={STAFF_LEAVE_STATUS[leave.status].label}
+        tone={STAFF_LEAVE_STATUS[leave.status].tone}
+      />
       {leave.status === 'pending_hod' && leave.hod && (
-        <span className='text-xs text-muted-foreground'>{leave.hod.name}</span>
+        <span className='text-[11.5px] text-slate-500'>{leave.hod.name}</span>
       )}
       {leave.principal && leave.status !== 'pending_principal' && (
-        <span className='text-xs text-muted-foreground'>by {leave.principal.name}</span>
+        <span className='text-[11.5px] text-slate-500'>by {leave.principal.name}</span>
       )}
       {(leave.principal_note ?? leave.hod_note) && (
-        <span className='max-w-56 truncate text-xs text-muted-foreground'>
+        <span className='max-w-56 truncate text-[11.5px] text-slate-500'>
           Note: {leave.principal_note ?? leave.hod_note}
         </span>
       )}
     </span>
   )
 
+  const items = leaves.data?.items ?? []
+  const pageIds = items.map((l) => l.id)
+  const allOnPage = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  const toggle = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const togglePage = () =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allOnPage) pageIds.forEach((id) => next.delete(id))
+      else pageIds.forEach((id) => next.add(id))
+      return next
+    })
+
   const columns: Column<StaffLeave>[] = [
+    ...(canDecide
+      ? [
+          {
+            key: 'select',
+            header: (
+              <TableCheckbox
+                ariaLabel='Select all staff leave requests on this page'
+                checked={allOnPage}
+                onChange={togglePage}
+              />
+            ),
+            className: 'w-12 text-center',
+            cell: (leave: StaffLeave) => (
+              <TableCheckbox
+                ariaLabel={`Select ${leave.staff.name}`}
+                checked={selected.has(leave.id)}
+                onChange={() => toggle(leave.id)}
+              />
+            ),
+          },
+        ]
+      : []),
     {
       key: 'staff',
       header: 'Staff',
       cell: (leave) => (
         <div className='grid min-w-0'>
-          <span className='truncate font-bold'>{leave.staff.name}</span>
-          <span className='text-xs text-muted-foreground'>{leave.department ?? '—'}</span>
+          <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+            {leave.staff.name}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {leave.department ?? '—'}
+          </span>
         </div>
       ),
     },
@@ -283,8 +365,12 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
       header: 'Leave type',
       cell: (leave) => (
         <span className='flex items-center gap-1.5'>
-          <Badge tone='info'>{leave.leave_type.code}</Badge>
-          <span className='text-sm'>{leave.leave_type.name}</span>
+          <span className='inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/60 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'>
+            {leave.leave_type.code}
+          </span>
+          <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {leave.leave_type.name}
+          </span>
         </span>
       ),
     },
@@ -293,8 +379,10 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
       header: 'Dates',
       cell: (leave) => (
         <div className='grid'>
-          <span className='text-sm'>{range(leave.from_date, leave.to_date)}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] text-slate-800 dark:text-slate-200'>
+            {range(leave.from_date, leave.to_date)}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {daysText(leave.days, leave.half_day)}
           </span>
         </div>
@@ -304,7 +392,11 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
       key: 'reason',
       header: 'Reason',
       hideBelow: 'xl',
-      cell: (leave) => <span className='line-clamp-2 max-w-64 text-sm'>{leave.reason}</span>,
+      cell: (leave) => (
+        <span className='line-clamp-2 max-w-64 text-[13px] leading-[18px] text-slate-600 dark:text-slate-400'>
+          {leave.reason}
+        </span>
+      ),
     },
     { key: 'stage', header: 'Stage', cell: stage },
     ...(canDecide ? [{ key: 'actions', header: '', align: 'right' as const, cell: actions }] : []),
@@ -321,8 +413,30 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
         placeholder='Staff name or reason'
         onSearchChange={onSearchChange}
       />
+      {canDecide && selected.size > 0 && (
+        <BulkActionBar
+          count={selected.size}
+          onClear={() => setSelected(new Set())}
+          primaryAction={{
+            label: 'Approve selected',
+            icon: <Check className='size-3.5' />,
+            onClick: async () => {
+              for (const id of selected) {
+                try {
+                  await approve.mutateAsync({ id, input: { status: 'approved' } })
+                } catch {
+                  // continue
+                }
+              }
+              alerts.success(`Approved ${selected.size} staff leave requests`)
+              setSelected(new Set())
+            },
+            variant: 'primary',
+          }}
+        />
+      )}
       <DataTable
-        rows={leaves.data?.items ?? []}
+        rows={items}
         columns={columns}
         rowKey={(leave) => leave.id}
         loading={leaves.isFetching}
@@ -360,6 +474,236 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
           limit: LIMIT,
           total: leaves.data?.total ?? 0,
           label: 'requests',
+          onPageChange: (page) => onSearchChange({ page }),
+        }}
+      />
+    </>
+  )
+}
+
+function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }: ListProps) {
+  const status = statusOf(search, 'student')
+  const leaves = useStudentLeaves({
+    page: search.page,
+    limit: LIMIT,
+    search: search.search,
+    status:
+      status === 'pending'
+        ? 'pending'
+        : status in STUDENT_LEAVE_STATUS
+          ? (status as StudentLeaveStatus)
+          : undefined,
+  })
+  const approve = useApprove('student')
+  const [busy, setBusy] = useState<number | null>(null)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+
+  useShortcut('app.refresh', () => void leaves.refetch())
+
+  const pending = (leave: StudentLeave) => leave.status === 'pending'
+
+  const approveLeave = async (leave: StudentLeave) => {
+    setBusy(leave.id)
+    try {
+      await approve.mutateAsync({ id: leave.id, input: { status: 'approved' } })
+      alerts.success(`Leave approved for ${leave.student.name}`)
+    } catch (error) {
+      alerts.error(toApiError(error).message)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const actions = (leave: StudentLeave) =>
+    canDecide && pending(leave) ? (
+      <DecisionButtons
+        name={leave.student.name}
+        loading={busy === leave.id}
+        onApprove={() => void approveLeave(leave)}
+        onReject={() =>
+          onReject({
+            kind: 'student',
+            id: leave.id,
+            name: leave.student.name,
+            summary: `${leave.class_section ?? 'Student'} · ${range(leave.from_date, leave.to_date)} · ${leave.reason}`,
+          })
+        }
+      />
+    ) : null
+
+  const stage = (leave: StudentLeave) => (
+    <span className='grid gap-0.5'>
+      <StatusPill
+        label={STUDENT_LEAVE_STATUS[leave.status].label}
+        tone={STUDENT_LEAVE_STATUS[leave.status].tone}
+      />
+      {leave.decided_by && (
+        <span className='text-[11.5px] text-slate-500'>by {leave.decided_by.name}</span>
+      )}
+      {leave.decision_note && (
+        <span className='max-w-56 truncate text-[11.5px] text-slate-500'>
+          Note: {leave.decision_note}
+        </span>
+      )}
+    </span>
+  )
+
+  const items = leaves.data?.items ?? []
+  const pageIds = items.map((l) => l.id)
+  const allOnPage = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  const toggle = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const togglePage = () =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allOnPage) pageIds.forEach((id) => next.delete(id))
+      else pageIds.forEach((id) => next.add(id))
+      return next
+    })
+
+  const columns: Column<StudentLeave>[] = [
+    ...(canDecide
+      ? [
+          {
+            key: 'select',
+            header: (
+              <TableCheckbox
+                ariaLabel='Select all student leave requests on this page'
+                checked={allOnPage}
+                onChange={togglePage}
+              />
+            ),
+            className: 'w-12 text-center',
+            cell: (leave: StudentLeave) => (
+              <TableCheckbox
+                ariaLabel={`Select ${leave.student.name}`}
+                checked={selected.has(leave.id)}
+                onChange={() => toggle(leave.id)}
+              />
+            ),
+          },
+        ]
+      : []),
+    {
+      key: 'student',
+      header: 'Student',
+      cell: (leave) => (
+        <div className='grid min-w-0'>
+          <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+            {leave.student.name}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {leave.class_section ?? '—'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'dates',
+      header: 'Dates',
+      cell: (leave) => (
+        <div className='grid'>
+          <span className='text-[13px] leading-[18px] text-slate-800 dark:text-slate-200'>
+            {range(leave.from_date, leave.to_date)}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {daysText(leave.days, leave.half_day)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'reason',
+      header: 'Reason',
+      hideBelow: 'xl',
+      cell: (leave) => (
+        <span className='line-clamp-2 max-w-64 text-[13px] leading-[18px] text-slate-600 dark:text-slate-400'>
+          {leave.reason}
+        </span>
+      ),
+    },
+    { key: 'stage', header: 'Stage', cell: stage },
+    ...(canDecide ? [{ key: 'actions', header: '', align: 'right' as const, cell: actions }] : []),
+  ]
+
+  return (
+    <>
+      <Toolbar
+        search={search}
+        status={status}
+        filtered={filtered}
+        total={leaves.data?.total}
+        statusOptions={STUDENT_STATUS_OPTIONS}
+        placeholder='Student name or reason'
+        onSearchChange={onSearchChange}
+      />
+      {canDecide && selected.size > 0 && (
+        <BulkActionBar
+          count={selected.size}
+          onClear={() => setSelected(new Set())}
+          primaryAction={{
+            label: 'Approve selected',
+            icon: <Check className='size-3.5' />,
+            onClick: async () => {
+              for (const id of selected) {
+                try {
+                  await approve.mutateAsync({ id, input: { status: 'approved' } })
+                } catch {
+                  // continue
+                }
+              }
+              alerts.success(`Approved ${selected.size} student leave requests`)
+              setSelected(new Set())
+            },
+            variant: 'primary',
+          }}
+        />
+      )}
+      <DataTable
+        rows={items}
+        columns={columns}
+        rowKey={(leave) => leave.id}
+        loading={leaves.isFetching}
+        error={leaves.isError ? leaves.error.message : null}
+        onRetry={() => leaves.refetch()}
+        empty={{
+          icon: filtered ? CircleOff : Inbox,
+          title: filtered
+            ? 'No leave requests match these filters'
+            : 'No student leave requests waiting',
+          description: filtered
+            ? 'Try another name, or clear the filters.'
+            : 'Choose Any status to see approved, rejected and cancelled requests.',
+        }}
+        card={(leave) => (
+          <div className='grid gap-1.5'>
+            <div className='flex items-start justify-between gap-2'>
+              <span className='grid min-w-0'>
+                <span className='truncate font-bold'>{leave.student.name}</span>
+                <span className='text-xs text-muted-foreground'>
+                  {leave.class_section ?? 'Student'} · {range(leave.from_date, leave.to_date)} ·{' '}
+                  {daysText(leave.days, leave.half_day)}
+                </span>
+              </span>
+              <StatusPill
+                label={STUDENT_LEAVE_STATUS[leave.status].label}
+                tone={STUDENT_LEAVE_STATUS[leave.status].tone}
+              />
+            </div>
+            <span className='text-sm'>{leave.reason}</span>
+            {actions(leave)}
+          </div>
+        )}
+        pagination={{
+          page: search.page,
+          limit: LIMIT,
+          total: leaves.data?.total ?? 0,
+          label: 'student requests',
           onPageChange: (page) => onSearchChange({ page }),
         }}
       />

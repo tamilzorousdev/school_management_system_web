@@ -45,6 +45,7 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
     longitude: school.longitude?.toString() ?? '',
     geofence_radius_m: String(school.geofence_radius_m),
     attendance_grace_minutes: String(school.attendance_grace_minutes ?? 15),
+    class_periods_per_week: String(school.class_periods_per_week ?? 30),
     attendance_mode: school.attendance_mode ?? 'session',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -76,6 +77,8 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
           draft.attendance_grace_minutes.trim() === ''
             ? 15
             : Number(draft.attendance_grace_minutes),
+        class_periods_per_week:
+          draft.class_periods_per_week.trim() === '' ? 30 : Number(draft.class_periods_per_week),
         attendance_mode: draft.attendance_mode === 'period' ? 'period' : 'session',
       })
       alerts.success('School profile saved')
@@ -164,6 +167,12 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
           <p className='text-xs text-destructive sm:col-span-2' role='alert'>
             {errors.latitude || errors.longitude || errors.geofence_radius_m}
           </p>
+        )}
+        {field(
+          'class_periods_per_week',
+          'Periods a week per class',
+          { inputMode: 'numeric' },
+          'Most periods a week one class can have in Teacher assignments (5 to 80)'
         )}
         {field(
           'attendance_grace_minutes',

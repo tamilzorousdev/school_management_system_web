@@ -1,25 +1,26 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   AlarmClockOff,
   CalendarCheck,
+  Check,
   CheckCheck,
   FileBarChart,
   ClipboardX,
   Inbox,
   LayoutGrid,
   Medal,
+  RotateCw,
   UserRoundX,
   UsersRound,
-  X,
 } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { SegmentedControl } from '@/components/common/segmented-control'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { formatDate, formatDateTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { useBellSchedule } from '@/features/timetable/api'
 import {
   ordinal,
@@ -29,7 +30,8 @@ import {
   type AttendanceSlot,
   type BoardSection,
 } from '../api'
-import { dayOffText, percentLabel, percentTone, studentsText } from '../labels'
+import { dayOffText, percentLabel, studentsText } from '../labels'
+import { BulkActionBar } from './bulk-action-bar'
 import { BulkSectionsModal } from './bulk-mark-modal'
 import { ClassReportSheet } from './class-report-sheet'
 import { DateStepper } from './date-stepper'
@@ -104,14 +106,28 @@ export function StudentsTab({
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [selectedDate, setSelectedDate] = useState(`${date}-${session}`)
   const [bulk, setBulk] = useState<number[] | 'not_marked' | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
   const selectionKey = `${date}-${session}`
   if (selectedDate !== selectionKey) {
     setSelectedDate(selectionKey)
     setSelected(new Set())
+    setPage(1)
   }
-  const markable = rows.filter((row) => row.total > 0)
+
+  const totalSections = rows.length
+  const maxPage = Math.max(1, Math.ceil(totalSections / pageSize))
+  const currentPage = Math.min(page, maxPage)
+  const paginatedRows = useMemo(
+    () => rows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [rows, currentPage, pageSize]
+  )
+
+  const pageMarkable = paginatedRows.filter((row) => row.total > 0)
   const canBulk = canManage && Boolean(data?.working_day)
-  const allSelected = markable.length > 0 && markable.every((row) => selected.has(row.section_id))
+  const allSelected =
+    pageMarkable.length > 0 && pageMarkable.every((row) => selected.has(row.section_id))
   const toggle = (id: number) =>
     setSelected((current) => {
       const next = new Set(current)
@@ -120,19 +136,16 @@ export function StudentsTab({
       return next
     })
   const toggleAll = () =>
-    setSelected(allSelected ? new Set() : new Set(markable.map((row) => row.section_id)))
+    setSelected((current) => {
+      const next = new Set(current)
+      if (allSelected) {
+        pageMarkable.forEach((row) => next.delete(row.section_id))
+      } else {
+        pageMarkable.forEach((row) => next.add(row.section_id))
+      }
+      return next
+    })
   const markedSelected = rows.filter((row) => selected.has(row.section_id) && row.marked).length
-  const checkbox = (row: BoardSection) => (
-    <input
-      type='checkbox'
-      aria-label={`Select class ${row.name}`}
-      className='size-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40'
-      disabled={row.total === 0}
-      checked={selected.has(row.section_id)}
-      onChange={() => toggle(row.section_id)}
-      onClick={(event) => event.stopPropagation()}
-    />
-  )
 
   useShortcut('app.refresh', () => void board.refetch())
 
@@ -194,26 +207,33 @@ export function StudentsTab({
           {
             key: 'select',
             header: (
-              <input
-                type='checkbox'
-                aria-label='Select every section'
-                className='size-4 cursor-pointer accent-primary'
+              <TableCheckbox
+                ariaLabel='Select every section'
                 checked={allSelected}
                 onChange={toggleAll}
               />
             ),
-            className: 'w-10',
-            cell: checkbox,
+            className: 'w-12 text-center',
+            cell: (row: BoardSection) => (
+              <TableCheckbox
+                ariaLabel={`Select class ${row.name}`}
+                disabled={row.total === 0}
+                checked={selected.has(row.section_id)}
+                onChange={() => toggle(row.section_id)}
+              />
+            ),
           },
         ]
       : []),
     {
       key: 'name',
-      header: 'Section',
+      header: 'SECTION ⇅',
       cell: (row) => (
         <div className='grid min-w-0'>
-          <span className='font-bold'>Class {row.name}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+            Class {row.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {row.class_teacher ?? 'No class teacher'}
           </span>
         </div>
@@ -221,57 +241,115 @@ export function StudentsTab({
     },
     {
       key: 'status',
-      header: 'Status',
-      cell: (row) =>
-        row.holiday ? (
-          <Badge tone='info' className='max-w-48 truncate'>
-            Holiday · {row.holiday}
-          </Badge>
-        ) : (
-          <div className='grid gap-1'>
-            <MarkedBadge row={row} />
-            <SessionDots row={row} />
-          </div>
-        ),
+      header: 'STATUS',
+      cell: (row) => (
+        <div className='flex flex-col items-start gap-1'>
+          {row.holiday ? (
+            <StatusPill tone='info' label={`Holiday · ${row.holiday}`} />
+          ) : row.total === 0 ? (
+            <StatusPill tone='neutral' label='No students' />
+          ) : row.missed ? (
+            <StatusPill
+              tone='danger'
+              label='Missed'
+              title={row.class_teacher ? `Missed by ${row.class_teacher}` : 'Missed'}
+            />
+          ) : (
+            <StatusPill
+              tone={row.marked ? 'success' : 'warning'}
+              label={row.marked ? 'Active' : 'Not marked'}
+            />
+          )}
+          <span className='flex items-center gap-2 text-[11px] leading-[14px] text-slate-400 dark:text-slate-500'>
+            <span
+              className={
+                row.morning_marked
+                  ? 'font-medium text-emerald-600 dark:text-emerald-400'
+                  : undefined
+              }
+            >
+              {row.morning_marked ? '✓' : '○'} Morning
+            </span>
+            <span
+              className={
+                row.afternoon_marked
+                  ? 'font-medium text-emerald-600 dark:text-emerald-400'
+                  : undefined
+              }
+            >
+              {row.afternoon_marked ? '✓' : '○'} Afternoon
+            </span>
+          </span>
+        </div>
+      ),
     },
     {
       key: 'counts',
-      header: 'Present / absent / late',
+      header: 'PRESENT / ABSENT / LATE',
       cell: (row) =>
         row.marked ? (
-          <span className='tabular text-sm'>
-            <span className='font-semibold text-success'>{row.present}</span>
-            {' / '}
-            <span className='font-semibold text-destructive'>{row.absent}</span>
-            {' / '}
-            <span className='font-semibold text-warning'>{row.late}</span>
-            <span className='text-muted-foreground'> of {row.total}</span>
-            {Boolean(row.od) && <OdTag count={row.od!} />}
+          <span className='tabular-nums text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            <span className='font-semibold text-emerald-600 dark:text-emerald-400'>
+              {row.present}
+            </span>
+            <span className='text-slate-300 dark:text-slate-600'> / </span>
+            <span className='font-semibold text-rose-600 dark:text-rose-400'>{row.absent}</span>
+            <span className='text-slate-300 dark:text-slate-600'> / </span>
+            <span className='font-semibold text-amber-600 dark:text-amber-400'>{row.late}</span>
+            <span className='text-xs text-slate-400'> of {row.total}</span>
+            {Boolean(row.od) && (
+              <span className='ml-1.5 inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.2 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'>
+                {row.od} OD
+              </span>
+            )}
           </span>
         ) : (
-          <span className='tabular text-sm text-muted-foreground'>
+          <span className='tabular-nums text-[13px] leading-[18px] text-slate-500'>
             {studentsText(row.total)}
-            {Boolean(row.od) && <OdTag count={row.od!} />}
+            {Boolean(row.od) && (
+              <span className='ml-1.5 inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.2 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'>
+                {row.od} OD
+              </span>
+            )}
           </span>
         ),
     },
     {
       key: 'percent',
-      header: 'Attendance',
-      cell: (row) => <Badge tone={percentTone(row.percent)}>{percentLabel(row.percent)}</Badge>,
+      header: 'ATTENDANCE',
+      cell: (row) => (
+        <span
+          className={cn(
+            'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold tracking-tight',
+            row.percent === null
+              ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+              : row.percent >= 85
+                ? 'bg-[#ECFDF5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300'
+                : row.percent >= 75
+                  ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+          )}
+        >
+          {percentLabel(row.percent)}
+        </span>
+      ),
     },
     {
       key: 'taken',
-      header: 'Taken by',
+      header: 'TAKEN BY',
       hideBelow: 'lg',
       cell: (row) =>
         row.taken_by ? (
-          <div className='grid'>
-            <span className='text-sm'>{row.taken_by}</span>
-            <span className='text-xs text-muted-foreground'>{formatDateTime(row.taken_at)}</span>
+          <div className='grid min-w-0'>
+            <span className='truncate font-medium text-[13px] leading-[18px] text-slate-800 dark:text-slate-200'>
+              {row.taken_by}
+            </span>
+            <span className='truncate text-[11.5px] leading-[16px] text-slate-400 dark:text-slate-500'>
+              {formatDateTime(row.taken_at)}
+            </span>
           </div>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
   ]
@@ -339,30 +417,50 @@ export function StudentsTab({
           </div>
         </div>
         {canBulk && selected.size > 0 && (
-          <div className='flex flex-wrap items-center justify-between gap-2 border-b bg-primary/5 px-4 py-2'>
-            <span className='text-sm font-semibold'>
-              {selected.size} {selected.size === 1 ? 'section' : 'sections'} selected
-            </span>
-            <div className='flex flex-wrap gap-2'>
-              <Button size='sm' variant='ghost' onClick={() => setSelected(new Set())}>
-                <X />
-                Clear
-              </Button>
-              <Button size='sm' onClick={() => setBulk([...selected])}>
-                <CheckCheck />
-                Mark selected
-              </Button>
-            </div>
-          </div>
+          <BulkActionBar
+            count={selected.size}
+            label={selected.size === 1 ? 'selected' : 'selected'}
+            onClear={() => setSelected(new Set())}
+            actions={[
+              {
+                label: 'Change status',
+                icon: <RotateCw className='size-3.5' />,
+                onClick: () => setBulk([...selected]),
+              },
+              {
+                label: 'Class report',
+                icon: <FileBarChart className='size-3.5' />,
+                onClick: () => setClassReport(true),
+              },
+            ]}
+            primaryAction={{
+              label: 'Mark attendance',
+              icon: <CheckCheck className='size-3.5' />,
+              onClick: () => setBulk([...selected]),
+              variant: 'primary',
+            }}
+          />
         )}
         <DataTable
-          rows={rows}
+          rows={paginatedRows}
           columns={columns}
           rowKey={(row) => row.section_id}
           loading={board.isFetching}
           error={board.isError ? board.error.message : null}
           onRetry={() => board.refetch()}
           onRowClick={(row) => onOpenSection(row.section_id)}
+          pagination={{
+            page: currentPage,
+            limit: pageSize,
+            total: totalSections,
+            label: 'sections',
+            onPageChange: (newPage) => setPage(newPage),
+            onLimitChange: (newLimit) => {
+              setPageSize(newLimit)
+              setPage(1)
+            },
+            limitOptions: [10, 20, 25, 50],
+          }}
           empty={
             filter === 'all'
               ? {
@@ -380,26 +478,64 @@ export function StudentsTab({
                 }
           }
           card={(row) => (
-            <div className='grid gap-1.5'>
-              <div className='flex items-start justify-between gap-2'>
-                {canBulk && <span className='pt-1'>{checkbox(row)}</span>}
+            <div className='grid gap-2 table-typography'>
+              <div className='flex items-start justify-between gap-2.5'>
+                {canBulk && (
+                  <span className='pt-0.5'>
+                    <TableCheckbox
+                      ariaLabel={`Select class ${row.name}`}
+                      disabled={row.total === 0}
+                      checked={selected.has(row.section_id)}
+                      onChange={() => toggle(row.section_id)}
+                    />
+                  </span>
+                )}
                 <span className='grid min-w-0 flex-1'>
-                  <span className='font-bold'>Class {row.name}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+                    Class {row.name}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {row.class_teacher ?? 'No class teacher'}
                   </span>
                 </span>
-                <MarkedBadge row={row} />
+                <StatusPill
+                  tone={
+                    row.holiday
+                      ? 'info'
+                      : row.total === 0
+                        ? 'neutral'
+                        : row.missed
+                          ? 'danger'
+                          : row.marked
+                            ? 'success'
+                            : 'warning'
+                  }
+                  label={
+                    row.holiday
+                      ? 'Holiday'
+                      : row.total === 0
+                        ? 'No students'
+                        : row.missed
+                          ? 'Missed'
+                          : row.marked
+                            ? 'Active'
+                            : 'Not marked'
+                  }
+                />
               </div>
-              <span className='flex items-center gap-2 text-xs text-muted-foreground'>
-                <UsersRound className='size-3' />
-                {row.marked
-                  ? `${row.present} present · ${row.absent} absent · ${row.late} late`
-                  : studentsText(row.total)}
+              <div className='flex items-center justify-between text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                <span className='flex items-center gap-1.5'>
+                  <UsersRound className='size-3.5 text-slate-400' />
+                  {row.marked
+                    ? `${row.present} present · ${row.absent} absent · ${row.late} late`
+                    : studentsText(row.total)}
+                </span>
                 {row.percent !== null && (
-                  <Badge tone={percentTone(row.percent)}>{percentLabel(row.percent)}</Badge>
+                  <span className='inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'>
+                    {percentLabel(row.percent)}
+                  </span>
                 )}
-              </span>
+              </div>
             </div>
           )}
         />
@@ -433,43 +569,79 @@ export function StudentsTab({
   )
 }
 
-function SessionDots({ row }: { row: BoardSection }) {
+export function TableCheckbox({
+  checked,
+  onChange,
+  disabled,
+  ariaLabel,
+}: {
+  checked: boolean
+  onChange?: () => void
+  disabled?: boolean
+  ariaLabel?: string
+}) {
   return (
-    <span className='flex gap-2 text-[11px] text-muted-foreground'>
-      <span className={row.morning_marked ? 'text-success' : undefined}>
-        {row.morning_marked ? '✓' : '○'} Morning
-      </span>
-      <span className={row.afternoon_marked ? 'text-success' : undefined}>
-        {row.afternoon_marked ? '✓' : '○'} Afternoon
-      </span>
-    </span>
+    <button
+      type='button'
+      role='checkbox'
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation()
+        onChange?.()
+      }}
+      className={cn(
+        'inline-flex size-4.5 items-center justify-center rounded-[4px] border transition-all outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40',
+        checked
+          ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
+          : 'border-slate-300 bg-white hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600',
+        disabled && 'cursor-not-allowed opacity-40'
+      )}
+    >
+      {checked && <Check className='size-3 stroke-[3]' />}
+    </button>
   )
 }
 
-function MarkedBadge({ row }: { row: BoardSection }) {
-  if (row.total === 0) return <Badge tone='neutral'>No students</Badge>
-  if (row.missed) {
-    return (
-      <Badge
-        tone='danger'
-        dot
-        title={row.class_teacher ? `Missed by ${row.class_teacher}` : 'Missed'}
-      >
-        Missed
-      </Badge>
-    )
+export function StatusPill({
+  tone,
+  label,
+  title,
+}: {
+  tone: 'success' | 'warning' | 'danger' | 'neutral' | 'info'
+  label: string
+  title?: string
+}) {
+  const styles = {
+    success:
+      'bg-[#ECFDF5] text-[#047857] border-[#A7F3D0]/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50',
+    warning:
+      'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]/70 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/50',
+    danger:
+      'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]/70 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/50',
+    neutral:
+      'bg-[#F1F5F9] text-[#475569] border-[#E2E8F0] dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+    info: 'bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]/70 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/50',
   }
-  return (
-    <Badge tone={row.marked ? 'success' : 'warning'} dot>
-      {row.marked ? 'Marked' : 'Not marked'}
-    </Badge>
-  )
-}
+  const dotStyles = {
+    success: 'bg-[#10B981]',
+    warning: 'bg-[#F59E0B]',
+    danger: 'bg-[#EF4444]',
+    neutral: 'bg-[#64748B]',
+    info: 'bg-[#3B82F6]',
+  }
 
-function OdTag({ count }: { count: number }) {
   return (
-    <Badge tone='success' className='ml-1.5 px-1.5 py-0 text-[10px]'>
-      {count} OD
-    </Badge>
+    <span
+      title={title}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium leading-[16px] transition-all select-none',
+        styles[tone]
+      )}
+    >
+      <span className={cn('size-1.5 shrink-0 rounded-full', dotStyles[tone])} />
+      <span>{label}</span>
+    </span>
   )
 }

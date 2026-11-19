@@ -7,6 +7,7 @@ import { can, type Me } from '@/features/auth/api'
 import { cn } from '@/lib/utils'
 import { useSelectedSchool } from '@/lib/auth/school-context'
 import { SchoolSwitcher } from './school-switcher'
+import { useSteadyScroll } from './use-steady-scroll'
 import { YearSwitcher } from './year-switcher'
 
 interface AppSidebarProps {
@@ -21,6 +22,7 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
   const activeTo = currentNav(pathname).item.to
   const chosenSchool = useSelectedSchool()
   const selectedSchool = can(me, 'platform.schools') ? chosenSchool : null
+  const navRef = useSteadyScroll<HTMLElement>()
 
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
@@ -103,7 +105,10 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
           </div>
         )}
 
-        <nav className='sidebar-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3'>
+        <nav
+          ref={navRef}
+          className='sidebar-scroll relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-3'
+        >
           <div className='grid min-w-0 gap-3.5'>
             {groups.map((group) => (
               <div key={group.label} className='grid min-w-0 gap-0.5'>

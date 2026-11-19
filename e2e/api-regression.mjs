@@ -4431,6 +4431,79 @@ await TA(
   }
 )
 await TA(
+  'API-CLS-01',
+  'Teacher weekly limit',
+  'PUT',
+  '/admin/teacher-assignments',
+  'A class cannot go above the periods a week in School setup',
+  '409 CLASS_OVER_LIMIT; nothing saved; every row has periods_total',
+  async () => {
+    const matrix = (await admin('GET', '/admin/teacher-assignments')).body.data
+    if (matrix.rows.some((row) => typeof row.periods_total !== 'number'))
+      throw new Error('periods_total missing')
+    const limit = matrix.class_periods_per_week
+    const row = matrix.rows.find((item) =>
+      item.cells.some(
+        (cell) =>
+          cell.teacher_user_id && cell.periods_per_week + (limit - item.periods_total) + 1 <= 15
+      )
+    )
+    if (!row) return 'Skipped: no class with room to test'
+    const cell = row.cells.find(
+      (item) =>
+        item.teacher_user_id && item.periods_per_week + (limit - row.periods_total) + 1 <= 15
+    )
+    const teacher = matrix.teachers.find((item) => item.user_id === cell.teacher_user_id)
+    const extra = Math.max(1, limit - row.periods_total + 1)
+    if (teacher.load_periods + extra > teacher.max_periods_per_week)
+      return 'Skipped: the teacher limit would trip first'
+    const result = await admin('PUT', '/admin/teacher-assignments', {
+      items: [
+        {
+          section_id: row.section_id,
+          subject_id: cell.subject_id,
+          teacher_user_id: cell.teacher_user_id,
+          periods_per_week: cell.periods_per_week + extra,
+        },
+      ],
+    })
+    const message = expectStatus(result, 409, 'CLASS_OVER_LIMIT')
+    const after = (await admin('GET', '/admin/teacher-assignments')).body.data
+    if (
+      after.rows.find((item) => item.section_id === row.section_id).periods_total !==
+      row.periods_total
+    )
+      throw new Error('Saved although refused')
+    return message
+  }
+)
+await TA(
+  'API-CLS-02',
+  'Teacher weekly limit',
+  'GET',
+  '/admin/teacher-assignments?week=',
+  'Earlier weeks open read only; changes list; future week refused',
+  '200 read_only for last week; changes 200; future 400',
+  async () => {
+    const now = (await admin('GET', '/admin/teacher-assignments')).body.data
+    if (!now.week.is_current || now.week.read_only) throw new Error('This week should be editable')
+    const last = new Date(`${now.week.start}T00:00:00Z`)
+    last.setUTCDate(last.getUTCDate() - 7)
+    const past = await admin(
+      'GET',
+      `/admin/teacher-assignments?week=${last.toISOString().slice(0, 10)}`
+    )
+    expectStatus(past, 200)
+    if (!past.body.data.week.read_only) throw new Error('Last week should be read only')
+    expectStatus(
+      await admin('GET', `/admin/teacher-assignments/changes?week=${now.week.start}`),
+      200
+    )
+    expectFields(await admin('GET', '/admin/teacher-assignments?week=2099-01-05'), ['week'])
+    return `200; last week ${past.body.data.week.start} read only`
+  }
+)
+await TA(
   'API-TLM-02',
   'Teacher weekly limit',
   'PATCH',
@@ -4452,7 +4525,9 @@ await TA(
 )
 
 const perf = (await admin('GET', '/admin/performance/classes')).body.data
-const perfSection = perf?.sections.find((row) => row.below_average > 0)
+const perfSection =
+  perf?.sections.find((row) => row.below_average >= 3) ??
+  perf?.sections.find((row) => row.below_average > 0)
 await TA(
   'API-CP-01',
   'Class performance',
@@ -6385,6 +6460,742 @@ await TA(
   '403',
   async () => expectStatus(await parent('GET', '/mobile/driver/profile'), 403)
 )
+await TA(
+  'API-DRV-04',
+  'Driver students',
+  'GET',
+  '/mobile/driver/roster',
+  'Stop-by-stop list of my routes',
+  '200; stops in order with morning and evening students; parent 403',
+  async () => {
+    const result = await driver('GET', '/mobile/driver/roster')
+    expectStatus(result, 200)
+    for (const route of result.body.data) {
+      const order = route.stops.map((stop) => stop.sequence)
+      if (order.some((value, index) => index && value < order[index - 1]))
+        throw new Error(`${route.code} stops out of order`)
+      const morning = route.stops.reduce((sum, stop) => sum + stop.pickup_students.length, 0)
+      if (morning !== route.morning_riders) throw new Error(`${route.code} morning count mismatch`)
+    }
+    expectStatus(await parent('GET', '/mobile/driver/roster'), 403)
+    return `200; ${result.body.data.map((route) => `${route.code} ${route.stops.length} stops`).join(', ') || 'no bus'}`
+  }
+)
+
+await TA(
+  'API-RT-01',
+  'Routes and stops',
+  'GET',
+  '/admin/transport/routes/insights',
+  'Route cards and route timings',
+  '200; counts, and every route has timings and a problem count',
+  async () => {
+    const cards = await admin('GET', '/admin/transport/routes/insights')
+    expectStatus(cards, 200)
+    const list = (await admin('GET', '/admin/transport/routes')).body.data
+    if (list.some((route) => !route.timings || typeof route.problems !== 'number'))
+      throw new Error('Route timings missing')
+    return `200; ${JSON.stringify(cards.body.data)}`
+  }
+)
+await TA(
+  'API-RT-02',
+  'Routes and stops',
+  'PUT',
+  '/admin/transport/routes/:id/stops',
+  'Pickup times out of order',
+  '400 VALIDATION_FAILED on items.1.pickup_time naming the stop',
+  async () => {
+    const route = (await admin('GET', '/admin/transport/routes')).body.data.find(
+      (item) => item.stops >= 2
+    )
+    if (!route) return 'Skipped: no route with two stops'
+    const detail = (await admin('GET', `/admin/transport/routes/${route.id}`)).body.data
+    const items = detail.stop_list.map((stop, index) => ({
+      id: stop.id,
+      name: stop.name,
+      lat: Number(stop.lat),
+      lng: Number(stop.lng),
+      pickup_time: index === 1 ? '05:00' : stop.pickup_time,
+      drop_time: stop.drop_time,
+    }))
+    const result = await admin('PUT', `/admin/transport/routes/${route.id}/stops`, { items })
+    expectStatus(result, 400)
+    if (result.body.errors?.[0]?.field !== 'items.1.pickup_time')
+      throw new Error(JSON.stringify(result.body))
+    return `400; ${result.body.message}`
+  }
+)
+await TA(
+  'API-RT-03',
+  'Routes and stops',
+  'GET',
+  '/mobile/driver/duty',
+  'Driver sees each student with parents, journey and bus pass, and the route from → to',
+  '200; parents, journey, pass_status, path and timings',
+  async () => {
+    const duty = (await driver('GET', '/mobile/driver/duty')).body.data
+    if (!duty.vehicle) return 'Skipped: driver has no bus'
+    const kid = duty.routes.flatMap((route) => route.stops).flatMap((stop) => stop.student_list)[0]
+    if (!kid || !Array.isArray(kid.parents) || !kid.journey || !kid.pass_status)
+      throw new Error(JSON.stringify(kid))
+    if ('monthly_fee' in kid) throw new Error('Driver must not see fees')
+    if (!duty.routes[0].path.endsWith('School')) throw new Error(duty.routes[0].path)
+    const list = await driver('GET', '/mobile/driver/students?ride=morning')
+    expectStatus(list, 200)
+    return `200; ${duty.students} students, ${kid.full_name}: ${kid.journey}`
+  }
+)
+await TA(
+  'API-RT-04',
+  'Routes and stops',
+  'PUT',
+  '/admin/students/:id/transport/pass',
+  'Bus pass on hold, seen by the parent; then active again',
+  '200; pass_status on_hold then active',
+  async () => {
+    const rider = (await admin('GET', '/admin/transport/students?limit=1')).body.data.items[0]
+    if (!rider) return 'Skipped: nobody on the bus'
+    const held = await admin('PUT', `/admin/students/${rider.student.id}/transport/pass`, {
+      status: 'on_hold',
+      note: 'Regression check',
+    })
+    expectStatus(held, 200)
+    if (held.body.data.pass_status !== 'on_hold') throw new Error('Not on hold')
+    const back = await admin('PUT', `/admin/students/${rider.student.id}/transport/pass`, {
+      status: 'active',
+    })
+    if (back.body.data.pass_status !== 'active') throw new Error('Not active again')
+    const missing = await admin('PUT', '/admin/students/999999/transport/pass', {
+      status: 'active',
+    })
+    expectStatus(missing, 404)
+    return '200; on hold then active; unknown student 404'
+  }
+)
+await TA(
+  'API-BRD-01',
+  'Boarding checklist',
+  'GET',
+  '/admin/transport/trips?flag=',
+  'Trip list boarding flags match the checklist; filters by flag',
+  '200; flags equal the checklist summary; flag filter only returns flagged trips; bad flag 400',
+  async () => {
+    const list = (await admin('GET', '/admin/transport/trips?limit=10')).body.data.items
+    const ended = list.filter((trip) => trip.status === 'ended')
+    if (!ended.length) return 'Skipped: no ended trips'
+    for (const trip of ended.slice(0, 3)) {
+      const checklist = await admin('GET', `/admin/transport/trips/${trip.id}/checklist`)
+      expectStatus(checklist, 200)
+      const summary = checklist.body.data.summary
+      if (
+        trip.flags.not_boarded !== summary.not_boarded ||
+        trip.flags.not_alighted !== summary.not_alighted
+      )
+        throw new Error(`Trip ${trip.id} flags differ from its checklist`)
+    }
+    const flagged = (await admin('GET', '/admin/transport/trips?flag=any&limit=50')).body.data.items
+    if (flagged.some((trip) => !trip.flags || !(trip.flags.not_boarded || trip.flags.not_alighted)))
+      throw new Error('Unflagged trip in flag=any')
+    expectStatus(await admin('GET', '/admin/transport/trips?flag=bad'), 400)
+    return `200; ${ended.length} ended trips checked, ${flagged.length} flagged`
+  }
+)
+await TA(
+  'API-BRD-02',
+  'Boarding checklist',
+  'GET',
+  '/admin/transport/trips/:id/checklist',
+  'Office checklist has bus pass, photo and parents for each student',
+  '200; every student has pass_status, photo_url and parents; unknown trip 404',
+  async () => {
+    const trip = (await admin('GET', '/admin/transport/trips?limit=1')).body.data.items[0]
+    if (!trip) return 'Skipped: no trips'
+    const checklist = await admin('GET', `/admin/transport/trips/${trip.id}/checklist`)
+    expectStatus(checklist, 200)
+    const bad = checklist.body.data.students.find(
+      (student) =>
+        !['active', 'on_hold'].includes(student.pass_status) ||
+        !Array.isArray(student.parents) ||
+        !('photo_url' in student)
+    )
+    if (bad) throw new Error(`${bad.full_name} is missing pass, photo or parents`)
+    expectStatus(await admin('GET', '/admin/transport/trips/999999/checklist'), 404)
+    return `200; ${checklist.body.data.students.length} students`
+  }
+)
+await TA(
+  'API-BRD-03',
+  'Boarding checklist',
+  'GET',
+  '/admin/students/:id/bus-history',
+  'Student bus boarding history for the office',
+  '200 paged; unknown student 404; parent 403',
+  async () => {
+    const rider = (await admin('GET', '/admin/transport/students?limit=1')).body.data.items[0]
+    if (!rider) return 'Skipped: nobody on the bus'
+    const history = await admin(
+      'GET',
+      `/admin/students/${rider.student.id}/bus-history?from=2026-01-01`
+    )
+    expectStatus(history, 200)
+    if (!Array.isArray(history.body.data.items)) throw new Error('Not paged')
+    expectStatus(await admin('GET', '/admin/students/999999/bus-history'), 404)
+    expectStatus(await parent('GET', `/admin/students/${rider.student.id}/bus-history`), 403)
+    return `200; ${history.body.data.total} trips`
+  }
+)
+await TA(
+  'API-BRD-04',
+  'Boarding checklist',
+  'GET',
+  '/mobile/driver/duty',
+  'Driver sees who is away on the morning and evening bus today, with the reason',
+  '200; away_morning / away_evening counts and a reason or null on every student',
+  async () => {
+    const duty = await driver('GET', '/mobile/driver/duty')
+    expectStatus(duty, 200)
+    if (
+      typeof duty.body.data.away_morning !== 'number' ||
+      typeof duty.body.data.away_evening !== 'number'
+    )
+      throw new Error('away counts missing')
+    const roster = (await driver('GET', '/mobile/driver/roster')).body.data
+    const students = roster.flatMap((route) => route.stops.flatMap((stop) => stop.pickup_students))
+    if (students.some((student) => !('away_morning' in student) || !('away_evening' in student)))
+      throw new Error('Roster away reasons missing')
+    const list = (await driver('GET', '/mobile/driver/students')).body.data
+    if (list.some((student) => !('away_morning' in student) || !('away_evening' in student)))
+      throw new Error('Student list away reasons missing')
+    return `200; ${duty.body.data.away_morning} away this morning, ${duty.body.data.away_evening} this evening`
+  }
+)
+await TA(
+  'API-BRD-05',
+  'Boarding checklist',
+  'GET',
+  '/mobile/parent/children/:id/transport',
+  'Parent transport card has today’s boarding',
+  '200; today is a list of today’s trips',
+  async () => {
+    const kid = (await parent('GET', '/mobile/parent/children')).body.data[0]
+    if (!kid) return 'Skipped: parent has no child'
+    const card = await parent('GET', `/mobile/parent/children/${kid.id}/transport`)
+    expectStatus(card, 200)
+    if (!card.body.data) return 'Skipped: child does not use the bus'
+    if (!Array.isArray(card.body.data.today)) throw new Error('today missing')
+    return `200; ${card.body.data.today.length} trips today`
+  }
+)
+await TA(
+  'API-DRT-01',
+  'Driver rating',
+  'PUT',
+  '/mobile/parent/children/:id/driver-rating',
+  'Parent rates the bus driver; 1-2 stars need a reason',
+  '200; low rating with no reason 400 on comment; 6 stars 400; saved rating comes back',
+  async () => {
+    const kid = (await parent('GET', '/mobile/parent/children')).body.data[0]
+    if (!kid) return 'Skipped: parent has no child'
+    const view = await parent('GET', `/mobile/parent/children/${kid.id}/driver-rating`)
+    expectStatus(view, 200)
+    if (!view.body.data.can_rate) return 'Skipped: child has no bus driver'
+    const noReason = await parent('PUT', `/mobile/parent/children/${kid.id}/driver-rating`, {
+      rating: 1,
+    })
+    expectStatus(noReason, 400)
+    if (noReason.body.errors?.[0]?.field !== 'comment')
+      throw new Error('Low rating reason not asked for')
+    expectStatus(
+      await parent('PUT', `/mobile/parent/children/${kid.id}/driver-rating`, { rating: 6 }),
+      400
+    )
+    const before = view.body.data.my_rating
+    const input = before
+      ? {
+          rating: before.rating,
+          tags: before.tags,
+          ...(before.comment ? { comment: before.comment } : {}),
+        }
+      : { rating: 4, tags: ['on_time'] }
+    const saved = await parent('PUT', `/mobile/parent/children/${kid.id}/driver-rating`, input)
+    expectStatus(saved, 200)
+    if (saved.body.data.my_rating?.rating !== input.rating) throw new Error('Rating not saved')
+    return `200; ${view.body.data.driver.name} rated ${input.rating}`
+  }
+)
+await TA(
+  'API-DRT-02',
+  'Driver rating',
+  'GET',
+  '/admin/transport/driver-ratings/summary',
+  'Office sees each driver with average stars and the ratings list',
+  '200; summary per driver; list paged; insights; bad sort 400; parent 403',
+  async () => {
+    const summary = await admin('GET', '/admin/transport/driver-ratings/summary')
+    expectStatus(summary, 200)
+    if (summary.body.data.some((row) => row.distribution.length !== 5))
+      throw new Error('Star counts missing')
+    const list = await admin('GET', '/admin/transport/driver-ratings?limit=5')
+    expectStatus(list, 200)
+    const insights = await admin('GET', '/admin/transport/driver-ratings/insights')
+    expectStatus(insights, 200)
+    if (insights.body.data.count !== list.body.data.total)
+      throw new Error('Insights count differs from the list')
+    expectStatus(await admin('GET', '/admin/transport/driver-ratings?sort=bad'), 400)
+    expectStatus(await parent('GET', '/admin/transport/driver-ratings'), 403)
+    return `200; ${summary.body.data.length} drivers, ${list.body.data.total} ratings, average ${insights.body.data.average}`
+  }
+)
+await TA(
+  'API-SWP-01',
+  'Routes and stops',
+  'PUT',
+  '/admin/transport/routes/:id/swap',
+  'Bus for a day: checks before it changes anything',
+  '400 SAME_BUS; 400 on a past day; swaps list 200; undo with nothing set 404',
+  async () => {
+    const route = (await admin('GET', '/admin/transport/routes')).body.data.find(
+      (item) => item.vehicle
+    )
+    if (!route) return 'Skipped: no route with a bus'
+    const same = await admin('PUT', `/admin/transport/routes/${route.id}/swap`, {
+      vehicle_id: route.vehicle.id,
+    })
+    expectStatus(same, 400)
+    if (same.body.error !== 'SAME_BUS') throw new Error(`Got ${same.body.error}`)
+    expectFields(
+      await admin('PUT', `/admin/transport/routes/${route.id}/swap`, {
+        vehicle_id: route.vehicle.id,
+        date: '2020-01-01',
+      }),
+      ['date']
+    )
+    expectStatus(await admin('GET', '/admin/transport/bus-swaps'), 200)
+    expectStatus(
+      await admin('DELETE', `/admin/transport/routes/${route.id}/swap?date=2099-01-01`),
+      404
+    )
+    expectStatus(
+      await parent('PUT', `/admin/transport/routes/${route.id}/swap`, { vehicle_id: 1 }),
+      403
+    )
+    return `400 SAME_BUS on ${route.code}; past day 400; list 200`
+  }
+)
+await TA(
+  'API-HO-01',
+  'Routes and stops',
+  'POST',
+  '/admin/transport/trips/:id/handover',
+  'Breakdown hand-over: checks',
+  '404 unknown trip; 400 without a bus; 409 on an ended trip; parent 403',
+  async () => {
+    expectStatus(
+      await admin('POST', '/admin/transport/trips/999999/handover', { vehicle_id: 1 }),
+      404
+    )
+    expectFields(await admin('POST', '/admin/transport/trips/999999/handover', {}), ['vehicle_id'])
+    const ended = (await admin('GET', '/admin/transport/trips?status=ended&limit=1')).body.data
+      .items[0]
+    if (ended) {
+      const refused = await admin('POST', `/admin/transport/trips/${ended.id}/handover`, {
+        vehicle_id: 999,
+      })
+      expectStatus(refused, 409)
+    }
+    expectStatus(
+      await parent('POST', '/admin/transport/trips/999999/handover', { vehicle_id: 1 }),
+      403
+    )
+    return `404, 400 and 403 as expected${ended ? '; ended trip 409' : ''}`
+  }
+)
+await TA(
+  'API-BP-01',
+  'Bus pass',
+  'GET',
+  '/admin/transport/bus-passes',
+  'Bus passes with the bus fee position, settings and insights',
+  '200; every rider has a pass number; settings round-trip; bad grace 400',
+  async () => {
+    const list = await admin('GET', '/admin/transport/bus-passes?limit=100')
+    expectStatus(list, 200)
+    if (list.body.data.items.some((row) => !row.pass_no || !row.state || !row.fee))
+      throw new Error('Pass without a number, state or fee')
+    const insights = (await admin('GET', '/admin/transport/bus-passes/insights')).body.data
+    if (insights.total !== list.body.data.total)
+      throw new Error('Insights total differs from the list')
+    const settings = (await admin('GET', '/admin/transport/bus-passes/settings')).body.data
+    expectStatus(
+      await admin('PUT', '/admin/transport/bus-passes/settings', {
+        grace_days: settings.grace_days,
+      }),
+      200
+    )
+    expectFields(await admin('PUT', '/admin/transport/bus-passes/settings', { grace_days: 500 }), [
+      'grace_days',
+    ])
+    return `200; ${insights.total} passes, ${insights.active} active, ${insights.fee_past_grace} fee pending`
+  }
+)
+await TA(
+  'API-BP-02',
+  'Bus pass',
+  'POST',
+  '/admin/transport/bus-passes/restrict',
+  'Restrict a pass and activate it again',
+  '200; on hold then active; parent sees it; parent cannot restrict',
+  async () => {
+    const kid = (await parent('GET', '/mobile/parent/children')).body.data[0]
+    if (!kid) return 'Skipped: parent has no child'
+    const before = (await admin('GET', `/admin/transport/bus-passes/${kid.id}`)).body.data
+    if (!before) return 'Skipped: child has no bus'
+    if (before.state === 'on_hold') return 'Skipped: already on hold'
+    const held = await admin('POST', '/admin/transport/bus-passes/restrict', {
+      student_ids: [kid.id],
+      note: 'Regression check',
+    })
+    expectStatus(held, 200)
+    const card = (await parent('GET', `/mobile/parent/children/${kid.id}/bus-pass`)).body.data
+    if (card.state !== 'on_hold' || card.qr) throw new Error(`Parent sees ${card.state}`)
+    const back = await admin('POST', '/admin/transport/bus-passes/activate', {
+      student_ids: [kid.id],
+    })
+    expectStatus(back, 200)
+    const after = (await admin('GET', `/admin/transport/bus-passes/${kid.id}`)).body.data
+    if (after.state === 'on_hold') throw new Error('Still on hold')
+    expectStatus(
+      await parent('POST', '/admin/transport/bus-passes/restrict', { student_ids: [kid.id] }),
+      403
+    )
+    return `200; ${card.pass_no} held then ${after.state}`
+  }
+)
+await TA(
+  'API-BP-03',
+  'Bus pass',
+  'GET',
+  '/mobile/driver/passes-on-hold',
+  'Driver sees passes on hold without amounts; pass label on the student list',
+  '200; labels only',
+  async () => {
+    const held = await driver('GET', '/mobile/driver/passes-on-hold')
+    expectStatus(held, 200)
+    if (held.body.data.some((row) => !row.label?.startsWith('Pass on hold') || 'fee' in row))
+      throw new Error('Wrong label or fee shown')
+    const list = (await driver('GET', '/mobile/driver/students')).body.data
+    if (list.some((row) => !('pass_label' in row))) throw new Error('pass_label missing')
+    expectStatus(await parent('GET', '/mobile/driver/passes-on-hold'), 403)
+    return `200; ${held.body.data.length} on hold on my bus`
+  }
+)
+await TA(
+  'API-DLY-01',
+  'Routes and stops',
+  'POST',
+  '/mobile/driver/trips/:id/delay',
+  'Driver reports the bus is late: checks',
+  '400 under 5 minutes; 404 unknown trip; parent 403',
+  async () => {
+    expectFields(await driver('POST', '/mobile/driver/trips/999999/delay', { minutes: 2 }), [
+      'minutes',
+    ])
+    expectStatus(await driver('POST', '/mobile/driver/trips/999999/delay', { minutes: 20 }), 404)
+    expectStatus(await parent('POST', '/mobile/driver/trips/999999/delay', { minutes: 20 }), 403)
+    return '400, 404 and 403 as expected'
+  }
+)
+const vmBus = vehicles[0]
+const vmToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
+await TA(
+  'API-VMF-1',
+  'Vehicle maintenance',
+  'PATCH',
+  '/admin/fleet/maintenance-settings',
+  'Settings and month lock rules',
+  '200 settings; this month or a non month-end cannot be locked (400)',
+  async () => {
+    const settings = await admin('GET', '/admin/fleet/maintenance-settings')
+    expectStatus(settings, 200)
+    if (typeof settings.body.data.due_soon_km !== 'number') throw new Error('due_soon_km missing')
+    expectFields(
+      await admin('PATCH', '/admin/fleet/maintenance-settings', {
+        locked_until: `${vmToday.slice(0, 8)}01`,
+      }),
+      ['locked_until']
+    )
+    expectFields(await admin('PATCH', '/admin/fleet/maintenance-settings', { due_soon_km: 5 }), [
+      'due_soon_km',
+    ])
+    expectStatus(await teacher('GET', '/admin/fleet/maintenance-settings'), 403)
+    return `200; due soon ${settings.body.data.due_soon_km} km / ${settings.body.data.due_soon_days} days`
+  }
+)
+await TA(
+  'API-VMF-2',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/schedules',
+  'Service rule: needs km or months; one per category per bus; due status worked out',
+  '400 without interval; 201 with next due; 409 SCHEDULE_EXISTS; deleted',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    expectFields(
+      await admin('POST', '/admin/fleet/schedules', { vehicle_ids: [vmBus.id], category: 'ac' }),
+      ['every_km', 'every_months']
+    )
+    const existing = (
+      await admin('GET', `/admin/fleet/schedules?vehicle_id=${vmBus.id}&category=ac`)
+    ).body.data
+    if (existing.total) return 'Skipped: bus already has an AC rule'
+    const added = await admin('POST', '/admin/fleet/schedules', {
+      vehicle_ids: [vmBus.id],
+      category: 'ac',
+      every_months: 12,
+    })
+    expectStatus(added, 201)
+    const rule = added.body.data[0]
+    if (rule.status !== 'ok' || !rule.next_due_on)
+      throw new Error(`Unexpected state ${rule.status}`)
+    const again = await admin('POST', '/admin/fleet/schedules', {
+      vehicle_ids: [vmBus.id],
+      category: 'ac',
+      every_months: 6,
+    })
+    expectStatus(again, 409, 'SCHEDULE_EXISTS')
+    expectStatus(await admin('DELETE', `/admin/fleet/schedules/${rule.id}`), 200)
+    return `201; next due ${rule.next_due_on}; duplicate 409; removed`
+  }
+)
+await TA(
+  'API-VMF-3',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/fuel',
+  'Fuel checks: duplicate fill, part fill, delete with reason kept in history',
+  '201; 409 FUEL_DUPLICATE; history has the delete',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    const last = (
+      await admin(
+        'GET',
+        `/admin/fleet/fuel?vehicle_id=${vmBus.id}&sort=odometer_km&order=desc&limit=1`
+      )
+    ).body.data.items[0]
+    const km = Math.ceil(last?.odometer_km ?? 10000) + 5000
+    const body = {
+      vehicle_id: vmBus.id,
+      filled_on: vmToday,
+      litres: 10,
+      amount: 950,
+      odometer_km: km,
+      is_full: false,
+    }
+    const added = await admin('POST', '/admin/fleet/fuel', body)
+    expectStatus(added, 201)
+    if (added.body.data.km_per_litre !== null || added.body.data.status !== 'approved')
+      throw new Error('Part fill should have no km/l')
+    const duplicate = await admin('POST', '/admin/fleet/fuel', body)
+    expectStatus(
+      await admin('DELETE', `/admin/fleet/fuel/${added.body.data.id}?reason=Regression`),
+      200
+    )
+    expectStatus(duplicate, 409, 'FUEL_DUPLICATE')
+    const history = (
+      await admin('GET', `/admin/fleet/changes?entity=fuel&entity_id=${added.body.data.id}`)
+    ).body.data
+    if (history.items[0]?.action !== 'delete' || history.items[0]?.note !== 'Regression')
+      throw new Error('Delete not in history')
+    return `201; duplicate 409; delete kept in history`
+  }
+)
+await TA(
+  'API-VMF-4',
+  'Vehicle maintenance',
+  'POST',
+  '/mobile/driver/vehicle/fuel',
+  'Driver fuel entry needs a bill; driver sees my bus upkeep; parents cannot',
+  '400 bill_file_id; 200 maintenance view; 403 parent',
+  async () => {
+    expectFields(
+      await driver('POST', '/mobile/driver/vehicle/fuel', {
+        litres: 10,
+        amount: 950,
+        odometer_km: 1,
+      }),
+      ['bill_file_id']
+    )
+    const view = await driver('GET', '/mobile/driver/vehicle/maintenance')
+    expectStatus(view, 200)
+    if (!Array.isArray(view.body.data.services)) throw new Error('services missing')
+    const form = await driver('GET', '/mobile/driver/pre-trip-check')
+    expectStatus(form, 200)
+    if (form.body.data.items.length !== 10) throw new Error('Checklist should have 10 items')
+    expectStatus(await parent('GET', '/mobile/driver/vehicle/maintenance'), 403)
+    return `200; ${view.body.data.services.length} services; checklist of 10`
+  }
+)
+await TA(
+  'API-VMF-5',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/expenses',
+  'Expense checks: renewal date only for documents, no future date, pay back only driver-paid',
+  '400s; 201; 409 NOT_DRIVER_PAID; deleted',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    expectFields(
+      await admin('POST', '/admin/fleet/expenses', {
+        vehicle_id: vmBus.id,
+        spent_on: vmToday,
+        category: 'toll',
+        amount: 100,
+        renewed_until: '2030-01-01',
+      }),
+      ['renewed_until']
+    )
+    expectFields(
+      await admin('POST', '/admin/fleet/expenses', {
+        vehicle_id: vmBus.id,
+        spent_on: '2099-01-01',
+        category: 'toll',
+        amount: 100,
+      }),
+      ['spent_on']
+    )
+    const added = await admin('POST', '/admin/fleet/expenses', {
+      vehicle_id: vmBus.id,
+      spent_on: vmToday,
+      category: 'parking',
+      amount: 50,
+      payment_mode: 'cash',
+    })
+    expectStatus(added, 201)
+    const payBack = await admin('POST', `/admin/fleet/expenses/${added.body.data.id}/reimburse`)
+    expectStatus(
+      await admin('DELETE', `/admin/fleet/expenses/${added.body.data.id}?reason=Regression`),
+      200
+    )
+    expectStatus(payBack, 409, 'NOT_DRIVER_PAID')
+    return '400, 400, 201, 409 and deleted'
+  }
+)
+await TA(
+  'API-VMF-6',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/vendors',
+  'Saved garages: no duplicate names',
+  '201; 409 VENDOR_EXISTS; removed',
+  async () => {
+    const name = `Regression Garage ${Date.now()}`
+    const added = await admin('POST', '/admin/fleet/vendors', { kind: 'garage', name })
+    expectStatus(added, 201)
+    const again = await admin('POST', '/admin/fleet/vendors', {
+      kind: 'garage',
+      name: name.toLowerCase(),
+    })
+    expectStatus(await admin('DELETE', `/admin/fleet/vendors/${added.body.data.id}`), 200)
+    expectStatus(again, 409, 'VENDOR_EXISTS')
+    return '201; 409; removed'
+  }
+)
+await TA(
+  'API-VMF-7',
+  'Vehicle maintenance',
+  'GET',
+  '/admin/fleet/reports/*',
+  'Reports, insights and Excel downloads',
+  '200 for each report; xlsx files; 400 UNKNOWN_REPORT',
+  async () => {
+    for (const name of ['insights', 'costs', 'mileage', 'due', 'spend', 'idle', 'reimbursements']) {
+      expectStatus(await admin('GET', `/admin/fleet/reports/${name}`), 200)
+    }
+    expectStatus(await admin('GET', '/admin/fleet/reports/spend?group=vendor'), 200)
+    for (const name of ['costs', 'due', 'idle']) {
+      const file = await admin('GET', `/admin/fleet/reports/${name}/xlsx`)
+      if (file.status !== 200 || !file.type.includes('spreadsheet'))
+        throw new Error(`${name} xlsx failed`)
+    }
+    expectStatus(await admin('GET', '/admin/fleet/reports/bogus/xlsx'), 400, 'UNKNOWN_REPORT')
+    return '200 for 7 reports; Excel ok; unknown 400'
+  }
+)
+await TA(
+  'API-VMF-8',
+  'Vehicle maintenance',
+  'GET',
+  '/admin/fleet/vehicles/:id/log',
+  'Bus log and summary',
+  '200 summary and log; 400 unknown type; 404 unknown bus',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    const summary = await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/summary`)
+    expectStatus(summary, 200)
+    const log = await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/log?limit=5`)
+    expectStatus(log, 200)
+    expectFields(await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/log?type=bogus`), ['type'])
+    expectStatus(await admin('GET', '/admin/fleet/vehicles/999999/summary'), 404)
+    const file = await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/log/xlsx`)
+    if (file.status !== 200 || !file.type.includes('spreadsheet'))
+      throw new Error('log xlsx failed')
+    return `200; ${log.body.data.total} log entries; km ${summary.body.data.current_km ?? 'unknown'}`
+  }
+)
+await TA(
+  'API-RT-05',
+  'Routes and stops',
+  'GET',
+  '/admin/transport/routes',
+  'Seats used on the morning and the evening trip',
+  '200; morning_riders and evening_riders on every route, never more than students',
+  async () => {
+    const list = (await admin('GET', '/admin/transport/routes')).body.data
+    const bad = list.find(
+      (route) =>
+        typeof route.morning_riders !== 'number' ||
+        typeof route.evening_riders !== 'number' ||
+        route.morning_riders > route.students ||
+        route.evening_riders > route.students
+    )
+    if (bad) throw new Error(`Seat counts wrong on ${bad.code}`)
+    return `200; ${list.map((route) => `${route.code} ${route.morning_riders}/${route.evening_riders}`).join(', ')}`
+  }
+)
+await TA(
+  'API-RT-06',
+  'Routes and stops',
+  'GET',
+  '/mobile/parent/children/:id/transport',
+  'Parent sees the evening stop change in recent changes; then put back',
+  '200; recent_changes starts with "Evening stop changed"',
+  async () => {
+    const kid = (await parent('GET', '/mobile/parent/children')).body.data[0]
+    if (!kid) return 'Skipped: parent has no child'
+    const cur = (await admin('GET', `/admin/students/${kid.id}/transport`)).body.data
+    if (!cur || cur.mode !== 'both') return 'Skipped: child does not ride both ways'
+    const route = (await admin('GET', `/admin/transport/routes/${cur.route.id}`)).body.data
+    const other = route.stop_list.find((stop) => stop.id !== cur.stop.id && stop.drop_time)
+    if (!other) return 'Skipped: no other stop'
+    const put = (drop) =>
+      admin('PUT', `/admin/students/${kid.id}/transport`, {
+        route_id: cur.route.id,
+        stop_id: cur.stop.id,
+        drop_stop_id: drop,
+        mode: 'both',
+      })
+    expectStatus(await put(other.id), 200)
+    try {
+      const seen = (await parent('GET', `/mobile/parent/children/${kid.id}/transport`)).body.data
+      const latest = seen.recent_changes[0]?.summary ?? ''
+      if (!latest.startsWith('Evening stop changed')) throw new Error(`Latest change: ${latest}`)
+      return `200; ${latest}`
+    } finally {
+      await put(cur.drop_stop?.id ?? null)
+    }
+  }
+)
 
 await TA(
   'API-CHDIR-01',
@@ -6449,7 +7260,7 @@ await TA(
   async () => {
     const result = await admin('GET', '/admin/emergency-broadcasts/templates')
     expectStatus(result, 200)
-    if (!result.body.data.some((item) => item.key === 'rain_holiday' && item.message_ta))
+    if (!result.body.data.some((item) => item.category === 'weather' && item.message_ta))
       throw new Error('No rain template')
     return `200; ${result.body.data.length} templates`
   }
@@ -6646,6 +7457,207 @@ await TA(
       }),
       403
     )
+)
+
+const emergencyBody = (extra = {}) => ({
+  audience: 'students',
+  student_ids: [child.id],
+  title: 'Regression scheduled check',
+  message: 'This is a regression test of a scheduled emergency broadcast.',
+  category: 'other',
+  severity: 'info',
+  channels: ['push'],
+  ...extra,
+})
+await TA(
+  'API-EM-11',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'Schedule for tomorrow with a 10 minute expiry, cancel it, remove it',
+  '201 scheduled with expiry; cancel 200; remove 200; gone from the list',
+  async () => {
+    const sendAt = new Date(Date.now() + 86400000).toISOString()
+    const created = await admin(
+      'POST',
+      '/admin/emergency-broadcasts',
+      emergencyBody({ send_at: sendAt, expires_in: { value: 10, unit: 'minutes' } })
+    )
+    expectStatus(created, 201)
+    const data = created.body.data
+    if (data.state !== 'scheduled' || data.expiry?.label !== '10 minutes')
+      throw new Error(`state ${data.state}, expiry ${JSON.stringify(data.expiry)}`)
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${data.id}`), 409)
+    const cancelled = await admin('POST', `/admin/emergency-broadcasts/${data.id}/cancel`)
+    expectStatus(cancelled, 200)
+    if (cancelled.body.data.state !== 'cancelled') throw new Error('Not cancelled')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${data.id}`), 200)
+    expectStatus(await admin('GET', `/admin/emergency-broadcasts/${data.id}`), 404)
+    return '201 scheduled, cancelled and removed'
+  }
+)
+await TA(
+  'API-EM-12',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts',
+  'Expiry and send time limits',
+  '400 on expires_in under 5 seconds or a bad unit, and on send_at in the past',
+  async () => {
+    expectFields(
+      await admin(
+        'POST',
+        '/admin/emergency-broadcasts',
+        emergencyBody({ expires_in: { value: 3, unit: 'seconds' } })
+      ),
+      ['expires_in']
+    )
+    expectStatus(
+      await admin(
+        'POST',
+        '/admin/emergency-broadcasts',
+        emergencyBody({ expires_in: { value: 1, unit: 'weeks' } })
+      ),
+      400
+    )
+    expectFields(
+      await admin(
+        'POST',
+        '/admin/emergency-broadcasts',
+        emergencyBody({ send_at: '2020-01-01T00:00:00Z' })
+      ),
+      ['send_at']
+    )
+    return '400 for each'
+  }
+)
+await TA(
+  'API-EM-13',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/{id}/end',
+  'End now takes it off the parent app, then remove it from the history',
+  '200 ended; parent no longer lists it unless include_ended; removed',
+  async () => {
+    if (!emergencyId) return 'Skipped: nothing sent'
+    const ended = await admin('POST', `/admin/emergency-broadcasts/${emergencyId}/end`)
+    expectStatus(ended, 200)
+    if (ended.body.data.state !== 'ended') throw new Error(`state ${ended.body.data.state}`)
+    expectStatus(await admin('POST', `/admin/emergency-broadcasts/${emergencyId}/end`), 409)
+    const onScreen = (await parent('GET', '/me/emergency-broadcasts')).body.data.items
+    if (onScreen.some((item) => item.id === emergencyId))
+      throw new Error('Still on the parent screen')
+    const history = (await parent('GET', '/me/emergency-broadcasts?include_ended=true')).body.data
+      .items
+    const old = history.find((item) => item.id === emergencyId)
+    if (!old || old.is_active) throw new Error('Not in history as ended')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${emergencyId}`), 200)
+    return '200; ended, hidden from the parent and removed from the history'
+  }
+)
+await TA(
+  'API-EM-14',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/{id}/reject',
+  'An office user without approval sends to all parents: it waits for the principal',
+  '201 pending_approval; reject needs a note; rejected; removed',
+  async () => {
+    const created = await ao(
+      'POST',
+      '/admin/emergency-broadcasts',
+      emergencyBody({
+        audience: 'parents',
+        student_ids: undefined,
+        title: 'Regression approval check',
+      })
+    )
+    if (created.status === 403) return 'Skipped: this office user cannot send'
+    expectStatus(created, 201)
+    const id = created.body.data.id
+    if (created.body.data.state !== 'pending_approval')
+      throw new Error(`state ${created.body.data.state}`)
+    expectStatus(await ao('POST', `/admin/emergency-broadcasts/${id}/approve`, {}), 403)
+    expectFields(await admin('POST', `/admin/emergency-broadcasts/${id}/reject`, {}), ['note'])
+    const rejected = await admin('POST', `/admin/emergency-broadcasts/${id}/reject`, {
+      note: 'Regression: not needed',
+    })
+    expectStatus(rejected, 200)
+    if (rejected.body.data.state !== 'rejected') throw new Error('Not rejected')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/${id}`), 200)
+    return '201 waiting; rejected with a note; removed'
+  }
+)
+await TA(
+  'API-EM-15',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/templates',
+  'School adds, switches off and removes its own ready message',
+  '201; hidden when off; listed with all=true; removed',
+  async () => {
+    const before = (await admin('GET', '/admin/emergency-broadcasts/templates')).body.data
+    if (before.length < 6) throw new Error(`Only ${before.length} ready messages`)
+    const added = await admin('POST', '/admin/emergency-broadcasts/templates', {
+      category: 'transport',
+      title: 'Regression ready message',
+      message: 'Buses leave 15 minutes late today.',
+      title_ta: 'சோதனை',
+    })
+    expectStatus(added, 201)
+    const id = added.body.data.id
+    const off = await admin('PATCH', `/admin/emergency-broadcasts/templates/${id}`, {
+      is_active: false,
+    })
+    expectStatus(off, 200)
+    const active = (await admin('GET', '/admin/emergency-broadcasts/templates')).body.data
+    if (active.some((item) => item.id === id)) throw new Error('Switched-off message still offered')
+    const all = (await admin('GET', '/admin/emergency-broadcasts/templates?all=true')).body.data
+    if (!all.some((item) => item.id === id)) throw new Error('Missing from the manage list')
+    expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/templates/${id}`), 200)
+    return `201; ${before.length} ready messages; added, switched off and removed`
+  }
+)
+await TA(
+  'API-EM-16',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/preview',
+  'All staff splits into teachers, drivers & attendants and office staff',
+  '200; the three groups add up to all staff; empty or unknown group 400',
+  async () => {
+    const count = async (staff_groups) =>
+      (
+        await admin('POST', '/admin/emergency-broadcasts/preview', {
+          audience: 'staff',
+          staff_groups,
+        })
+      ).body.data?.recipients
+    const all = (await admin('POST', '/admin/emergency-broadcasts/preview', { audience: 'staff' }))
+      .body.data.recipients
+    const teachers = await count(['teachers'])
+    const drivers = await count(['drivers'])
+    const office = await count(['office'])
+    if (teachers + drivers + office !== all)
+      throw new Error(`${teachers} + ${drivers} + ${office} is not ${all}`)
+    if ((await count(['drivers', 'office'])) !== drivers + office)
+      throw new Error('Two groups miscounted')
+    expectFields(
+      await admin('POST', '/admin/emergency-broadcasts/preview', {
+        audience: 'staff',
+        staff_groups: [],
+      }),
+      ['staff_groups']
+    )
+    expectFields(
+      await admin('POST', '/admin/emergency-broadcasts/preview', {
+        audience: 'staff',
+        staff_groups: ['cooks'],
+      }),
+      ['staff_groups']
+    )
+    return `200; ${teachers} teachers + ${drivers} crew + ${office} office = ${all}`
+  }
 )
 
 const feedbackBefore = (await admin('GET', '/admin/feedback/settings')).body?.data

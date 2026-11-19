@@ -1,4 +1,4 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Navigate as Redirect, useNavigate } from '@tanstack/react-router'
 import {
   Bus,
   CalendarCheck,
@@ -17,7 +17,6 @@ import { Page, PageHeader } from '@/components/common/page'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SosBanner } from '@/features/alerts/components/sos-banner'
 import { can, useMe, type Me } from '@/features/auth/api'
 import { SportsStarsCard } from '@/features/activities/components/sports-stars-card'
 import { TopRankHoldersCard } from '@/features/exams/components/top-rank-holders-card'
@@ -30,12 +29,17 @@ import { YearPerformanceCard } from '../components/year-performance-card'
 type Navigate = ReturnType<typeof useNavigate>
 
 const PERFORMANCE_PERMISSIONS = ['students.view', 'attendance.view', 'exams.view', 'fees.view']
+const SCHOOL_DASHBOARD_PERMISSIONS = ['attendance.view', 'exams.view', 'fees.view', 'fleet.view']
+
+const landsOnLibrary = (me: Me | undefined) =>
+  can(me, 'library.view') && !SCHOOL_DASHBOARD_PERMISSIONS.some((permission) => can(me, permission))
 
 export function DashboardPage() {
   const me = useMe().data
   const dashboard = useDashboard()
   const navigate = useNavigate()
   const items = insights(me, dashboard.data, navigate)
+  if (landsOnLibrary(me)) return <Redirect to='/library' search={{ tab: 'dashboard' }} replace />
   return (
     <Page>
       <PageHeader
@@ -43,7 +47,6 @@ export function DashboardPage() {
         title={`Good ${greeting()}, Tamilzorous`}
         description='Today at a glance: students, attendance, staff, buses and alerts.'
       />
-      {can(me, 'fleet.view') && <SosBanner />}
       {dashboard.isError && !dashboard.data ? (
         <ErrorState message={dashboard.error.message} onRetry={() => dashboard.refetch()} />
       ) : (

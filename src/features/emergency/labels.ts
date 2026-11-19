@@ -1,6 +1,8 @@
 import type { BadgeTone } from '@/components/ui/badge'
 import type {
+  BroadcastState,
   BroadcastStatus,
+  ExpiryUnit,
   DeliveryStatus,
   EmergencyAudience,
   EmergencyCategory,
@@ -24,9 +26,43 @@ export const SEVERITY: Record<EmergencySeverity, { label: string; tone: BadgeTon
 }
 
 export const BROADCAST_STATUS: Record<BroadcastStatus, { label: string; tone: BadgeTone }> = {
+  pending_approval: { label: 'Waiting for approval', tone: 'warning' },
+  scheduled: { label: 'Scheduled', tone: 'info' },
   sending: { label: 'Sending', tone: 'warning' },
   sent: { label: 'Sent', tone: 'success' },
   partly_failed: { label: 'Partly failed', tone: 'danger' },
+  rejected: { label: 'Rejected', tone: 'danger' },
+  cancelled: { label: 'Cancelled', tone: 'neutral' },
+}
+
+export const BROADCAST_STATE: Record<BroadcastState, { label: string; tone: BadgeTone }> = {
+  pending_approval: { label: 'Waiting for approval', tone: 'warning' },
+  scheduled: { label: 'Scheduled', tone: 'info' },
+  active: { label: 'On screen', tone: 'success' },
+  expired: { label: 'Expired', tone: 'neutral' },
+  ended: { label: 'Ended', tone: 'neutral' },
+  rejected: { label: 'Rejected', tone: 'danger' },
+  cancelled: { label: 'Cancelled', tone: 'neutral' },
+}
+
+export const STATE_OPTIONS = (Object.keys(BROADCAST_STATE) as BroadcastState[]).map((value) => ({
+  value,
+  label: BROADCAST_STATE[value].label,
+}))
+
+export const EXPIRY_UNITS: { value: ExpiryUnit; label: string }[] = [
+  { value: 'seconds', label: 'Seconds' },
+  { value: 'minutes', label: 'Minutes' },
+  { value: 'hours', label: 'Hours' },
+  { value: 'days', label: 'Days' },
+  { value: 'months', label: 'Months' },
+  { value: 'years', label: 'Years' },
+]
+
+export const END_REASON_LABEL: Record<string, string> = {
+  expired: 'Time ran out',
+  ended: 'Ended by the school',
+  all_clear: 'Ended by an all clear',
 }
 
 export const DELIVERY: Record<DeliveryStatus, { label: string; tone: BadgeTone }> = {

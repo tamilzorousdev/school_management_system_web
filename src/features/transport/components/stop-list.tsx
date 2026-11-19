@@ -10,6 +10,7 @@ import {
   UserPlus,
   UsersRound,
 } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { EmptyState } from '@/components/common/display'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import type { DraftStop } from './stop-form-modal'
 
 interface StopListProps {
   routeId: number
+  routeFee: number
   stops: DraftStop[]
   counts: Record<string, number>
   selectedKey?: string
@@ -38,27 +40,42 @@ function StopStudents({ routeId, stopId }: { routeId: number; stopId: number }) 
   const rows = riders.data?.items ?? []
   if (!rows.length)
     return <p className='text-xs text-muted-foreground'>No students at this stop yet.</p>
+  const total = riders.data?.total ?? rows.length
+  const usage = (rider: (typeof rows)[number]) => {
+    if (rider.drop_stop && rider.drop_stop.id === stopId) return 'Evening drop only here'
+    if (rider.drop_stop) return 'Morning pickup only here'
+    return rider.mode !== 'both' ? MODE_LABELS[rider.mode] : null
+  }
   return (
-    <ul className='grid gap-1'>
-      {rows.map((rider) => (
-        <li key={rider.id} className='flex items-center justify-between gap-2 text-xs'>
-          <span className='min-w-0 truncate'>
-            <span className='font-semibold'>{rider.student.full_name}</span>
-            {rider.student.class_section && (
-              <span className='text-muted-foreground'> · {rider.student.class_section}</span>
-            )}
-          </span>
-          {rider.mode !== 'both' && (
-            <span className='shrink-0 text-muted-foreground'>{MODE_LABELS[rider.mode]}</span>
-          )}
-        </li>
-      ))}
-    </ul>
+    <div className='grid gap-2'>
+      <ul className='grid gap-1'>
+        {rows.map((rider) => (
+          <li key={rider.id} className='flex items-center justify-between gap-2 text-xs'>
+            <span className='min-w-0 truncate'>
+              <span className='font-semibold'>{rider.student.full_name}</span>
+              {rider.student.class_section && (
+                <span className='text-muted-foreground'> · {rider.student.class_section}</span>
+              )}
+            </span>
+            {usage(rider) && <span className='shrink-0 text-muted-foreground'>{usage(rider)}</span>}
+          </li>
+        ))}
+      </ul>
+      <Link
+        to='/transport/routes/$routeId/students'
+        params={{ routeId }}
+        hash={`stop-${stopId}`}
+        className='justify-self-start text-xs font-semibold text-primary hover:underline'
+      >
+        {total > rows.length ? `See all ${total} in the route list` : 'Open the route list'}
+      </Link>
+    </div>
   )
 }
 
 export function StopList({
   routeId,
+  routeFee,
   stops,
   counts,
   selectedKey,
@@ -160,7 +177,10 @@ export function StopList({
                   <span>Pickup {stop.pickup_time ?? '—'}</span>
                   <span>Drop {stop.drop_time ?? '—'}</span>
                   <span>{stop.geofence_radius_m} m circle</span>
-                  <span>{rupees(stop.monthly_fee)} a month</span>
+                  <span>
+                    {rupees(stop.fee_override ?? routeFee)} a month
+                    {stop.fee_override === null ? ' (route fee)' : ' (own fee)'}
+                  </span>
                 </span>
                 {stop.landmark && (
                   <span className='truncate text-xs text-muted-foreground'>{stop.landmark}</span>
