@@ -62,6 +62,7 @@ export type NavPath =
   | '/meetings'
   | '/diary'
   | '/announcements'
+  | '/events'
   | '/chat'
   | '/app-banners'
   | '/fleet'
@@ -311,6 +312,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Megaphone,
         shortcut: 'nav.announcements',
         permission: 'announcements.view',
+      },
+      {
+        to: '/events',
+        label: 'Events',
+        description: 'School events on the parent calendar, with replies for each child',
+        icon: CalendarCheck,
+        shortcut: 'nav.events',
+        permission: 'events.view',
       },
       {
         to: '/chat',

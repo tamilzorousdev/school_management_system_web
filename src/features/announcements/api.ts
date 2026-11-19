@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api, type Paginated } from '@/lib/api/client'
 import type { UploadedFile } from '@/lib/files'
 
-export type AnnouncementAudience = 'everyone' | 'parents' | 'staff' | 'classes'
+export type AnnouncementAudience = 'everyone' | 'parents' | 'staff' | 'classes' | 'individuals'
 export type AnnouncementPriority = 'normal' | 'urgent'
 export type AnnouncementStatus = 'draft' | 'scheduled' | 'published' | 'archived'
 
@@ -19,6 +19,8 @@ export interface Announcement {
   audience_label: string
   classes: Ref[]
   sections: Ref[]
+  students: Ref[]
+  staff: Ref[]
   priority: AnnouncementPriority
   status: AnnouncementStatus
   publish_at: string | null
@@ -30,6 +32,8 @@ export interface Announcement {
   read_percent: number
   author: Ref
   academic_year: Ref
+  edited_at: string | null
+  edited_by: Ref | null
   created_at: string
 }
 
@@ -38,6 +42,16 @@ export interface AnnouncementReader {
   mobile: string
   segment: 'parent' | 'staff'
   read_at: string | null
+  students: Ref[]
+}
+
+export interface ReaderParams {
+  page: number
+  limit: number
+  state?: 'read' | 'unread'
+  segment?: 'parent' | 'staff'
+  class_id?: number
+  search?: string
 }
 
 export interface AnnouncementInsights {
@@ -55,10 +69,14 @@ export interface AnnouncementInput {
   audience: AnnouncementAudience
   class_ids?: number[]
   section_ids?: number[]
+  student_ids?: number[]
+  staff_user_ids?: number[]
+  file_ids?: number[]
   priority: AnnouncementPriority
   publish_at?: string | null
   expires_at?: string | null
   publish_now?: boolean
+  notify_again?: boolean
 }
 
 export interface AnnouncementListParams {
@@ -77,8 +95,8 @@ export const announcementKeys = {
   list: (params: AnnouncementListParams) => [...announcementKeys.all, 'list', params] as const,
   insights: () => [...announcementKeys.all, 'insights'] as const,
   detail: (id: number) => [...announcementKeys.all, 'detail', id] as const,
-  readers: (id: number, state?: string) =>
-    [...announcementKeys.all, 'readers', id, state ?? 'all'] as const,
+  readers: (id: number, params: ReaderParams) =>
+    [...announcementKeys.all, 'readers', id, params] as const,
 }
 
 export const announcementsApi = {
@@ -86,12 +104,8 @@ export const announcementsApi = {
     api.get<Paginated<Announcement>>('/admin/announcements', { ...params }),
   insights: () => api.get<AnnouncementInsights>('/admin/announcements/insights'),
   detail: (id: number) => api.get<Announcement>(`/admin/announcements/${id}`),
-  readers: (id: number, state?: 'read' | 'unread') =>
-    api.get<Paginated<AnnouncementReader>>(`/admin/announcements/${id}/readers`, {
-      page: 1,
-      limit: 100,
-      state,
-    }),
+  readers: (id: number, params: ReaderParams) =>
+    api.get<Paginated<AnnouncementReader>>(`/admin/announcements/${id}/readers`, { ...params }),
   create: (input: AnnouncementInput) => api.post<Announcement>('/admin/announcements', input),
   update: (id: number, input: AnnouncementInput) =>
     api.patch<Announcement>(`/admin/announcements/${id}`, input),
@@ -121,11 +135,12 @@ export function useAnnouncement(id: number | null) {
   })
 }
 
-export function useAnnouncementReaders(id: number | null, state?: 'read' | 'unread') {
+export function useAnnouncementReaders(id: number | null, params: ReaderParams) {
   return useQuery({
-    queryKey: announcementKeys.readers(id ?? 0, state),
-    queryFn: () => announcementsApi.readers(id ?? 0, state),
+    queryKey: announcementKeys.readers(id ?? 0, params),
+    queryFn: () => announcementsApi.readers(id ?? 0, params),
     enabled: Boolean(id),
+    placeholderData: keepPreviousData,
   })
 }
 

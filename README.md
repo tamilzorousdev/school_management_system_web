@@ -29,13 +29,13 @@ npm run start:local:win
 
 ## Pages
 
-| Group         | Pages                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------- |
-| Overview      | Dashboard: students, applications, staff, buses moving, live bus map                                  |
-| People        | Students (profile with documents, health, behaviour), Admissions, Parents, Staff, Teacher assignments |
-| Communication | Notifications outbox                                                                                  |
-| Fleet         | Bus tracking: live status (moving, stopped, offline), map, recent positions (read-only)               |
-| Settings      | School setup, Schools (super admin), Users and access                                                 |
+| Group         | Pages                                                                                                                                                                                                                                                            |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overview      | Dashboard: students, applications, staff, buses moving, live bus map                                                                                                                                                                                             |
+| People        | Students (profile with documents, health, behaviour), Admissions, Parents, Staff, Teacher assignments                                                                                                                                                            |
+| Communication | Notifications outbox; Announcements (everyone, parents, staff, classes or chosen students and staff, with PDF and image attachments, edit after sending, who read it per child); Events (month and list calendar, parent replies per child, automatic reminders) |
+| Fleet         | Bus tracking: live status (moving, stopped, offline), map, recent positions (read-only)                                                                                                                                                                          |
+| Settings      | School setup, Schools (super admin), Users and access                                                                                                                                                                                                            |
 
 ## Keyboard shortcuts
 
