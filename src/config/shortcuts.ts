@@ -17,7 +17,7 @@ export const SHORTCUTS = {
   'nav.substitutes': { combo: 'g v', label: 'Go to proxy', group: 'Navigation' },
   'nav.payroll': { combo: 'g y', label: 'Go to payroll', group: 'Navigation' },
   'nav.fees': { combo: 'g f', label: 'Go to fees', group: 'Navigation' },
-  'nav.accounts': { combo: 'g 9', label: 'Go to accounts', group: 'Navigation' },
+  'nav.accounts': { combo: 'g 0', label: 'Go to accounts', group: 'Navigation' },
   'nav.library': { combo: 'g 8', label: 'Go to library', group: 'Navigation' },
   'nav.exams': { combo: 'g x', label: 'Go to exams', group: 'Navigation' },
   'nav.performance': { combo: 'g 4', label: 'Go to class performance', group: 'Navigation' },
@@ -27,6 +27,7 @@ export const SHORTCUTS = {
   'nav.transport': { combo: 'g m', label: 'Go to buses and routes', group: 'Navigation' },
   'nav.admissions': { combo: 'g a', label: 'Go to admissions', group: 'Navigation' },
   'nav.guardians': { combo: 'g p', label: 'Go to parents', group: 'Navigation' },
+  'nav.inventory': { combo: 'g 9', label: 'Go to inventory', group: 'Navigation' },
   'nav.setup': { combo: 'g c', label: 'Go to school setup', group: 'Navigation' },
   'nav.schools': { combo: 'g o', label: 'Go to schools', group: 'Navigation' },
   'nav.users': { combo: 'g u', label: 'Go to users and access', group: 'Navigation' },
@@ -34,12 +35,14 @@ export const SHORTCUTS = {
   'nav.meetings': { combo: 'g j', label: 'Go to meetings', group: 'Navigation' },
   'nav.diary': { combo: 'g z', label: 'Go to homework', group: 'Navigation' },
   'nav.announcements': { combo: 'g q', label: 'Go to announcements', group: 'Navigation' },
+  'nav.events': { combo: 'g 8', label: 'Go to events', group: 'Navigation' },
   'nav.chat': { combo: 'g g', label: 'Go to chat audit', group: 'Navigation' },
   'nav.appBanners': { combo: 'g 2', label: 'Go to app banners', group: 'Navigation' },
   'nav.fleet': { combo: 'g b', label: 'Go to bus tracking', group: 'Navigation' },
   'nav.alerts': { combo: 'g l', label: 'Go to fleet alerts', group: 'Navigation' },
   'nav.tripHistory': { combo: 'g h', label: 'Go to trip history', group: 'Navigation' },
   'nav.maintenance': { combo: 'g i', label: 'Go to maintenance', group: 'Navigation' },
+  'nav.gate': { combo: 'g 8', label: 'Go to gate and visitors', group: 'Navigation' },
   'nav.parentPreview': { combo: 'g 1', label: 'Go to parent app preview', group: 'Navigation' },
   'nav.teacherPreview': {
     combo: 'g 3',
@@ -67,6 +70,11 @@ export const SHORTCUTS = {
   'banners.create': {
     combo: 'alt+n',
     label: 'Add a banner',
+    group: 'Users',
+  },
+  'gate.create': {
+    combo: 'alt+n',
+    label: 'Add a pass, invite a visitor or block a person in Gate',
     group: 'Users',
   },
 } as const satisfies Record<string, ShortcutDefinition>

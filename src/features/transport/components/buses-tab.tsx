@@ -60,7 +60,7 @@ export function RoadStatus({ bus }: { bus: Bus }) {
       Allowed today
     </Badge>
   ) : (
-    <Badge tone='danger' title={`${bus.road_blockers.join(', ')} expired`}>
+    <Badge tone='danger' title={`${bus.road_blockers?.join(', ') || 'Documents'} expired`}>
       Not road-worthy
     </Badge>
   )
@@ -295,7 +295,7 @@ export function BusesTab({
       {allowing && (
         <AllowTodayModal
           title={`Let ${allowing.registration_no} run today?`}
-          description={`${allowing.road_blockers.join(', ')} expired. Trips can start until midnight; renew the document to clear it for good.`}
+          description={`${allowing.road_blockers?.join(', ') || 'Documents'} expired. Trips can start until midnight; renew the document to clear it for good.`}
           onAllow={(reason) => allow.mutateAsync({ id: allowing.id, reason })}
           onClose={() => setAllowing(null)}
         />

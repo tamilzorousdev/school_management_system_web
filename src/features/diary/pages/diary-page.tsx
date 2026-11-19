@@ -134,6 +134,23 @@ export function DiaryPage() {
       ),
     },
     {
+      key: 'submissions',
+      header: 'Submissions',
+      hideBelow: 'lg',
+      align: 'right',
+      cell: (entry) =>
+        entry.type === 'homework' && entry.status === 'published' ? (
+          <span className='tabular text-sm font-medium'>
+            {entry.submission_count ?? 0}/{entry.recipient_count}
+            {Boolean(entry.graded_count) && (
+              <span className='block text-xs text-success'>{entry.graded_count} graded</span>
+            )}
+          </span>
+        ) : (
+          <span className='text-sm text-muted-foreground'>—</span>
+        ),
+    },
+    {
       key: 'status',
       header: 'Status',
       sortKey: 'status',

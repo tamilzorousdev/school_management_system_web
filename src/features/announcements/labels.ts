@@ -13,7 +13,12 @@ export const AUDIENCE_LABEL: Record<AnnouncementAudience, string> = {
   parents: 'All parents',
   staff: 'All staff',
   classes: 'Parents of chosen classes or sections',
+  individuals: 'Chosen students and staff',
 }
+
+export const MAX_ATTACHMENTS = 5
+export const ATTACHMENT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp'
+export const ATTACHMENT_TYPES = ATTACHMENT_ACCEPT.split(',')
 
 export function toLocalInput(value: string | null): string {
   if (!value) return ''

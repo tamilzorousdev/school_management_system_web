@@ -133,10 +133,11 @@ export const dashboardApi = {
   yearPerformance: () => api.get<{ years: YearPerformance[] }>('/admin/dashboard/year-performance'),
 }
 
-export function useDashboard() {
+export function useDashboard(enabled = true) {
   return useQuery({
     queryKey: dashboardKeys.overview(),
     queryFn: dashboardApi.overview,
+    enabled,
     refetchInterval: config.refreshIntervalMs * 3,
     placeholderData: keepPreviousData,
   })

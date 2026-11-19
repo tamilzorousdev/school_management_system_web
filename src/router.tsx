@@ -15,10 +15,12 @@ import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
 import { feedbackSearchSchema } from '@/features/feedback/search'
 import { emergencySearchSchema } from '@/features/emergency/search'
+import { gateSearchSchema } from '@/features/gate/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
 import { announcementsSearchSchema } from '@/features/announcements/search'
+import { eventsSearchSchema } from '@/features/events/search'
 import { chatSearchSchema } from '@/features/chat/search'
 import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
@@ -48,6 +50,11 @@ import { substitutesSearchSchema } from '@/features/substitutes/search'
 import { timetableSearchSchema } from '@/features/timetable/search'
 import { transportSearchSchema } from '@/features/transport/search'
 import { usersSearchSchema } from '@/features/users/search'
+import {
+  assetPageSearchSchema,
+  inventorySearchSchema,
+  stockItemSearchSchema,
+} from '@/features/inventory/search'
 import { parentPreviewSearchSchema } from '@/features/parent-preview/search'
 import { teacherPreviewSearchSchema } from '@/features/teacher-preview/search'
 
@@ -119,6 +126,13 @@ const announcementsRoute = createRoute({
     () => import('@/features/announcements/pages/announcements-page'),
     'AnnouncementsPage'
   ),
+})
+
+const eventsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/events',
+  validateSearch: eventsSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/events/pages/events-page'), 'EventsPage'),
 })
 
 const chatRoute = createRoute({
@@ -328,6 +342,13 @@ const emergencyRoute = createRoute({
   ),
 })
 
+const gateRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gate',
+  validateSearch: gateSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/gate/pages/gate-page'), 'GatePage'),
+})
+
 const timetableRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/timetable',
@@ -479,6 +500,33 @@ const teacherPreviewRoute = createRoute({
   ),
 })
 
+const inventoryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/inventory',
+  validateSearch: inventorySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/inventory/pages/inventory-page'),
+    'InventoryPage'
+  ),
+})
+
+const assetRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/inventory/assets/$assetId',
+  validateSearch: assetPageSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/inventory/pages/asset-page'), 'AssetPage'),
+})
+
+const stockItemRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/inventory/stock/$itemId',
+  validateSearch: stockItemSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/inventory/pages/stock-item-page'),
+    'StockItemPage'
+  ),
+})
+
 const schoolsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/schools',
@@ -505,6 +553,7 @@ const routeTree = rootRoute.addChildren([
     performanceRoute,
     feedbackRoute,
     emergencyRoute,
+    gateRoute,
     timetableRoute,
     substitutesRoute,
     payrollRoute,
@@ -512,6 +561,9 @@ const routeTree = rootRoute.addChildren([
     libraryRoute,
     libraryBookRoute,
     libraryMemberRoute,
+    inventoryRoute,
+    assetRoute,
+    stockItemRoute,
     examsRoute,
     activitiesRoute,
     transportRoute,
@@ -527,6 +579,7 @@ const routeTree = rootRoute.addChildren([
     meetingsRoute,
     diaryRoute,
     announcementsRoute,
+    eventsRoute,
     chatRoute,
     fleetRoute,
     tripRoute,

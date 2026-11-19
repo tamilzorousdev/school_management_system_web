@@ -194,13 +194,21 @@ export function DataTable<T>({
         {rows.map((row) => (
           <li key={rowKey(row)}>
             {onRowClick ? (
-              <button
-                type='button'
+              <div
+                role='button'
+                tabIndex={0}
                 onClick={() => onRowClick(row)}
-                className='w-full p-4 text-left outline-none focus-visible:bg-accent/60 active:bg-muted'
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onRowClick(row)
+                  }
+                }}
+                className='w-full cursor-pointer p-4 text-left outline-none focus-visible:bg-accent/60 active:bg-muted'
               >
                 {card(row)}
-              </button>
+              </div>
             ) : (
               <div className='p-4'>{card(row)}</div>
             )}

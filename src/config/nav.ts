@@ -7,6 +7,7 @@ import {
   ChartColumnBig,
   ClipboardCheck,
   ClipboardList,
+  DoorOpen,
   Repeat,
   Route,
   Wallet,
@@ -30,6 +31,7 @@ import {
   UsersRound,
   Video,
   BookOpenCheck,
+  Boxes,
   Megaphone,
   MessagesSquare,
   Wrench,
@@ -58,18 +60,21 @@ export type NavPath =
   | '/class-performance'
   | '/teacher-feedback'
   | '/emergency'
+  | '/gate'
   | '/activities'
   | '/transport'
   | '/notifications'
   | '/meetings'
   | '/diary'
   | '/announcements'
+  | '/events'
   | '/chat'
   | '/app-banners'
   | '/fleet'
   | '/fleet/alerts'
   | '/fleet/history'
   | '/fleet/maintenance'
+  | '/inventory'
   | '/setup'
   | '/schools'
   | '/users'
@@ -315,12 +320,29 @@ export const NAV_GROUPS: NavGroup[] = [
         permission: 'emergency.view',
       },
       {
+        to: '/gate',
+        label: 'Gate & visitors',
+        description:
+          'Student early release passes, emergency pickups, visitor management and campus security log',
+        icon: DoorOpen,
+        shortcut: 'nav.gate',
+        permission: 'gate.view',
+      },
+      {
         to: '/announcements',
         label: 'Announcements',
         description: 'Notices to parents, staff or classes, and who read them',
         icon: Megaphone,
         shortcut: 'nav.announcements',
         permission: 'announcements.view',
+      },
+      {
+        to: '/events',
+        label: 'Events',
+        description: 'School events on the parent calendar, with replies for each child',
+        icon: CalendarCheck,
+        shortcut: 'nav.events',
+        permission: 'events.view',
       },
       {
         to: '/chat',
@@ -388,6 +410,15 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Settings',
     items: [
+      {
+        to: '/inventory',
+        label: 'Inventory',
+        description:
+          'Assets with tags, allocations, transfers, repairs, store stock, requisitions, audits and disposals',
+        icon: Boxes,
+        shortcut: 'nav.inventory',
+        permission: 'inventory.view',
+      },
       {
         to: '/setup',
         label: 'School setup',

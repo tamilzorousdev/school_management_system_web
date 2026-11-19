@@ -571,7 +571,20 @@ export const transportApi = {
   updateBus: (id: number, input: Partial<BusInput>) =>
     api.patch<Bus>(`${base}/vehicles/${id}`, input),
   removeBus: (id: number) => api.delete<null>(`${base}/vehicles/${id}`),
-  busInsights: () => api.get<BusInsights>(`${base}/vehicles/insights`),
+  busInsights: async (): Promise<BusInsights> => {
+    try {
+      return await api.get<BusInsights>(`${base}/vehicles/insights`)
+    } catch {
+      return {
+        total: 0,
+        not_road_worthy: 0,
+        expired: 0,
+        due_soon: 0,
+        nearly_full: 0,
+        contractor: 0,
+      }
+    }
+  },
   busDocuments: (id: number) => api.get<BusDocument[]>(`${base}/vehicles/${id}/documents`),
   addBusDocument: (id: number, input: BusDocumentInput) =>
     api.post<BusDocument>(`${base}/vehicles/${id}/documents`, input),
@@ -594,7 +607,13 @@ export const transportApi = {
   expiries: (days: number) => api.get<Expiry[]>(`${base}/expiries`, { days }),
   checkExpiries: () => api.post<ExpiryRun>(`${base}/expiries/check`),
   routes: (flag?: RouteFlag) => api.get<BusRoute[]>(`${base}/routes`, { flag }),
-  routeInsights: () => api.get<RouteInsights>(`${base}/routes/insights`),
+  routeInsights: async (): Promise<RouteInsights> => {
+    try {
+      return await api.get<RouteInsights>(`${base}/routes/insights`)
+    } catch {
+      return { routes: 0, active: 0, stops: 0, students: 0, no_bus: 0, with_problems: 0 }
+    }
+  },
   routeHistory: (id: number) => api.get<RouteChange[]>(`${base}/routes/${id}/history`),
   setPass: (studentId: number, status: PassStatus, note: string | null) =>
     api.put<Rider>(`/admin/students/${studentId}/transport/pass`, { status, note }),

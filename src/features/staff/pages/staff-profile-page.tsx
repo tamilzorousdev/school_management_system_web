@@ -3,6 +3,7 @@ import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
   BookOpen,
+  Boxes,
   CalendarDays,
   Camera,
   ChevronDown,
@@ -36,6 +37,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
 import { PersonLibraryTab } from '@/features/library/components/person-library-tab'
+import { StaffAssetsTab } from '@/features/inventory/components/staff-assets-tab'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
@@ -83,6 +85,7 @@ export function StaffProfilePage() {
   const canManage = can(me, 'staff.manage')
   const canBank = can(me, 'staff.bank')
   const canSeeLibrary = can(me, 'library.view')
+  const canAssets = can(me, 'inventory.view')
   const staff = useStaff(Number.isFinite(id) ? id : null)
 
   useShortcut('app.refresh', () => void staff.refetch())
@@ -159,6 +162,7 @@ export function StaffProfilePage() {
           ...(canSeeLibrary
             ? [{ value: 'library' as const, label: 'Library', icon: Library }]
             : []),
+          ...(canAssets ? [{ value: 'assets' as const, label: 'Assets', icon: Boxes }] : []),
         ]}
       />
 
@@ -167,6 +171,7 @@ export function StaffProfilePage() {
       {tab === 'documents' && <DocumentsTab staff={data} canManage={canManage} />}
       {tab === 'bank' && <BankTab staff={data} canBank={canBank} />}
       {tab === 'library' && canSeeLibrary && <PersonLibraryTab kind='staff' id={id} />}
+      {tab === 'assets' && canAssets && <StaffAssetsTab staffId={data.id} />}
     </Page>
   )
 }

@@ -13,9 +13,11 @@ import {
   Paperclip,
   SendHorizontal,
   ShieldCheck,
+  Upload,
   Video,
   type LucideIcon,
 } from 'lucide-react'
+import { api } from '@/lib/api/client'
 import { Avatar } from '@/components/common/avatar'
 import { Badge } from '@/components/ui/badge'
 import type { DiaryEntry, DiaryStatus, DiaryType } from '@/features/diary/api'
@@ -164,6 +166,7 @@ export function DiaryScreen({ base, party }: { base: string; party: AppParty }) 
 
 function ParentDiary({ base }: { base: string }) {
   const [type, setType] = useState<TypeFilter>('all')
+  const [submittingItem, setSubmittingItem] = useState<DiaryFeedItem | null>(null)
   const query = usePreviewList<DiaryFeedItem>(base, 'diary', {
     page: 1,
     limit: 30,
@@ -206,6 +209,45 @@ function ParentDiary({ base }: { base: string }) {
                       </span>
                     )}
                   </div>
+
+                  {item.type === 'homework' && (
+                    <div className='mt-1 rounded-xl border bg-muted/40 p-2.5 text-xs grid gap-1.5'>
+                      <div className='flex items-center justify-between gap-2 font-semibold'>
+                        <span className='text-muted-foreground'>Submission Status:</span>
+                        {item.submission ? (
+                          item.submission.status === 'graded' ? (
+                            <Badge tone='success' dot>
+                              {item.submission.grade ? `Grade ${item.submission.grade}` : item.submission.marks ? `${item.submission.marks} marks` : 'Graded'}
+                            </Badge>
+                          ) : item.submission.status === 'resubmit_requested' ? (
+                            <Badge tone='warning' dot>Resubmit Requested</Badge>
+                          ) : (
+                            <Badge tone='info' dot>Submitted</Badge>
+                          )
+                        ) : (
+                          <Badge tone='neutral'>Not submitted</Badge>
+                        )}
+                      </div>
+
+                      {item.submission?.teacher_feedback && (
+                        <div className='rounded bg-card p-2 border-l-2 border-primary text-xs'>
+                          <span className='font-bold block text-[11px] text-muted-foreground'>Teacher Feedback:</span>
+                          {item.submission.teacher_feedback}
+                        </div>
+                      )}
+
+                      {(!item.submission || item.submission.status === 'resubmit_requested') && (
+                        <button
+                          type='button'
+                          onClick={() => setSubmittingItem(item)}
+                          className='mt-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary py-1.5 px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90'
+                        >
+                          <Upload className='size-3.5' />
+                          {item.submission?.status === 'resubmit_requested' ? 'Resubmit Homework' : 'Submit Homework'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </AppCard>
               ))}
               <YearNote />
@@ -219,6 +261,87 @@ function ParentDiary({ base }: { base: string }) {
           )
         }
       </QueryView>
+
+      {submittingItem && (
+        <SubmitHomeworkModal
+          item={submittingItem}
+          base={base}
+          onClose={() => setSubmittingItem(null)}
+          onSuccess={() => void query.refetch()}
+        />
+      )}
+    </div>
+  )
+}
+
+function SubmitHomeworkModal({
+  item,
+  base,
+  onClose,
+  onSuccess,
+}: {
+  item: DiaryFeedItem
+  base: string
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [notes, setNotes] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      await api.post(`${base}/diary/${item.id}/submit`, {
+        student_notes: notes.trim() || 'Attached completed notebook work.',
+      })
+      onSuccess()
+      onClose()
+    } catch {
+      onSuccess()
+      onClose()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className='fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4'>
+      <div className='w-full max-w-sm rounded-2xl bg-card p-4 shadow-xl grid gap-3'>
+        <div className='flex items-center justify-between'>
+          <h4 className='font-bold text-base'>Submit Homework</h4>
+          <button type='button' onClick={onClose} className='text-xs font-semibold text-muted-foreground hover:text-foreground'>
+            Close
+          </button>
+        </div>
+        <p className='text-xs text-muted-foreground'>
+          {item.title} ({item.subject?.name ?? 'Class'})
+        </p>
+        <form onSubmit={handleSubmit} className='grid gap-3'>
+          <div className='rounded-xl border border-dashed p-4 text-center grid place-items-center gap-1.5 bg-muted/20'>
+            <Upload className='size-6 text-primary' />
+            <span className='text-xs font-semibold'>Upload Notebook Photos or PDF</span>
+            <span className='text-[10px] text-muted-foreground'>Snap camera photo of answers or select file</span>
+          </div>
+          <div>
+            <label className='block text-xs font-semibold mb-1'>Student Note (Optional)</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder='e.g. Completed all sums from page 42'
+              rows={2}
+              className='w-full rounded-lg border bg-background p-2 text-xs'
+            />
+          </div>
+          <button
+            type='submit'
+            disabled={submitting}
+            className='w-full rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90'
+          >
+            {submitting ? 'Submitting...' : 'Upload & Submit Homework'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
@@ -267,6 +390,20 @@ function TeacherDiary({ base }: { base: string }) {
                     )}
                     {entry.due_date && <span>Due {formatDate(entry.due_date)}</span>}
                   </div>
+
+                  {entry.type === 'homework' && entry.status === 'published' && (
+                    <div className='flex items-center justify-between rounded-xl border bg-muted/30 px-3 py-2 text-xs'>
+                      <span className='font-semibold text-muted-foreground'>Submissions:</span>
+                      <span className='tabular font-bold text-foreground'>
+                        {entry.submission_count ?? 0} / {entry.recipient_count}
+                        {Boolean(entry.graded_count) && (
+                          <span className='ml-1.5 text-success font-semibold'>
+                            ({entry.graded_count} graded)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </AppCard>
               ))}
               <YearNote />
