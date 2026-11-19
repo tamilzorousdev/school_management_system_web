@@ -7,6 +7,7 @@ import {
   ChartColumnBig,
   ClipboardCheck,
   ClipboardList,
+  FileQuestion,
   DoorOpen,
   Repeat,
   Route,
@@ -57,6 +58,7 @@ export type NavPath =
   | '/accounts'
   | '/library'
   | '/exams'
+  | '/quizzes'
   | '/class-performance'
   | '/teacher-feedback'
   | '/emergency'
@@ -215,6 +217,14 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Exams, student marks, ranked results and top rank holders',
         icon: ClipboardCheck,
         shortcut: 'nav.exams',
+        permission: 'exams.view',
+      },
+      {
+        to: '/quizzes',
+        label: 'Online Quizzes',
+        description: 'Online quizzes, teacher submissions, approvals, exam windows and analytics',
+        icon: FileQuestion,
+        shortcut: 'nav.quizzes',
         permission: 'exams.view',
       },
       {
