@@ -1,6 +1,18 @@
 import { useMemo, useState } from 'react'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, BookOpen, Save, Undo2, UserRoundX, UsersRound } from 'lucide-react'
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  History,
+  Lock,
+  Save,
+  Undo2,
+  UserRoundX,
+  UsersRound,
+} from 'lucide-react'
+import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { FilterSelect } from '@/components/common/list-toolbar'
@@ -14,10 +26,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { can, useMe } from '@/features/auth/api'
 import { useClasses } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
+import { formatDate, formatDateTime } from '@/lib/format'
 import { toApiError } from '@/lib/api/errors'
 import { cn } from '@/lib/utils'
 import {
   staffApi,
+  useAssignmentChanges,
   useAssignments,
   useStaffMutation,
   type AssignmentItem,
@@ -43,15 +57,25 @@ interface Edit {
 type Edits = Record<string, Edit>
 
 const cellKey = (sectionId: number, subjectId: number) => `${sectionId}:${subjectId}`
+const shiftWeek = (start: string, days: number) => {
+  const date = new Date(`${start}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
 const periodsOf = (edit: Edit) => edit.periods_per_week ?? edit.original_periods ?? DEFAULT_PERIODS
 
 export function AssignmentsPage() {
   const search = route.useSearch()
   const navigate = useNavigate({ from: '/staff/assignments' })
-  const canManage = can(useMe().data, 'staff.manage')
+  const allowed = can(useMe().data, 'staff.manage')
   const classes = useClasses()
-  const matrix = useAssignments({ class_id: search.class_id })
+  const [week, setWeek] = useState<string>()
+  const [showChanges, setShowChanges] = useState(false)
+  const matrix = useAssignments({ class_id: search.class_id, week })
   const [edits, setEdits] = useState<Edits>({})
+  const weekInfo = matrix.data?.week
+  const canManage = allowed && !weekInfo?.read_only
+  const limit = matrix.data?.class_periods_per_week ?? 30
   const save = useStaffMutation((items: AssignmentItem[]) =>
     staffApi.saveAssignments({ academic_year_id: matrix.data?.academic_year.id, items })
   )
@@ -94,6 +118,17 @@ export function AssignmentsPage() {
     0
   )
   const changes = Object.keys(edits).length
+  const sectionTotal = (row: MatrixRow) =>
+    row.cells.reduce((sum, cell) => {
+      const edit = edits[cellKey(row.section_id, cell.subject_id)]
+      const teacher = edit ? edit.teacher_user_id : cell.teacher_user_id
+      const periods = edit ? periodsOf(edit) : (cell.periods_per_week ?? 0)
+      return sum + (teacher === null ? 0 : periods)
+    }, 0)
+  const overClasses = rows.filter((row) => {
+    const total = sectionTotal(row)
+    return total > limit && total > row.periods_total
+  })
 
   const change = (
     row: MatrixRow,
@@ -178,8 +213,54 @@ export function AssignmentsPage() {
             )}
           </Badge>
         )}
-        {!canManage && <Badge tone='neutral'>View only</Badge>}
+        {!allowed && <Badge tone='neutral'>View only</Badge>}
       </div>
+
+      {weekInfo && (
+        <Card className='flex flex-row flex-wrap items-center justify-between gap-2 p-2 sm:px-3'>
+          <div className='flex items-center gap-1'>
+            <Button
+              size='icon-sm'
+              variant='ghost'
+              aria-label='Previous week'
+              disabled={changes > 0}
+              onClick={() => setWeek(shiftWeek(weekInfo.start, -7))}
+            >
+              <ChevronLeft />
+            </Button>
+            <span className='text-sm font-semibold'>
+              Week of {formatDate(weekInfo.start)} – {formatDate(weekInfo.end)}
+              {weekInfo.is_current ? ' (this week)' : ''}
+            </span>
+            <Button
+              size='icon-sm'
+              variant='ghost'
+              aria-label='Next week'
+              disabled={weekInfo.is_current || changes > 0}
+              onClick={() => setWeek(shiftWeek(weekInfo.start, 7))}
+            >
+              <ChevronRight />
+            </Button>
+            {!weekInfo.is_current && (
+              <Button size='sm' variant='outline' onClick={() => setWeek(undefined)}>
+                This week
+              </Button>
+            )}
+          </div>
+          <div className='flex flex-wrap items-center gap-2'>
+            {weekInfo.read_only && (
+              <Badge tone='neutral'>
+                <Lock className='size-3' />
+                As it was that week
+              </Badge>
+            )}
+            <Button size='sm' variant='outline' onClick={() => setShowChanges(true)}>
+              <History />
+              Changes this week ({weekInfo.changes})
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {matrix.isPending ? (
         <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]'>
@@ -209,6 +290,8 @@ export function AssignmentsPage() {
               <SectionCard
                 key={row.section_id}
                 row={row}
+                total={sectionTotal(row)}
+                limit={limit}
                 edits={edits}
                 canManage={canManage}
                 teacherOptions={teacherOptions}
@@ -223,15 +306,27 @@ export function AssignmentsPage() {
       {changes > 0 && (
         <div className='fixed inset-x-0 bottom-0 z-40 px-4 pb-4 sm:px-6 lg:px-8'>
           <Card className='mx-auto flex max-w-3xl flex-row flex-wrap items-center justify-between gap-3 p-3 shadow-lg sm:px-4'>
-            <span className='text-sm font-semibold'>
+            <span className='grid text-sm font-semibold'>
               {changes} unsaved {changes === 1 ? 'change' : 'changes'}
+              {overClasses.length > 0 && (
+                <span className='text-xs font-normal text-destructive'>
+                  {overClasses
+                    .map((row) => `Class ${row.class_name} - ${row.section_name}`)
+                    .join(', ')}{' '}
+                  would go over {limit} periods a week. Lower some periods first.
+                </span>
+              )}
             </span>
             <div className='flex gap-2'>
               <Button variant='outline' onClick={() => setEdits({})} disabled={save.isPending}>
                 <Undo2 />
                 Discard
               </Button>
-              <Button onClick={() => void submit()} loading={save.isPending}>
+              <Button
+                onClick={() => void submit()}
+                loading={save.isPending}
+                disabled={overClasses.length > 0}
+              >
                 <Save />
                 Save {changes} {changes === 1 ? 'change' : 'changes'}
               </Button>
@@ -239,18 +334,59 @@ export function AssignmentsPage() {
           </Card>
         </div>
       )}
+      {showChanges && weekInfo && (
+        <ChangesModal week={weekInfo.start} onClose={() => setShowChanges(false)} />
+      )}
     </Page>
+  )
+}
+
+function ChangesModal({ week, onClose }: { week: string; onClose: () => void }) {
+  const changes = useAssignmentChanges(week)
+  const rows = changes.data ?? []
+  return (
+    <AppModal
+      open
+      onOpenChange={(open) => !open && onClose()}
+      size='lg'
+      title='Changes this week'
+      description={`What changed from the week of ${formatDate(week)}. Earlier weeks keep what they had.`}
+    >
+      {changes.isPending ? (
+        <Skeleton className='h-40' />
+      ) : changes.isError ? (
+        <ErrorState message={changes.error.message} onRetry={() => changes.refetch()} />
+      ) : !rows.length ? (
+        <EmptyState icon={History} title='No changes in this week' className='py-6' />
+      ) : (
+        <ul className='grid max-h-[60vh] divide-y overflow-y-auto rounded-xl border'>
+          {rows.map((row) => (
+            <li key={row.id} className='grid gap-0.5 p-3 text-sm'>
+              <span className='font-semibold'>{row.summary}</span>
+              <span className='text-xs text-muted-foreground'>
+                {formatDateTime(row.at)}
+                {row.changed_by ? ` · by ${row.changed_by.name}` : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </AppModal>
   )
 }
 
 function SectionCard({
   row,
+  total,
+  limit,
   edits,
   canManage,
   teacherOptions,
   onChange,
 }: {
   row: MatrixRow
+  total: number
+  limit: number
   edits: Edits
   canManage: boolean
   teacherOptions: { value: string; label: string; hint: string }[]
@@ -263,8 +399,11 @@ function SectionCard({
   return (
     <Card className='overflow-hidden'>
       <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-        <h2 className='font-bold'>
+        <h2 className='flex flex-wrap items-center gap-2 font-bold'>
           Class {row.class_name} - {row.section_name}
+          <Badge tone={total > limit ? 'danger' : total === limit ? 'warning' : 'success'}>
+            {total} / {limit} periods a week
+          </Badge>
         </h2>
         <span className='text-xs text-muted-foreground'>
           Class teacher:{' '}

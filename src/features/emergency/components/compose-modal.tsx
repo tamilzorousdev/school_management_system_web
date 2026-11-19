@@ -18,6 +18,7 @@ import {
   useEmergencyPreview,
   useEmergencyTemplates,
   type AudienceInput,
+  type StaffGroup,
   type EmergencyAudience,
   type EmergencyBroadcast,
   type EmergencyCategory,
@@ -42,6 +43,7 @@ interface Draft {
   class_ids: number[]
   section_ids: number[]
   include_teachers: boolean
+  staff_groups: StaffGroup[]
   push: boolean
   sms: boolean
   expires: boolean
@@ -50,6 +52,12 @@ interface Draft {
   later: boolean
   send_at: string
 }
+
+const STAFF_GROUPS: { value: StaffGroup; label: string; hint: string }[] = [
+  { value: 'teachers', label: 'Teachers', hint: 'Teaching staff' },
+  { value: 'drivers', label: 'Drivers & attendants', hint: 'Bus crew' },
+  { value: 'office', label: 'Office staff', hint: 'Other non-teaching staff' },
+]
 
 const UNIT_SECONDS: Partial<Record<ExpiryUnit, number>> = {
   seconds: 1,
@@ -69,6 +77,7 @@ const emptyDraft: Draft = {
   class_ids: [],
   section_ids: [],
   include_teachers: false,
+  staff_groups: ['teachers', 'drivers', 'office'],
   push: true,
   sms: true,
   expires: false,
@@ -92,6 +101,7 @@ const fromPrevious = (previous: EmergencyBroadcast): Draft => ({
   class_ids: previous.class_ids,
   section_ids: previous.section_ids,
   include_teachers: previous.include_teachers,
+  staff_groups: previous.staff_groups?.length ? previous.staff_groups : emptyDraft.staff_groups,
   push: previous.channels.includes('push'),
   sms: previous.channels.includes('sms'),
 })
@@ -122,7 +132,8 @@ export function ComposeModal({
 
   const audienceInput: AudienceInput | null =
     (draft.audience === 'classes' && !draft.class_ids.length) ||
-    (draft.audience === 'sections' && !draft.section_ids.length)
+    (draft.audience === 'sections' && !draft.section_ids.length) ||
+    (draft.audience === 'staff' && !draft.staff_groups.length)
       ? null
       : {
           audience: draft.audience,
@@ -130,6 +141,9 @@ export function ComposeModal({
           ...(draft.audience === 'sections' ? { section_ids: draft.section_ids } : {}),
           ...(['classes', 'sections'].includes(draft.audience)
             ? { include_teachers: draft.include_teachers }
+            : {}),
+          ...(draft.audience === 'staff' && draft.staff_groups.length < STAFF_GROUPS.length
+            ? { staff_groups: draft.staff_groups }
             : {}),
         }
   const preview = useEmergencyPreview(audienceInput)
@@ -144,6 +158,8 @@ export function ComposeModal({
     if (draft.message.trim().length < 5) next.message = 'Write the message'
     if (draft.audience === 'classes' && !draft.class_ids.length)
       next.class_ids = 'Choose at least one class'
+    if (draft.audience === 'staff' && !draft.staff_groups.length)
+      next.staff_groups = 'Choose at least one staff group'
     if (draft.audience === 'sections' && !draft.section_ids.length)
       next.section_ids = 'Choose at least one section'
     if (!channels.length) next.channels = 'Choose push, SMS or both'
@@ -509,6 +525,38 @@ export function ComposeModal({
                   className='sm:w-full'
                 />
                 {chips(draft.section_ids, 'section_ids', sectionName)}
+              </div>
+            </FormField>
+          )}
+          {draft.audience === 'staff' && (
+            <FormField
+              id='em-staff-groups'
+              label='Which staff'
+              required
+              error={errors.staff_groups}
+              className='sm:col-span-2'
+            >
+              <div className='flex flex-wrap gap-x-5 gap-y-2'>
+                {STAFF_GROUPS.map((group) => (
+                  <label key={group.value} className='flex items-center gap-2 text-sm'>
+                    <Switch
+                      checked={draft.staff_groups.includes(group.value)}
+                      onCheckedChange={(value) =>
+                        set(
+                          'staff_groups',
+                          STAFF_GROUPS.map((item) => item.value).filter((item) =>
+                            item === group.value ? value : draft.staff_groups.includes(item)
+                          )
+                        )
+                      }
+                      aria-label={group.label}
+                    />
+                    <span className='grid'>
+                      {group.label}
+                      <span className='text-xs text-muted-foreground'>{group.hint}</span>
+                    </span>
+                  </label>
+                ))}
               </div>
             </FormField>
           )}

@@ -54,7 +54,7 @@ export const SHORTCUTS = {
   'students.create': { combo: 'alt+n', label: 'Add a student or application', group: 'Users' },
   'maintenance.create': {
     combo: 'alt+n',
-    label: 'Add a maintenance ticket or fuel entry',
+    label: 'Add a ticket, fuel entry, expense or rule in Maintenance',
     group: 'Users',
   },
   'banners.create': {

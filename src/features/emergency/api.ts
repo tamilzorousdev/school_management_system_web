@@ -12,6 +12,7 @@ export type EmergencySeverity = 'info' | 'warning' | 'critical'
 export type EmergencyAudience =
   'everyone' | 'parents' | 'staff' | 'classes' | 'sections' | 'students'
 export type EmergencyChannel = 'push' | 'sms'
+export type StaffGroup = 'teachers' | 'drivers' | 'office'
 export type BroadcastStatus =
   'pending_approval' | 'scheduled' | 'sending' | 'sent' | 'partly_failed' | 'rejected' | 'cancelled'
 export type BroadcastState =
@@ -28,6 +29,7 @@ export interface AudienceInput {
   section_ids?: number[]
   student_ids?: number[]
   include_teachers?: boolean
+  staff_groups?: StaffGroup[]
 }
 
 export interface EmergencyInput extends AudienceInput {
@@ -90,6 +92,7 @@ export interface EmergencyBroadcast {
   section_ids: number[]
   student_ids: number[]
   include_teachers: boolean
+  staff_groups: StaffGroup[]
   channels: EmergencyChannel[]
   status: BroadcastStatus
   state: BroadcastState

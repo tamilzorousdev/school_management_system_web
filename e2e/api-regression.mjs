@@ -4431,6 +4431,79 @@ await TA(
   }
 )
 await TA(
+  'API-CLS-01',
+  'Teacher weekly limit',
+  'PUT',
+  '/admin/teacher-assignments',
+  'A class cannot go above the periods a week in School setup',
+  '409 CLASS_OVER_LIMIT; nothing saved; every row has periods_total',
+  async () => {
+    const matrix = (await admin('GET', '/admin/teacher-assignments')).body.data
+    if (matrix.rows.some((row) => typeof row.periods_total !== 'number'))
+      throw new Error('periods_total missing')
+    const limit = matrix.class_periods_per_week
+    const row = matrix.rows.find((item) =>
+      item.cells.some(
+        (cell) =>
+          cell.teacher_user_id && cell.periods_per_week + (limit - item.periods_total) + 1 <= 15
+      )
+    )
+    if (!row) return 'Skipped: no class with room to test'
+    const cell = row.cells.find(
+      (item) =>
+        item.teacher_user_id && item.periods_per_week + (limit - row.periods_total) + 1 <= 15
+    )
+    const teacher = matrix.teachers.find((item) => item.user_id === cell.teacher_user_id)
+    const extra = Math.max(1, limit - row.periods_total + 1)
+    if (teacher.load_periods + extra > teacher.max_periods_per_week)
+      return 'Skipped: the teacher limit would trip first'
+    const result = await admin('PUT', '/admin/teacher-assignments', {
+      items: [
+        {
+          section_id: row.section_id,
+          subject_id: cell.subject_id,
+          teacher_user_id: cell.teacher_user_id,
+          periods_per_week: cell.periods_per_week + extra,
+        },
+      ],
+    })
+    const message = expectStatus(result, 409, 'CLASS_OVER_LIMIT')
+    const after = (await admin('GET', '/admin/teacher-assignments')).body.data
+    if (
+      after.rows.find((item) => item.section_id === row.section_id).periods_total !==
+      row.periods_total
+    )
+      throw new Error('Saved although refused')
+    return message
+  }
+)
+await TA(
+  'API-CLS-02',
+  'Teacher weekly limit',
+  'GET',
+  '/admin/teacher-assignments?week=',
+  'Earlier weeks open read only; changes list; future week refused',
+  '200 read_only for last week; changes 200; future 400',
+  async () => {
+    const now = (await admin('GET', '/admin/teacher-assignments')).body.data
+    if (!now.week.is_current || now.week.read_only) throw new Error('This week should be editable')
+    const last = new Date(`${now.week.start}T00:00:00Z`)
+    last.setUTCDate(last.getUTCDate() - 7)
+    const past = await admin(
+      'GET',
+      `/admin/teacher-assignments?week=${last.toISOString().slice(0, 10)}`
+    )
+    expectStatus(past, 200)
+    if (!past.body.data.week.read_only) throw new Error('Last week should be read only')
+    expectStatus(
+      await admin('GET', `/admin/teacher-assignments/changes?week=${now.week.start}`),
+      200
+    )
+    expectFields(await admin('GET', '/admin/teacher-assignments?week=2099-01-05'), ['week'])
+    return `200; last week ${past.body.data.week.start} read only`
+  }
+)
+await TA(
   'API-TLM-02',
   'Teacher weekly limit',
   'PATCH',
@@ -6833,6 +6906,243 @@ await TA(
     return '400, 404 and 403 as expected'
   }
 )
+const vmBus = vehicles[0]
+const vmToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
+await TA(
+  'API-VMF-1',
+  'Vehicle maintenance',
+  'PATCH',
+  '/admin/fleet/maintenance-settings',
+  'Settings and month lock rules',
+  '200 settings; this month or a non month-end cannot be locked (400)',
+  async () => {
+    const settings = await admin('GET', '/admin/fleet/maintenance-settings')
+    expectStatus(settings, 200)
+    if (typeof settings.body.data.due_soon_km !== 'number') throw new Error('due_soon_km missing')
+    expectFields(
+      await admin('PATCH', '/admin/fleet/maintenance-settings', {
+        locked_until: `${vmToday.slice(0, 8)}01`,
+      }),
+      ['locked_until']
+    )
+    expectFields(await admin('PATCH', '/admin/fleet/maintenance-settings', { due_soon_km: 5 }), [
+      'due_soon_km',
+    ])
+    expectStatus(await teacher('GET', '/admin/fleet/maintenance-settings'), 403)
+    return `200; due soon ${settings.body.data.due_soon_km} km / ${settings.body.data.due_soon_days} days`
+  }
+)
+await TA(
+  'API-VMF-2',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/schedules',
+  'Service rule: needs km or months; one per category per bus; due status worked out',
+  '400 without interval; 201 with next due; 409 SCHEDULE_EXISTS; deleted',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    expectFields(
+      await admin('POST', '/admin/fleet/schedules', { vehicle_ids: [vmBus.id], category: 'ac' }),
+      ['every_km', 'every_months']
+    )
+    const existing = (
+      await admin('GET', `/admin/fleet/schedules?vehicle_id=${vmBus.id}&category=ac`)
+    ).body.data
+    if (existing.total) return 'Skipped: bus already has an AC rule'
+    const added = await admin('POST', '/admin/fleet/schedules', {
+      vehicle_ids: [vmBus.id],
+      category: 'ac',
+      every_months: 12,
+    })
+    expectStatus(added, 201)
+    const rule = added.body.data[0]
+    if (rule.status !== 'ok' || !rule.next_due_on)
+      throw new Error(`Unexpected state ${rule.status}`)
+    const again = await admin('POST', '/admin/fleet/schedules', {
+      vehicle_ids: [vmBus.id],
+      category: 'ac',
+      every_months: 6,
+    })
+    expectStatus(again, 409, 'SCHEDULE_EXISTS')
+    expectStatus(await admin('DELETE', `/admin/fleet/schedules/${rule.id}`), 200)
+    return `201; next due ${rule.next_due_on}; duplicate 409; removed`
+  }
+)
+await TA(
+  'API-VMF-3',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/fuel',
+  'Fuel checks: duplicate fill, part fill, delete with reason kept in history',
+  '201; 409 FUEL_DUPLICATE; history has the delete',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    const last = (
+      await admin(
+        'GET',
+        `/admin/fleet/fuel?vehicle_id=${vmBus.id}&sort=odometer_km&order=desc&limit=1`
+      )
+    ).body.data.items[0]
+    const km = Math.ceil(last?.odometer_km ?? 10000) + 5000
+    const body = {
+      vehicle_id: vmBus.id,
+      filled_on: vmToday,
+      litres: 10,
+      amount: 950,
+      odometer_km: km,
+      is_full: false,
+    }
+    const added = await admin('POST', '/admin/fleet/fuel', body)
+    expectStatus(added, 201)
+    if (added.body.data.km_per_litre !== null || added.body.data.status !== 'approved')
+      throw new Error('Part fill should have no km/l')
+    const duplicate = await admin('POST', '/admin/fleet/fuel', body)
+    expectStatus(
+      await admin('DELETE', `/admin/fleet/fuel/${added.body.data.id}?reason=Regression`),
+      200
+    )
+    expectStatus(duplicate, 409, 'FUEL_DUPLICATE')
+    const history = (
+      await admin('GET', `/admin/fleet/changes?entity=fuel&entity_id=${added.body.data.id}`)
+    ).body.data
+    if (history.items[0]?.action !== 'delete' || history.items[0]?.note !== 'Regression')
+      throw new Error('Delete not in history')
+    return `201; duplicate 409; delete kept in history`
+  }
+)
+await TA(
+  'API-VMF-4',
+  'Vehicle maintenance',
+  'POST',
+  '/mobile/driver/vehicle/fuel',
+  'Driver fuel entry needs a bill; driver sees my bus upkeep; parents cannot',
+  '400 bill_file_id; 200 maintenance view; 403 parent',
+  async () => {
+    expectFields(
+      await driver('POST', '/mobile/driver/vehicle/fuel', {
+        litres: 10,
+        amount: 950,
+        odometer_km: 1,
+      }),
+      ['bill_file_id']
+    )
+    const view = await driver('GET', '/mobile/driver/vehicle/maintenance')
+    expectStatus(view, 200)
+    if (!Array.isArray(view.body.data.services)) throw new Error('services missing')
+    const form = await driver('GET', '/mobile/driver/pre-trip-check')
+    expectStatus(form, 200)
+    if (form.body.data.items.length !== 10) throw new Error('Checklist should have 10 items')
+    expectStatus(await parent('GET', '/mobile/driver/vehicle/maintenance'), 403)
+    return `200; ${view.body.data.services.length} services; checklist of 10`
+  }
+)
+await TA(
+  'API-VMF-5',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/expenses',
+  'Expense checks: renewal date only for documents, no future date, pay back only driver-paid',
+  '400s; 201; 409 NOT_DRIVER_PAID; deleted',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    expectFields(
+      await admin('POST', '/admin/fleet/expenses', {
+        vehicle_id: vmBus.id,
+        spent_on: vmToday,
+        category: 'toll',
+        amount: 100,
+        renewed_until: '2030-01-01',
+      }),
+      ['renewed_until']
+    )
+    expectFields(
+      await admin('POST', '/admin/fleet/expenses', {
+        vehicle_id: vmBus.id,
+        spent_on: '2099-01-01',
+        category: 'toll',
+        amount: 100,
+      }),
+      ['spent_on']
+    )
+    const added = await admin('POST', '/admin/fleet/expenses', {
+      vehicle_id: vmBus.id,
+      spent_on: vmToday,
+      category: 'parking',
+      amount: 50,
+      payment_mode: 'cash',
+    })
+    expectStatus(added, 201)
+    const payBack = await admin('POST', `/admin/fleet/expenses/${added.body.data.id}/reimburse`)
+    expectStatus(
+      await admin('DELETE', `/admin/fleet/expenses/${added.body.data.id}?reason=Regression`),
+      200
+    )
+    expectStatus(payBack, 409, 'NOT_DRIVER_PAID')
+    return '400, 400, 201, 409 and deleted'
+  }
+)
+await TA(
+  'API-VMF-6',
+  'Vehicle maintenance',
+  'POST',
+  '/admin/fleet/vendors',
+  'Saved garages: no duplicate names',
+  '201; 409 VENDOR_EXISTS; removed',
+  async () => {
+    const name = `Regression Garage ${Date.now()}`
+    const added = await admin('POST', '/admin/fleet/vendors', { kind: 'garage', name })
+    expectStatus(added, 201)
+    const again = await admin('POST', '/admin/fleet/vendors', {
+      kind: 'garage',
+      name: name.toLowerCase(),
+    })
+    expectStatus(await admin('DELETE', `/admin/fleet/vendors/${added.body.data.id}`), 200)
+    expectStatus(again, 409, 'VENDOR_EXISTS')
+    return '201; 409; removed'
+  }
+)
+await TA(
+  'API-VMF-7',
+  'Vehicle maintenance',
+  'GET',
+  '/admin/fleet/reports/*',
+  'Reports, insights and Excel downloads',
+  '200 for each report; xlsx files; 400 UNKNOWN_REPORT',
+  async () => {
+    for (const name of ['insights', 'costs', 'mileage', 'due', 'spend', 'idle', 'reimbursements']) {
+      expectStatus(await admin('GET', `/admin/fleet/reports/${name}`), 200)
+    }
+    expectStatus(await admin('GET', '/admin/fleet/reports/spend?group=vendor'), 200)
+    for (const name of ['costs', 'due', 'idle']) {
+      const file = await admin('GET', `/admin/fleet/reports/${name}/xlsx`)
+      if (file.status !== 200 || !file.type.includes('spreadsheet'))
+        throw new Error(`${name} xlsx failed`)
+    }
+    expectStatus(await admin('GET', '/admin/fleet/reports/bogus/xlsx'), 400, 'UNKNOWN_REPORT')
+    return '200 for 7 reports; Excel ok; unknown 400'
+  }
+)
+await TA(
+  'API-VMF-8',
+  'Vehicle maintenance',
+  'GET',
+  '/admin/fleet/vehicles/:id/log',
+  'Bus log and summary',
+  '200 summary and log; 400 unknown type; 404 unknown bus',
+  async () => {
+    if (!vmBus) return 'Skipped: no bus'
+    const summary = await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/summary`)
+    expectStatus(summary, 200)
+    const log = await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/log?limit=5`)
+    expectStatus(log, 200)
+    expectFields(await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/log?type=bogus`), ['type'])
+    expectStatus(await admin('GET', '/admin/fleet/vehicles/999999/summary'), 404)
+    const file = await admin('GET', `/admin/fleet/vehicles/${vmBus.id}/log/xlsx`)
+    if (file.status !== 200 || !file.type.includes('spreadsheet'))
+      throw new Error('log xlsx failed')
+    return `200; ${log.body.data.total} log entries; km ${summary.body.data.current_km ?? 'unknown'}`
+  }
+)
 await TA(
   'API-RT-05',
   'Routes and stops',
@@ -7306,6 +7616,47 @@ await TA(
     if (!all.some((item) => item.id === id)) throw new Error('Missing from the manage list')
     expectStatus(await admin('DELETE', `/admin/emergency-broadcasts/templates/${id}`), 200)
     return `201; ${before.length} ready messages; added, switched off and removed`
+  }
+)
+await TA(
+  'API-EM-16',
+  'Emergency broadcast',
+  'POST',
+  '/admin/emergency-broadcasts/preview',
+  'All staff splits into teachers, drivers & attendants and office staff',
+  '200; the three groups add up to all staff; empty or unknown group 400',
+  async () => {
+    const count = async (staff_groups) =>
+      (
+        await admin('POST', '/admin/emergency-broadcasts/preview', {
+          audience: 'staff',
+          staff_groups,
+        })
+      ).body.data?.recipients
+    const all = (await admin('POST', '/admin/emergency-broadcasts/preview', { audience: 'staff' }))
+      .body.data.recipients
+    const teachers = await count(['teachers'])
+    const drivers = await count(['drivers'])
+    const office = await count(['office'])
+    if (teachers + drivers + office !== all)
+      throw new Error(`${teachers} + ${drivers} + ${office} is not ${all}`)
+    if ((await count(['drivers', 'office'])) !== drivers + office)
+      throw new Error('Two groups miscounted')
+    expectFields(
+      await admin('POST', '/admin/emergency-broadcasts/preview', {
+        audience: 'staff',
+        staff_groups: [],
+      }),
+      ['staff_groups']
+    )
+    expectFields(
+      await admin('POST', '/admin/emergency-broadcasts/preview', {
+        audience: 'staff',
+        staff_groups: ['cooks'],
+      }),
+      ['staff_groups']
+    )
+    return `200; ${teachers} teachers + ${drivers} crew + ${office} office = ${all}`
   }
 )
 

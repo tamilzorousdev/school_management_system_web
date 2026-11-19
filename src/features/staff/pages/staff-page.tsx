@@ -128,7 +128,9 @@ export function StaffPage() {
             name={member.name}
             src={member.photo_url}
             previewable
-            subtitle={member.employee_no ? `Employee No: ${member.employee_no}` : member.designation}
+            subtitle={
+              member.employee_no ? `Employee No: ${member.employee_no}` : member.designation
+            }
           />
           <div className='grid min-w-0'>
             <span className='flex items-center gap-1.5 truncate font-bold'>
@@ -302,7 +304,9 @@ export function StaffPage() {
                 name={member.name}
                 src={member.photo_url}
                 previewable
-                subtitle={member.employee_no ? `Employee No: ${member.employee_no}` : member.designation}
+                subtitle={
+                  member.employee_no ? `Employee No: ${member.employee_no}` : member.designation
+                }
               />
               <div className='grid min-w-0 flex-1 gap-1.5'>
                 <div className='flex items-start justify-between gap-2'>

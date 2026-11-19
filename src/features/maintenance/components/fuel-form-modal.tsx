@@ -1,25 +1,30 @@
 import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { FileText, Upload, X } from 'lucide-react'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { today } from '@/features/attendance/labels'
 import { useBusOptions, useCrew } from '@/features/transport/api'
 import { ROLE_BADGE } from '@/features/transport/labels'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
-import { filesApi } from '@/lib/files'
-import { maintenanceApi, useMaintenanceMutation, type FuelEntry, type FuelInput } from '../api'
-import { rupees } from '../labels'
+import {
+  maintenanceApi,
+  useMaintenanceMutation,
+  useVendorOptions,
+  type FuelEntry,
+  type FuelInput,
+  type PaymentMode,
+} from '../api'
+import { PAYMENT_MODE_OPTIONS, rupees } from '../labels'
+import { applyFieldErrors } from '../helpers'
+import { FileField, FormAlert, type AttachedFile } from './shared'
 
 const FORM_ID = 'fuel-form'
-const BILL_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf']
-const BILL_MAX_BYTES = 5 * 1024 * 1024
 
 const between = (min: number, max: number, message: string) =>
   z
@@ -40,8 +45,12 @@ const schema = z.object({
   litres: between(0.1, 1000, 'Enter the litres, from 0.1 to 1000'),
   amount: between(1, 100_000, 'Enter the amount, from ₹1 to ₹1,00,000'),
   odometer_km: between(0, 2_000_000, 'Enter the odometer, from 0 to 20,00,000 km'),
+  is_full: z.boolean(),
+  payment_mode: z.string().min(1, 'Choose how it was paid'),
+  station_id: z.string(),
   station: z.string().trim().max(100, 'Station must be 100 characters or less'),
   filled_by: z.string(),
+  reason: z.string().trim().max(300, 'Reason must be 300 characters or less'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -52,14 +61,13 @@ const FIELDS: (keyof FormValues)[] = [
   'litres',
   'amount',
   'odometer_km',
+  'is_full',
+  'payment_mode',
+  'station_id',
   'station',
   'filled_by',
+  'reason',
 ]
-
-interface Bill {
-  id: number
-  name: string
-}
 
 interface FuelFormModalProps {
   open: boolean
@@ -78,7 +86,7 @@ export function FuelFormModal({ open, onOpenChange, entry, defaultVehicleId }: F
       open={open}
       onOpenChange={onOpenChange}
       title={entry ? 'Edit fuel entry' : 'Add fuel entry'}
-      description='Litres, amount and odometer from the fuel bill. Mileage is worked out from the previous fill.'
+      description='Litres, amount and odometer from the fuel bill. Mileage is worked out between full-tank fills.'
       formId={FORM_ID}
       submitText={entry ? 'Save changes' : 'Add entry'}
       loading={save.isPending || uploading}
@@ -114,11 +122,16 @@ function FuelForm({
 }) {
   const busOptions = useBusOptions()
   const crew = useCrew()
-  const [bill, setBill] = useState<Bill | null>(
-    entry?.bill_file ? { id: entry.bill_file.id, name: entry.bill_file.name } : null
-  )
+  const stationOptions = useVendorOptions('fuel_station')
+  const savedStation = entry?.fuel_station
+  if (savedStation && !stationOptions.some((option) => option.value === String(savedStation.id)))
+    stationOptions.unshift({
+      value: String(savedStation.id),
+      label: savedStation.name,
+      hint: undefined,
+    })
+  const [bill, setBill] = useState<AttachedFile | null>(entry?.bill_file ?? null)
   const [billError, setBillError] = useState('')
-  const [uploading, setUploading] = useState(false)
   const {
     register,
     control,
@@ -133,8 +146,12 @@ function FuelForm({
       litres: entry?.litres.toString() ?? '',
       amount: entry?.amount.toString() ?? '',
       odometer_km: entry?.odometer_km.toString() ?? '',
-      station: entry?.station ?? '',
+      is_full: entry?.is_full ?? true,
+      payment_mode: entry?.payment_mode ?? 'cash',
+      station_id: savedStation ? String(savedStation.id) : '',
+      station: savedStation ? '' : (entry?.station ?? ''),
       filled_by: entry?.filled_by ? String(entry.filled_by.id) : '',
+      reason: '',
     },
   })
 
@@ -143,83 +160,51 @@ function FuelForm({
     label: person.name,
     hint: ROLE_BADGE[person.role].label,
   }))
-  if (
-    entry?.filled_by &&
-    !crewOptions.some((option) => option.value === String(entry.filled_by!.id))
-  ) {
-    crewOptions.unshift({
-      value: String(entry.filled_by.id),
-      label: entry.filled_by.name,
-      hint: '',
-    })
+  const filledBy = entry?.filled_by
+  if (filledBy && !crewOptions.some((option) => option.value === String(filledBy.id))) {
+    crewOptions.unshift({ value: String(filledBy.id), label: filledBy.name, hint: '' })
   }
 
   const litres = Number(useWatch({ control, name: 'litres' }))
   const amount = Number(useWatch({ control, name: 'amount' }))
+  const stationId = useWatch({ control, name: 'station_id' })
+  const paymentMode = useWatch({ control, name: 'payment_mode' })
   const pricePerLitre = litres > 0 && amount > 0 ? amount / litres : null
 
-  const uploadBill = async (file: File | undefined) => {
-    if (!file) return
-    setBillError('')
-    if (!BILL_TYPES.includes(file.type)) return setBillError('Choose a photo or a PDF of the bill')
-    if (file.size > BILL_MAX_BYTES) return setBillError('The bill must be 5 MB or smaller')
-    setUploading(true)
-    onUploadingChange(true)
-    try {
-      const uploaded = await filesApi.upload(file, 'fuel_bill')
-      setBill({ id: uploaded.id, name: uploaded.name })
-    } catch (error) {
-      setBillError(toApiError(error).message)
-    } finally {
-      setUploading(false)
-      onUploadingChange(false)
-    }
-  }
-
   const submit = handleSubmit(async (values) => {
+    const clear = entry ? null : undefined
     const input: FuelInput = {
       vehicle_id: Number(values.vehicle_id),
       filled_on: values.filled_on,
       litres: Number(values.litres),
       amount: Number(values.amount),
       odometer_km: Number(values.odometer_km),
-      station: values.station || (entry ? null : undefined),
-      filled_by: values.filled_by ? Number(values.filled_by) : entry ? null : undefined,
-      bill_file_id: bill ? bill.id : entry?.bill_file ? null : undefined,
+      is_full: values.is_full,
+      payment_mode: values.payment_mode as PaymentMode,
+      station_id: values.station_id ? Number(values.station_id) : clear,
+      station: values.station_id ? clear : values.station || clear,
+      filled_by: values.filled_by ? Number(values.filled_by) : clear,
+      bill_file_id: bill ? bill.id : clear,
     }
+    if (entry && values.reason) input.reason = values.reason
     try {
       await onSubmit(input)
     } catch (error) {
       const apiError = toApiError(error)
-      let mapped = false
-      apiError.fieldErrors.forEach((fieldError) => {
-        if (fieldError.field === 'bill_file_id') {
-          setBillError(fieldError.message)
-          mapped = true
-          return
-        }
-        const field = FIELDS.find((name) => name === fieldError.field)
-        if (field) {
-          setError(field, { message: fieldError.message }, { shouldFocus: !mapped })
-          mapped = true
-        }
+      const mapped = applyFieldErrors(apiError, FIELDS, setError, {
+        bill_file_id: setBillError,
       })
-      if (apiError.code === 'VEHICLE_NOT_FOUND') {
-        setError('vehicle_id', { message: apiError.message })
-      } else if (!mapped) {
-        setError('root', { message: apiError.message })
-      }
+      if (!mapped) setError('root', { message: apiError.message })
     }
   })
 
   return (
     <form id={FORM_ID} onSubmit={submit} noValidate className='grid gap-4 sm:grid-cols-2'>
-      {errors.root?.message && (
-        <p
-          role='alert'
-          className='rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive sm:col-span-2'
-        >
-          {errors.root.message}
+      <FormAlert message={errors.root?.message} />
+      {entry?.status === 'pending' && (
+        <p className='rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm font-medium text-warning sm:col-span-2'>
+          Added from the driver app and waiting for a check. Fix any mistakes here, then approve it
+          from the list.
         </p>
       )}
       <FormField id='fuel-bus' label='Bus' required error={errors.vehicle_id?.message}>
@@ -244,12 +229,19 @@ function FuelForm({
         />
       </FormField>
       <FormField id='fuel-date' label='Date' required error={errors.filled_on?.message}>
-        <Input
-          id='fuel-date'
-          type='date'
-          max={today()}
-          aria-invalid={Boolean(errors.filled_on) || undefined}
-          {...register('filled_on')}
+        <Controller
+          control={control}
+          name='filled_on'
+          render={({ field }) => (
+            <Input
+              id='fuel-date'
+              type='date'
+              max={today()}
+              aria-invalid={Boolean(errors.filled_on) || undefined}
+              value={field.value}
+              onChange={(event) => field.onChange(event.target.value)}
+            />
+          )}
         />
       </FormField>
       <FormField id='fuel-litres' label='Litres' required error={errors.litres?.message}>
@@ -303,15 +295,78 @@ function FuelForm({
           {...register('odometer_km')}
         />
       </FormField>
-      <FormField id='fuel-station' label='Fuel station' error={errors.station?.message}>
-        <Input
-          id='fuel-station'
-          maxLength={100}
-          placeholder='Indian Oil, Anna Nagar'
-          aria-invalid={Boolean(errors.station) || undefined}
-          {...register('station')}
+      <FormField id='fuel-full' label='Fill' error={errors.is_full?.message}>
+        <Controller
+          control={control}
+          name='is_full'
+          render={({ field }) => (
+            <div className='flex min-h-9 items-center gap-2'>
+              <Switch id='fuel-full' checked={field.value} onCheckedChange={field.onChange} />
+              <span className='text-sm text-muted-foreground'>
+                {field.value ? 'Full tank' : 'Part fill (not used for km/l)'}
+              </span>
+            </div>
+          )}
         />
       </FormField>
+      <FormField
+        id='fuel-payment'
+        label='Paid by'
+        required
+        error={errors.payment_mode?.message}
+        hint={paymentMode === 'driver_paid' ? 'Shows in To pay back until paid' : undefined}
+      >
+        <Controller
+          control={control}
+          name='payment_mode'
+          render={({ field }) => (
+            <Combobox
+              id='fuel-payment'
+              label='Paid by'
+              value={field.value || undefined}
+              options={PAYMENT_MODE_OPTIONS}
+              placeholder='Choose how it was paid'
+              searchPlaceholder='Search payment modes'
+              highlightSelected={false}
+              className='sm:w-full'
+              invalid={Boolean(errors.payment_mode)}
+              onChange={(value) => field.onChange(value ?? '')}
+            />
+          )}
+        />
+      </FormField>
+      <FormField id='fuel-station-id' label='Fuel station' error={errors.station_id?.message}>
+        <Controller
+          control={control}
+          name='station_id'
+          render={({ field }) => (
+            <Combobox
+              id='fuel-station-id'
+              label='Fuel station'
+              value={field.value || undefined}
+              options={stationOptions}
+              allLabel='Not a saved station'
+              placeholder='Not a saved station'
+              searchPlaceholder='Search stations'
+              emptyText='No saved stations yet'
+              highlightSelected={false}
+              className='sm:w-full'
+              onChange={(value) => field.onChange(value ?? '')}
+            />
+          )}
+        />
+      </FormField>
+      {!stationId && (
+        <FormField id='fuel-station' label='Station name' error={errors.station?.message}>
+          <Input
+            id='fuel-station'
+            maxLength={100}
+            placeholder='Indian Oil, Anna Nagar'
+            aria-invalid={Boolean(errors.station) || undefined}
+            {...register('station')}
+          />
+        </FormField>
+      )}
       <FormField id='fuel-filled-by' label='Filled by' error={errors.filled_by?.message}>
         <Controller
           control={control}
@@ -334,40 +389,33 @@ function FuelForm({
           )}
         />
       </FormField>
-      <FormField id='fuel-bill' label='Bill' error={billError} hint='Photo or PDF, up to 5 MB'>
-        {bill ? (
-          <div className='flex h-9 min-w-0 items-center gap-2 rounded-md border bg-muted/40 px-3 text-sm'>
-            <FileText className='size-4 shrink-0 text-muted-foreground' />
-            <span className='min-w-0 flex-1 truncate'>{bill.name}</span>
-            <button
-              type='button'
-              onClick={() => setBill(null)}
-              aria-label='Remove bill'
-              className='grid size-6 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground'
-            >
-              <X className='size-3.5' />
-            </button>
-          </div>
-        ) : (
-          <Button asChild variant='outline' disabled={uploading} className='justify-start'>
-            <label htmlFor='fuel-bill' className='cursor-pointer'>
-              <Upload />
-              {uploading ? 'Uploading…' : 'Upload bill'}
-              <input
-                id='fuel-bill'
-                type='file'
-                accept={BILL_TYPES.join(',')}
-                className='sr-only'
-                disabled={uploading}
-                onChange={(event) => {
-                  void uploadBill(event.target.files?.[0])
-                  event.target.value = ''
-                }}
-              />
-            </label>
-          </Button>
-        )}
-      </FormField>
+      <FileField
+        id='fuel-bill'
+        label='Bill'
+        purpose='fuel_bill'
+        file={bill}
+        onChange={setBill}
+        onUploadingChange={onUploadingChange}
+        error={billError}
+        onError={setBillError}
+      />
+      {entry && (
+        <FormField
+          id='fuel-reason'
+          label='Reason for the change'
+          error={errors.reason?.message}
+          hint='Kept in the change history'
+          className='sm:col-span-2'
+        >
+          <Input
+            id='fuel-reason'
+            maxLength={300}
+            placeholder='Wrong amount typed'
+            aria-invalid={Boolean(errors.reason) || undefined}
+            {...register('reason')}
+          />
+        </FormField>
+      )}
     </form>
   )
 }
