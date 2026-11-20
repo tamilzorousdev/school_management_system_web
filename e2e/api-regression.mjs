@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import ExcelJS from 'exceljs'
 
 const API = process.env.E2E_API_URL ?? 'http://localhost:3000/api/v1'
 const DAY = process.env.E2E_DAY ?? 'Day 6'
@@ -7867,6 +7868,375 @@ await TA(
       ['staff_groups']
     )
     return `200; ${teachers} teachers + ${drivers} crew + ${office} office = ${all}`
+  }
+)
+
+const SURVEY_QUESTIONS = [
+  {
+    type: 'single_choice',
+    text: 'How well was it organised?',
+    options: ['Very well', 'Well', 'Poorly'],
+    is_required: true,
+  },
+  {
+    type: 'multi_choice',
+    text: 'What did you enjoy?',
+    options: ['Food', 'Music', 'Games'],
+    is_required: false,
+  },
+  { type: 'rating', text: 'Overall rating', is_required: true },
+  { type: 'short_text', text: 'One word', is_required: false },
+  { type: 'long_text', text: 'Suggestions', is_required: false },
+  { type: 'date', text: 'Day you came', is_required: false },
+  { type: 'number', text: 'Family members who came', is_required: false },
+]
+const surveyValue = (question) =>
+  ({
+    single_choice: question.options[0],
+    multi_choice: [question.options[0], question.options[2]],
+    rating: 4,
+    short_text: 'Joyful',
+    long_text: 'API more shade for parents',
+    date: TODAY_IST,
+    number: 3,
+  })[question.type]
+const surveyAnswers = (questions) =>
+  questions.map((question) => ({ question_id: question.id, value: surveyValue(question) }))
+const closesIn = (days) => new Date(Date.now() + days * 86400_000).toISOString()
+const surveyClasses = (await admin('GET', '/admin/classes')).body.data ?? []
+const classId = (name) => surveyClasses.find((item) => item.name === name)?.id ?? 0
+let surveyId = 0
+let anonSurveyId = 0
+let surveyPreview = 0
+let surveyQuestions = []
+await C(
+  'API-SV-01',
+  'Surveys and forms',
+  'GET',
+  '/admin/surveys/templates',
+  'Ready-made forms',
+  '200; the 6 standard forms, Event feedback among them',
+  async () => {
+    const result = await admin('GET', '/admin/surveys/templates')
+    expectStatus(result, 200)
+    const keys = result.body.data.map((item) => item.key)
+    for (const key of [
+      'ptm_feedback',
+      'event_feedback',
+      'transport_feedback',
+      'canteen_feedback',
+      'annual_parent_satisfaction',
+      'staff_satisfaction',
+    ])
+      if (!keys.includes(key)) throw new Error(`No ${key}`)
+    return `200; ${result.body.data.length} ready-made forms`
+  }
+)
+await C(
+  'API-SV-02',
+  'Surveys and forms',
+  'POST',
+  '/admin/surveys',
+  'A choice question with one option',
+  '400 VALIDATION_FAILED on questions.0.options',
+  async () =>
+    expectFields(
+      await admin('POST', '/admin/surveys', {
+        title: 'API Survey bad options',
+        questions: [
+          { type: 'single_choice', text: 'Pick', options: ['Only one'], is_required: true },
+        ],
+      }),
+      ['questions.0.options']
+    )
+)
+await C(
+  'API-SV-03',
+  'Surveys and forms',
+  'POST',
+  '/admin/surveys',
+  'Draft with one question of every type for Class 3 parents',
+  '201; status draft with 7 questions',
+  async () => {
+    const result = await admin('POST', '/admin/surveys', {
+      title: 'API Survey event feedback',
+      audience: 'classes',
+      class_ids: [classId('3')],
+      questions: SURVEY_QUESTIONS,
+    })
+    expectStatus(result, 201)
+    surveyId = result.body.data.id
+    surveyQuestions = result.body.data.questions
+    if (result.body.data.status !== 'draft' || surveyQuestions.length !== 7)
+      throw new Error(`${result.body.data.status} with ${surveyQuestions.length} questions`)
+    return `201; draft ${surveyId}, ${result.body.data.audience_label}`
+  }
+)
+await C(
+  'API-SV-04',
+  'Surveys and forms',
+  'POST',
+  '/admin/surveys/preview',
+  'Count Class 3 parents before sending',
+  '200; people with the app and answer slots',
+  async () => {
+    const result = await admin('POST', '/admin/surveys/preview', {
+      audience: 'classes',
+      class_ids: [classId('3')],
+    })
+    expectStatus(result, 200)
+    surveyPreview = result.body.data.recipients
+    if (!surveyPreview) throw new Error(JSON.stringify(result.body.data))
+    return `200; ${surveyPreview} answers from ${result.body.data.people} people`
+  }
+)
+await C(
+  'API-SV-05',
+  'Surveys and forms',
+  'POST',
+  '/admin/surveys/{id}/send',
+  'Close date too soon, then send now closing in 2 days',
+  '400 on closes_at, then 200; open with recipients equal to the preview',
+  async () => {
+    if (!surveyId) return 'Skipped: no draft'
+    expectFields(
+      await admin('POST', `/admin/surveys/${surveyId}/send`, { closes_at: closesIn(0.001) }),
+      ['closes_at']
+    )
+    const result = await admin('POST', `/admin/surveys/${surveyId}/send`, {
+      closes_at: closesIn(2),
+    })
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (data.status !== 'open' || data.counts.recipients !== surveyPreview)
+      throw new Error(`${data.status}, ${data.counts.recipients} vs preview ${surveyPreview}`)
+    expectStatus(
+      await admin('POST', `/admin/surveys/${surveyId}/send`, { closes_at: closesIn(2) }),
+      409,
+      'SURVEY_NOT_DRAFT'
+    )
+    return `200; open for ${data.counts.recipients}; a second send is 409 SURVEY_NOT_DRAFT`
+  }
+)
+await C(
+  'API-SV-06',
+  'Surveys and forms',
+  'GET',
+  '/me/surveys',
+  'Parent with a child in Class 3 sees it waiting',
+  '200; the form with its question count',
+  async () => {
+    if (!surveyId) return 'Skipped: not sent'
+    const result = await parent('GET', '/me/surveys?state=waiting')
+    expectStatus(result, 200)
+    const mine = result.body.data.find((item) => item.id === surveyId)
+    if (!mine || mine.question_count !== 7) throw new Error('Not waiting for the parent')
+    return `200; waiting, closes ${mine.closes_at}`
+  }
+)
+await C(
+  'API-SV-07',
+  'Surveys and forms',
+  'POST',
+  '/me/surveys/{id}/answers',
+  'Required answer missing, then a rating of 9',
+  '400 SURVEY_ANSWER_REQUIRED, then 400 SURVEY_ANSWER_INVALID on the question',
+  async () => {
+    if (!surveyId) return 'Skipped: not sent'
+    const answers = surveyAnswers(surveyQuestions)
+    const missing = await parent('POST', `/me/surveys/${surveyId}/answers`, {
+      answers: answers.slice(1),
+    })
+    expectStatus(missing, 400, 'SURVEY_ANSWER_REQUIRED')
+    if (!fields(missing).includes(`answers.${surveyQuestions[0].id}`))
+      throw new Error(`Fields ${fields(missing).join(', ')}`)
+    const rating = surveyQuestions.find((question) => question.type === 'rating')
+    const invalid = await parent('POST', `/me/surveys/${surveyId}/answers`, {
+      answers: answers.map((answer) =>
+        answer.question_id === rating.id ? { ...answer, value: 9 } : answer
+      ),
+    })
+    expectStatus(invalid, 400, 'SURVEY_ANSWER_INVALID')
+    return '400 SURVEY_ANSWER_REQUIRED, then 400 SURVEY_ANSWER_INVALID'
+  }
+)
+await C(
+  'API-SV-08',
+  'Surveys and forms',
+  'POST',
+  '/me/surveys/{id}/answers',
+  'Parent answers, then tries again',
+  '201 with my_answers, then 409 SURVEY_ALREADY_ANSWERED',
+  async () => {
+    if (!surveyId) return 'Skipped: not sent'
+    const answers = surveyAnswers(surveyQuestions)
+    const saved = await parent('POST', `/me/surveys/${surveyId}/answers`, { answers })
+    expectStatus(saved, 201)
+    if (saved.body.data.my_answers?.length !== 7) throw new Error('my_answers missing')
+    expectStatus(
+      await parent('POST', `/me/surveys/${surveyId}/answers`, { answers }),
+      409,
+      'SURVEY_ALREADY_ANSWERED'
+    )
+    const done = (await parent('GET', '/me/surveys?state=done')).body.data
+    if (!done.some((item) => item.id === surveyId)) throw new Error('Not in done')
+    return '201, then 409 SURVEY_ALREADY_ANSWERED; listed under done'
+  }
+)
+await C(
+  'API-SV-09',
+  'Surveys and forms',
+  'GET',
+  '/admin/surveys/{id}/results',
+  'Results after one answer',
+  '200; 1 answered, rating 4, written answer with the name; not answered shrinks',
+  async () => {
+    if (!surveyId) return 'Skipped: not sent'
+    const result = await admin('GET', `/admin/surveys/${surveyId}/results`)
+    expectStatus(result, 200)
+    const data = result.body.data
+    const rating = data.questions.find((question) => question.type === 'rating')
+    const written = data.questions.find((question) => question.type === 'long_text')
+    if (data.counts.answered !== 1 || rating.rating.average !== 4)
+      throw new Error(JSON.stringify(data.counts))
+    if (!written.answers[0]?.name) throw new Error('Written answer has no name')
+    const waiting = (await admin('GET', `/admin/surveys/${surveyId}/not-answered`)).body.data
+    if (waiting.total !== data.counts.recipients - 1)
+      throw new Error(`${waiting.total} not answered`)
+    return `200; ${data.counts.answered}/${data.counts.recipients}, ${waiting.total} not answered`
+  }
+)
+await C(
+  'API-SV-10',
+  'Surveys and forms',
+  'PATCH',
+  '/admin/surveys/{id}',
+  'Change questions after an answer, then extend',
+  '409 SURVEY_LOCKED, extend 200',
+  async () => {
+    if (!surveyId) return 'Skipped: not sent'
+    expectStatus(
+      await admin('PATCH', `/admin/surveys/${surveyId}`, { questions: SURVEY_QUESTIONS }),
+      409,
+      'SURVEY_LOCKED'
+    )
+    const extended = await admin('POST', `/admin/surveys/${surveyId}/extend`, {
+      closes_at: closesIn(4),
+    })
+    expectStatus(extended, 200)
+    if (!extended.body.data.locked) throw new Error('Not locked')
+    return '409 SURVEY_LOCKED; extend 200'
+  }
+)
+await C(
+  'API-SV-11',
+  'Surveys and forms',
+  'POST',
+  '/admin/surveys/{id}/close',
+  'Close, then an answer arrives',
+  '200 closed, then 409 SURVEY_CLOSED',
+  async () => {
+    if (!surveyId) return 'Skipped: not sent'
+    const closed = await admin('POST', `/admin/surveys/${surveyId}/close`)
+    expectStatus(closed, 200)
+    if (closed.body.data.status !== 'closed') throw new Error(closed.body.data.status)
+    expectStatus(
+      await parent('POST', `/me/surveys/${surveyId}/answers`, {
+        answers: surveyAnswers(surveyQuestions),
+      }),
+      409,
+      'SURVEY_CLOSED'
+    )
+    return '200 closed, then 409 SURVEY_CLOSED'
+  }
+)
+await C(
+  'API-SV-12',
+  'Surveys and forms',
+  'GET',
+  '/admin/surveys/{id}/results',
+  'Anonymous form answered once per child',
+  'One row per child for the parent; no names in results or Excel; not-answered 403',
+  async () => {
+    const created = await admin('POST', '/admin/surveys', {
+      title: 'API Survey anonymous per child',
+      audience: 'classes',
+      class_ids: [classId('3'), classId('6')],
+      is_anonymous: true,
+      per_child: true,
+      questions: SURVEY_QUESTIONS.slice(2, 5),
+    })
+    expectStatus(created, 201)
+    anonSurveyId = created.body.data.id
+    expectStatus(
+      await admin('POST', `/admin/surveys/${anonSurveyId}/send`, { closes_at: closesIn(2) }),
+      200
+    )
+    const mine = (await parent('GET', '/me/surveys')).body.data.filter(
+      (item) => item.id === anonSurveyId
+    )
+    if (mine.length !== 2 || mine.some((item) => !item.student))
+      throw new Error(`${mine.length} rows for the parent`)
+    expectFields(await parent('POST', `/me/surveys/${anonSurveyId}/answers`, { answers: [] }), [
+      'student_id',
+    ])
+    const form = (
+      await parent('GET', `/me/surveys/${anonSurveyId}?student_id=${mine[0].student.id}`)
+    ).body.data
+    expectStatus(
+      await parent('POST', `/me/surveys/${anonSurveyId}/answers`, {
+        student_id: mine[0].student.id,
+        answers: surveyAnswers(form.questions),
+      }),
+      201
+    )
+    const results = (await admin('GET', `/admin/surveys/${anonSurveyId}/results`)).body.data
+    const answers = results.questions.flatMap((question) => question.answers ?? [])
+    if (answers.some((answer) => 'name' in answer)) throw new Error('A name came back')
+    expectStatus(
+      await admin('GET', `/admin/surveys/${anonSurveyId}/not-answered`),
+      403,
+      'SURVEY_ANONYMOUS'
+    )
+    const file = await fetch(`${API}/admin/surveys/${anonSurveyId}/export`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    if (!(file.headers.get('content-type') ?? '').includes('spreadsheetml'))
+      throw new Error(`Export is ${file.headers.get('content-type')}`)
+    const book = new ExcelJS.Workbook()
+    await book.xlsx.load(Buffer.from(await file.arrayBuffer()))
+    const header = book.getWorksheet('Answers').getRow(4).values.filter(Boolean)
+    if (header.includes('Name')) throw new Error('Excel has a Name column')
+    await admin('POST', `/admin/surveys/${anonSurveyId}/close`)
+    return `2 rows for the parent; ${results.counts.answered} answered; no names; not-answered 403`
+  }
+)
+await C(
+  'API-SV-13',
+  'Surveys and forms',
+  'POST',
+  '/admin/surveys',
+  'A teacher tries to build a form',
+  '403',
+  async () =>
+    expectStatus(
+      await teacher('POST', '/admin/surveys', { title: 'Not allowed', questions: [] }),
+      403
+    )
+)
+await C(
+  'API-SV-14',
+  'Surveys and forms',
+  'DELETE',
+  '/admin/surveys/{id}',
+  'Delete a draft, then a sent form',
+  '200 for the draft, 409 SURVEY_NOT_DRAFT for the sent one',
+  async () => {
+    const draft = await admin('POST', '/admin/surveys', { title: 'API Survey draft to delete' })
+    expectStatus(await admin('DELETE', `/admin/surveys/${draft.body.data.id}`), 200)
+    if (!surveyId) return '200 for the draft'
+    expectStatus(await admin('DELETE', `/admin/surveys/${surveyId}`), 409, 'SURVEY_NOT_DRAFT')
+    return '200, then 409 SURVEY_NOT_DRAFT'
   }
 )
 

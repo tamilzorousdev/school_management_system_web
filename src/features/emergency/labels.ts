@@ -1,10 +1,10 @@
 import type { BadgeTone } from '@/components/ui/badge'
+import type { PickerAudience } from './audience'
 import type {
   BroadcastState,
   BroadcastStatus,
   ExpiryUnit,
   DeliveryStatus,
-  EmergencyAudience,
   EmergencyCategory,
   EmergencySeverity,
 } from './api'
@@ -74,7 +74,7 @@ export const DELIVERY: Record<DeliveryStatus, { label: string; tone: BadgeTone }
   none: { label: '—', tone: 'neutral' },
 }
 
-export const AUDIENCE_OPTIONS: { value: EmergencyAudience; label: string }[] = [
+export const AUDIENCE_OPTIONS: { value: PickerAudience; label: string }[] = [
   { value: 'everyone', label: 'Everyone' },
   { value: 'parents', label: 'All parents' },
   { value: 'staff', label: 'All staff' },

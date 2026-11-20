@@ -56,5 +56,28 @@ for (const [label, sql] of steps) {
   const result = await db.query(sql, sql.includes('$1') ? [NAME] : [])
   if (result.rowCount) console.log(`Removed ${result.rowCount} test ${label}`)
 }
+
+const SURVEY = '^(RT|API) Survey'
+const TEST_SURVEYS = 'SELECT id FROM surveys WHERE title ~ $1'
+const surveySteps = [
+  [
+    'survey notices',
+    `DELETE FROM notifications WHERE template_code IN ('SURVEY_NEW', 'SURVEY_REMINDER')
+     AND data->>'survey_id' IN (SELECT id::text FROM surveys WHERE title ~ $1)`,
+  ],
+  [
+    'survey answers',
+    `DELETE FROM survey_answers WHERE response_id IN
+     (SELECT id FROM survey_responses WHERE survey_id IN (${TEST_SURVEYS}))`,
+  ],
+  ['survey responses', `DELETE FROM survey_responses WHERE survey_id IN (${TEST_SURVEYS})`],
+  ['survey recipients', `DELETE FROM survey_recipients WHERE survey_id IN (${TEST_SURVEYS})`],
+  ['survey questions', `DELETE FROM survey_questions WHERE survey_id IN (${TEST_SURVEYS})`],
+  ['surveys', 'DELETE FROM surveys WHERE title ~ $1'],
+]
+for (const [label, sql] of surveySteps) {
+  const result = await db.query(sql, [SURVEY])
+  if (result.rowCount) console.log(`Removed ${result.rowCount} test ${label}`)
+}
 await db.end()
 console.log('Test data clean-up done')
