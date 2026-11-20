@@ -22,6 +22,7 @@ import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
 import { announcementsSearchSchema } from '@/features/announcements/search'
 import { eventsSearchSchema } from '@/features/events/search'
+import { grievancesSearchSchema } from '@/features/grievances/search'
 import { chatSearchSchema } from '@/features/chat/search'
 import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
@@ -136,6 +137,16 @@ const eventsRoute = createRoute({
   path: '/events',
   validateSearch: eventsSearchSchema,
   component: lazyRouteComponent(() => import('@/features/events/pages/events-page'), 'EventsPage'),
+})
+
+const grievancesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/grievances',
+  validateSearch: grievancesSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/grievances/pages/grievances-page'),
+    'GrievancesPage'
+  ),
 })
 
 const chatRoute = createRoute({
@@ -645,6 +656,7 @@ const routeTree = rootRoute.addChildren([
     diaryRoute,
     announcementsRoute,
     eventsRoute,
+    grievancesRoute,
     chatRoute,
     fleetRoute,
     tripRoute,
