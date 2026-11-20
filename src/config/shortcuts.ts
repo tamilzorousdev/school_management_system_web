@@ -11,6 +11,11 @@ export const SHORTCUTS = {
   'nav.students': { combo: 'g s', label: 'Go to students', group: 'Navigation' },
   'nav.staff': { combo: 'g t', label: 'Go to staff', group: 'Navigation' },
   'nav.assignments': { combo: 'g e', label: 'Go to teacher assignments', group: 'Navigation' },
+  'nav.appraisals': {
+    combo: 'g shift+a',
+    label: 'Go to staff appraisals',
+    group: 'Navigation',
+  },
   'nav.crew': { combo: 'g 7', label: 'Go to drivers and attendants', group: 'Navigation' },
   'nav.attendance': { combo: 'g r', label: 'Go to attendance', group: 'Navigation' },
   'nav.timetable': { combo: 'g w', label: 'Go to timetable', group: 'Navigation' },
@@ -67,6 +72,8 @@ export const SHORTCUTS = {
     label: 'Add a ticket, fuel entry, expense or rule in Maintenance',
     group: 'Users',
   },
+  'appraisals.create': { combo: 'alt+n', label: 'Add a staff appraisal', group: 'Users' },
+  'leaveTypes.create': { combo: 'alt+n', label: 'Add a leave type in Attendance', group: 'Users' },
   'banners.create': {
     combo: 'alt+n',
     label: 'Add a banner',

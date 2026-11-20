@@ -1,4 +1,5 @@
 import {
+  Award,
   BellRing,
   GalleryHorizontal,
   Building2,
@@ -48,6 +49,7 @@ export type NavPath =
   | '/guardians'
   | '/staff'
   | '/staff/assignments'
+  | '/staff/appraisals'
   | '/crew'
   | '/attendance'
   | '/timetable'
@@ -170,6 +172,14 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Who teaches each subject in each section',
         icon: Grid3x3,
         shortcut: 'nav.assignments',
+        permission: 'staff.view',
+      },
+      {
+        to: '/staff/appraisals',
+        label: 'Staff appraisals',
+        description: 'Performance reviews, ratings and teacher comments from the Staff app',
+        icon: Award,
+        shortcut: 'nav.appraisals',
         permission: 'staff.view',
       },
       {

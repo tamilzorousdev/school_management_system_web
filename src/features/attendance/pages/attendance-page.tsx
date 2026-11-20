@@ -1,10 +1,11 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { CalendarCheck, Inbox, UsersRound } from 'lucide-react'
+import { CalendarCheck, Inbox, ListChecks, UsersRound } from 'lucide-react'
 import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
 import { can, useMe } from '@/features/auth/api'
 import { useStaffLeaves } from '../api'
 import { LeaveTab } from '../components/leave-tab'
+import { LeaveTypesTab } from '../components/leave-types-tab'
 import { StaffTab } from '../components/staff-tab'
 import { StudentsTab } from '../components/students-tab'
 import { today } from '../labels'
@@ -18,6 +19,7 @@ export function AttendancePage() {
   const me = useMe().data
   const canManage = can(me, 'attendance.manage')
   const canApprove = can(me, 'leave.approve')
+  const canEditLeaveTypes = can(me, 'schools.manage')
   const date = search.date ?? today()
   const staffWaiting = useStaffLeaves({ page: 1, limit: 1, status: 'waiting' })
 
@@ -33,7 +35,7 @@ export function AttendancePage() {
       <PageHeader
         eyebrow='Academics'
         title='Attendance'
-        description='Daily attendance of every section, staff check-ins and leave requests waiting for a decision.'
+        description='Daily attendance of every section, staff check-ins, leave requests waiting for a decision and the staff leave types.'
       />
       <PageTabs
         label='Attendance sections'
@@ -48,6 +50,7 @@ export function AttendancePage() {
             icon: Inbox,
             count: staffWaiting.data?.total || undefined,
           },
+          { value: 'leave_types', label: 'Leave types', icon: ListChecks },
         ]}
       />
       {search.tab === 'students' && (
@@ -91,6 +94,7 @@ export function AttendancePage() {
           onSearchChange={(patch) => setSearch({ page: 1, ...patch })}
         />
       )}
+      {search.tab === 'leave_types' && <LeaveTypesTab canManage={canEditLeaveTypes} />}
     </Page>
   )
 }

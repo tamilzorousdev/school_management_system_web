@@ -318,6 +318,14 @@ export interface LeaveType {
   is_active: boolean
 }
 
+export interface LeaveTypeInput {
+  code: string
+  name: string
+  days_per_year: number
+  is_paid?: boolean
+  is_active?: boolean
+}
+
 export interface LeaveBalance {
   leave_type: LeaveType
   allowed: number | null
@@ -382,6 +390,7 @@ export const attendanceKeys = {
   staffLeaves: (params: StaffLeaveParams) =>
     [...attendanceKeys.all, 'staff-leaves', params] as const,
   balances: (userId: number) => [...attendanceKeys.all, 'balances', userId] as const,
+  leaveTypes: () => [...attendanceKeys.all, 'leave-types'] as const,
 }
 
 export const attendanceApi = {
@@ -429,6 +438,10 @@ export const attendanceApi = {
   balances: (userId: number) => api.get<LeaveBalance[]>(`/admin/staff-leaves/balances/${userId}`),
   decideStaffLeave: (id: number, input: DecisionInput) =>
     api.post<StaffLeave>(`/admin/staff-leaves/${id}/decision`, input),
+  leaveTypes: () => api.get<LeaveType[]>('/admin/leave-types'),
+  createLeaveType: (input: LeaveTypeInput) => api.post<LeaveType>('/admin/leave-types', input),
+  updateLeaveType: (id: number, input: Partial<LeaveTypeInput>) =>
+    api.patch<LeaveType>(`/admin/leave-types/${id}`, input),
 }
 
 export function useAttendanceBoard(date: string, slot: AttendanceSlot = { session: 'morning' }) {
@@ -505,6 +518,14 @@ export function useLeaveBalances(userId: number | null) {
     queryFn: () => attendanceApi.balances(userId!),
     enabled: Boolean(userId),
     meta: { silent: true },
+  })
+}
+
+export function useLeaveTypes(enabled = true) {
+  return useQuery({
+    queryKey: attendanceKeys.leaveTypes(),
+    queryFn: attendanceApi.leaveTypes,
+    enabled,
   })
 }
 

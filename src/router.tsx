@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { AppLayout } from '@/components/layout/app-layout'
 import { queryClient } from '@/lib/api/query-client'
 import { session } from '@/lib/auth/session'
+import { appraisalsSearchSchema } from '@/features/appraisals/search'
 import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
 import { feedbackSearchSchema } from '@/features/feedback/search'
@@ -292,6 +293,16 @@ const staffAssignmentsRoute = createRoute({
   ),
 })
 
+const staffAppraisalsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/staff/appraisals',
+  validateSearch: appraisalsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/appraisals/pages/appraisals-page'),
+    'AppraisalsPage'
+  ),
+})
+
 const staffProfileRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/staff/$staffId',
@@ -546,6 +557,7 @@ const routeTree = rootRoute.addChildren([
     guardiansRoute,
     staffRoute,
     staffAssignmentsRoute,
+    staffAppraisalsRoute,
     staffProfileRoute,
     crewRoute,
     crewProfileRoute,
