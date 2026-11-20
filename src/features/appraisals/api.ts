@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginated } from '@/lib/api/client'
 
-export type AppraisalStatus = 'draft' | 'submitted' | 'reviewed' | 'finalized'
+export type AppraisalStatus = 'draft' | 'submitted' | 'reviewed' | 'appealed' | 'finalized'
 export type OverallRating =
   | 'outstanding'
   | 'exceeds_expectations'

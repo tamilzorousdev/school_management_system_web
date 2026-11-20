@@ -11,7 +11,6 @@ import { z } from 'zod'
 import { AppLayout } from '@/components/layout/app-layout'
 import { queryClient } from '@/lib/api/query-client'
 import { session } from '@/lib/auth/session'
-import { appraisalsSearchSchema } from '@/features/appraisals/search'
 import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
 import { feedbackSearchSchema } from '@/features/feedback/search'
@@ -28,6 +27,7 @@ import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
 import { setupSearchSchema } from '@/features/setup/search'
 import {
+  appraisalsSearchSchema,
   assignmentsSearchSchema,
   staffProfileSearchSchema,
   staffSearchSchema,
@@ -300,7 +300,7 @@ const staffAppraisalsRoute = createRoute({
   path: '/staff/appraisals',
   validateSearch: appraisalsSearchSchema,
   component: lazyRouteComponent(
-    () => import('@/features/appraisals/pages/appraisals-page'),
+    () => import('@/features/staff/pages/appraisals-page'),
     'AppraisalsPage'
   ),
 })

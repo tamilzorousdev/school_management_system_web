@@ -179,8 +179,8 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/staff/appraisals',
-        label: 'Staff appraisals',
-        description: 'Performance reviews, ratings and teacher comments from the Staff app',
+        label: 'Performance & Appraisals',
+        description: 'Track teacher performance reviews, KRA ratings and salary hike approvals',
         icon: Award,
         shortcut: 'nav.appraisals',
         permission: 'staff.view',
