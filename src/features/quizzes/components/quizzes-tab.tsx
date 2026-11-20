@@ -2,10 +2,13 @@ import { useState } from 'react'
 import {
   BarChart3,
   BookOpen,
+  Camera,
   CheckCircle,
   Clock,
   Eye,
   FileQuestion,
+  Mic,
+  ShieldAlert,
 } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
@@ -53,6 +56,25 @@ export function QuizzesTab({
             <BookOpen className='h-3 w-3' />
             {quiz.subject?.name ?? 'Subject'}
           </span>
+          {(quiz.require_camera || quiz.require_microphone || quiz.expire_on_exit) && (
+            <div className='flex items-center gap-1 mt-1 flex-wrap'>
+              {quiz.require_camera && (
+                <span className='inline-flex items-center gap-0.5 text-[10px] bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 px-1.5 py-0.5 rounded font-medium'>
+                  <Camera className='h-2.5 w-2.5' /> Camera
+                </span>
+              )}
+              {quiz.require_microphone && (
+                <span className='inline-flex items-center gap-0.5 text-[10px] bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 px-1.5 py-0.5 rounded font-medium'>
+                  <Mic className='h-2.5 w-2.5' /> Voice
+                </span>
+              )}
+              {quiz.expire_on_exit && (
+                <span className='inline-flex items-center gap-0.5 text-[10px] bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 px-1.5 py-0.5 rounded font-medium'>
+                  <ShieldAlert className='h-2.5 w-2.5' /> Strict Exit
+                </span>
+              )}
+            </div>
+          )}
         </div>
       ),
     },

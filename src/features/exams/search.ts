@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const EXAM_TABS = ['exams', 'marks', 'results'] as const
+export const EXAM_TABS = ['exams', 'marks', 'results', 'halls', 'grading'] as const
 export type ExamTab = (typeof EXAM_TABS)[number]
 
 export const EXAM_STATUS_FILTERS = ['draft', 'published'] as const

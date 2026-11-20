@@ -35,6 +35,9 @@ export interface OnlineQuiz {
   end_at: string
   total_marks: number
   pass_percentage: number
+  expire_on_exit?: boolean
+  require_camera?: boolean
+  require_microphone?: boolean
   status: QuizStatus
   rejection_reason: string | null
   approved_at: string | null

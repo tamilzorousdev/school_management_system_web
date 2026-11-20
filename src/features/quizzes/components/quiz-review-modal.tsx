@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
-import { CheckCircle2, XCircle, AlertCircle, Clock, BookOpen, User } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertCircle, Clock, BookOpen, User, Camera, Mic, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -152,6 +152,24 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
                   <div className='text-amber-800 dark:text-amber-300 whitespace-pre-wrap'>{quiz.instructions}</div>
                 </div>
               )}
+
+              <div className='p-3 bg-slate-50 dark:bg-slate-900 border rounded-md text-xs space-y-2'>
+                <div className='font-semibold text-foreground flex items-center gap-1.5'>
+                  <ShieldAlert className='h-3.5 w-3.5 text-primary' />
+                  Proctoring & Anti-Cheat Rules:
+                </div>
+                <div className='flex items-center gap-4 flex-wrap'>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-medium ${quiz.require_camera ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-muted text-muted-foreground line-through'}`}>
+                    <Camera className='h-3 w-3' /> Camera Monitoring {quiz.require_camera ? '(Active)' : '(Disabled)'}
+                  </span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-medium ${quiz.require_microphone ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-muted text-muted-foreground line-through'}`}>
+                    <Mic className='h-3 w-3' /> Voice Monitoring {quiz.require_microphone ? '(Active)' : '(Disabled)'}
+                  </span>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-medium ${quiz.expire_on_exit ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-muted text-muted-foreground line-through'}`}>
+                    <ShieldAlert className='h-3 w-3' /> Expire on Exit {quiz.expire_on_exit ? '(Strict Disqualification)' : '(Permissive)'}
+                  </span>
+                </div>
+              </div>
 
               {quiz.rejection_reason && (
                 <div className='p-3 bg-destructive/10 border border-destructive/20 rounded-md text-xs space-y-1'>

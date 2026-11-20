@@ -141,6 +141,7 @@ export interface ResultRow {
   result: ResultStatus
   section_rank: number | null
   class_rank: number | null
+  percentile?: number | null
   subjects: SubjectResult[]
 }
 
@@ -207,7 +208,111 @@ export interface StudentExamResult {
   section_size: number
   class_rank: number | null
   class_size: number
+  percentile?: number | null
   subjects: StudentSubjectResult[]
+}
+
+
+export interface ExamHall {
+  id: number
+  school_id: number
+  name: string
+  building: string | null
+  floor: string | null
+  capacity: number
+  rows_count: number
+  columns_count: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface CreateExamHallInput {
+  name: string
+  building?: string
+  floor?: string
+  capacity: number
+  rows_count?: number
+  columns_count?: number
+  is_active?: boolean
+}
+
+export interface ExamSeatAllocation {
+  id: number
+  exam_id: number
+  hall_id: number
+  hall_name: string
+  building: string | null
+  floor: string | null
+  student_id: number
+  full_name: string
+  admission_no: string
+  roll_no: number | null
+  class_name: string
+  section_name: string
+  seat_number: string
+  desk_order: number
+}
+
+export interface AutoAllocateHallsInput {
+  hall_ids: number[]
+  strategy?: 'sequential' | 'alternate_section'
+}
+
+export interface AutoAllocateResult {
+  total_students: number
+  total_capacity: number
+  allocated: number
+  unallocated: number
+  halls: {
+    hall_id: number
+    hall_name: string
+    allocated_count: number
+    capacity: number
+  }[]
+}
+
+export interface ExamInvigilator {
+  id: number
+  exam_id: number
+  hall_id: number
+  hall_name: string
+  teacher_user_id: number
+  teacher_name: string
+  teacher_phone?: string | null
+  exam_date: string
+  session: string
+}
+
+export interface AssignInvigilatorInput {
+  hall_id: number
+  teacher_user_id: number
+  exam_date: string
+  session?: string
+}
+
+export interface GradingTier {
+  grade: string
+  min_percentage: number
+  max_percentage: number
+  grade_point?: number
+  description?: string
+}
+
+export interface GradingScale {
+  id: number
+  school_id: number
+  board: string
+  name: string
+  is_default: boolean
+  tiers: GradingTier[]
+  created_at: string
+}
+
+export interface SaveGradingScaleInput {
+  board: string
+  name: string
+  is_default?: boolean
+  tiers: GradingTier[]
 }
 
 export interface ExamListParams {
@@ -231,6 +336,10 @@ export const examKeys = {
   toppers: (id: number) => [...examKeys.all, 'toppers', id] as const,
   latestPublished: () => [...examKeys.all, 'latest-published'] as const,
   student: (studentId: number) => [...examKeys.all, 'student', studentId] as const,
+  halls: () => [...examKeys.all, 'halls'] as const,
+  seating: (examId: number, hallId?: number) => [...examKeys.all, 'seating', examId, hallId] as const,
+  invigilators: (examId: number) => [...examKeys.all, 'invigilators', examId] as const,
+  gradingScales: () => [...examKeys.all, 'grading-scales'] as const,
 }
 
 export const examsApi = {
@@ -258,6 +367,32 @@ export const examsApi = {
   publish: (id: number) => api.post<ExamDetail>(`/admin/exams/${id}/publish`),
   studentResults: (studentId: number) =>
     api.get<StudentExamResult[]>(`/admin/students/${studentId}/results`),
+  // Halls
+  listHalls: () => api.get<ExamHall[]>('/admin/exams/halls'),
+  createHall: (input: CreateExamHallInput) => api.post<ExamHall>('/admin/exams/halls', input),
+  updateHall: (hallId: number, input: Partial<CreateExamHallInput>) =>
+    api.put<ExamHall>(`/admin/exams/halls/${hallId}`, input),
+  deleteHall: (hallId: number) => api.delete<null>(`/admin/exams/halls/${hallId}`),
+  // Seating
+  seating: (examId: number, hallId?: number) =>
+    api.get<ExamSeatAllocation[]>(`/admin/exams/${examId}/seating`, hallId ? { hall_id: hallId } : undefined),
+  autoAllocate: (examId: number, input: AutoAllocateHallsInput) =>
+    api.post<AutoAllocateResult>(`/admin/exams/${examId}/seating/auto-allocate`, input),
+  clearSeating: (examId: number) => api.delete<null>(`/admin/exams/${examId}/seating`),
+  // Invigilators
+  invigilators: (examId: number) => api.get<ExamInvigilator[]>(`/admin/exams/${examId}/invigilators`),
+  assignInvigilator: (examId: number, input: AssignInvigilatorInput) =>
+    api.post<ExamInvigilator>(`/admin/exams/${examId}/invigilators`, input),
+  deleteInvigilator: (examId: number, invigilatorId: number) =>
+    api.delete<null>(`/admin/exams/${examId}/invigilators/${invigilatorId}`),
+  // Grading scales
+  listGradingScales: () => api.get<GradingScale[]>('/admin/exams/grading-scales'),
+  saveGradingScale: (input: SaveGradingScaleInput) =>
+    api.post<GradingScale>('/admin/exams/grading-scales', input),
+  setDefaultGradingScale: (scaleId: number) =>
+    api.put<null>(`/admin/exams/grading-scales/${scaleId}/set-default`),
+  deleteGradingScale: (scaleId: number) =>
+    api.delete<null>(`/admin/exams/grading-scales/${scaleId}`),
 }
 
 export function useExams(params: ExamListParams) {
@@ -339,5 +474,122 @@ export function useExamMutation<TInput, TResult>(fn: (input: TInput) => Promise<
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: examKeys.all })
     },
+  })
+}
+
+
+export function useExamHalls() {
+  return useQuery({
+    queryKey: examKeys.halls(),
+    queryFn: () => examsApi.listHalls(),
+  })
+}
+
+export function useCreateExamHall() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CreateExamHallInput) => examsApi.createHall(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: examKeys.halls() }),
+  })
+}
+
+export function useUpdateExamHall() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...input }: { id: number } & Partial<CreateExamHallInput>) =>
+      examsApi.updateHall(id, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: examKeys.halls() }),
+  })
+}
+
+export function useDeleteExamHall() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => examsApi.deleteHall(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: examKeys.halls() }),
+  })
+}
+
+export function useExamSeating(examId?: number, hallId?: number) {
+  return useQuery({
+    queryKey: examKeys.seating(examId ?? 0, hallId),
+    queryFn: () => examsApi.seating(examId!, hallId),
+    enabled: Boolean(examId),
+  })
+}
+
+export function useAutoAllocateSeats() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ examId, ...input }: { examId: number } & AutoAllocateHallsInput) =>
+      examsApi.autoAllocate(examId, input),
+    onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: examKeys.seating(vars.examId) }),
+  })
+}
+
+export function useClearSeating() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (examId: number) => examsApi.clearSeating(examId),
+    onSuccess: (_data, examId) => qc.invalidateQueries({ queryKey: examKeys.seating(examId) }),
+  })
+}
+
+export function useExamInvigilators(examId?: number) {
+  return useQuery({
+    queryKey: examKeys.invigilators(examId ?? 0),
+    queryFn: () => examsApi.invigilators(examId!),
+    enabled: Boolean(examId),
+  })
+}
+
+export function useAssignInvigilator() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ examId, ...input }: { examId: number } & AssignInvigilatorInput) =>
+      examsApi.assignInvigilator(examId, input),
+    onSuccess: (_data, vars) =>
+      qc.invalidateQueries({ queryKey: examKeys.invigilators(vars.examId) }),
+  })
+}
+
+export function useDeleteInvigilator() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ examId, invigilatorId }: { examId: number; invigilatorId: number }) =>
+      examsApi.deleteInvigilator(examId, invigilatorId),
+    onSuccess: (_data, vars) =>
+      qc.invalidateQueries({ queryKey: examKeys.invigilators(vars.examId) }),
+  })
+}
+
+export function useGradingScales() {
+  return useQuery({
+    queryKey: examKeys.gradingScales(),
+    queryFn: () => examsApi.listGradingScales(),
+  })
+}
+
+export function useSaveGradingScale() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: SaveGradingScaleInput) => examsApi.saveGradingScale(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: examKeys.gradingScales() }),
+  })
+}
+
+export function useSetDefaultGradingScale() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (scaleId: number) => examsApi.setDefaultGradingScale(scaleId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: examKeys.gradingScales() }),
+  })
+}
+
+export function useDeleteGradingScale() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (scaleId: number) => examsApi.deleteGradingScale(scaleId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: examKeys.gradingScales() }),
   })
 }
