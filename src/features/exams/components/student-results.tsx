@@ -63,9 +63,17 @@ function ResultCard({ result }: { result: StudentExamResult }) {
           </Badge>
         </div>
       </div>
-      <dl className='grid grid-cols-2 gap-3 border-b px-4 py-3 text-sm sm:grid-cols-4'>
+      <dl className='grid grid-cols-2 gap-3 border-b px-4 py-3 text-sm sm:grid-cols-5'>
         <Stat label='Total' value={`${result.total} / ${result.max_total}`} />
         <Stat label='Percentage' value={percentText(result.percent)} />
+        <Stat
+          label='Percentile'
+          value={
+            result.percentile !== null && result.percentile !== undefined
+              ? `${result.percentile}%`
+              : '—'
+          }
+        />
         <Stat
           label='Section rank'
           value={`${rankText(result.section_rank)} of ${result.section_size}`}

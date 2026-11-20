@@ -366,6 +366,17 @@ function resultColumns(subjects: MarkSubject[]): Column<ResultRow>[] {
       hideBelow: 'lg',
       cell: (row) => <span className='tabular'>{rankText(row.class_rank)}</span>,
     },
+    {
+      key: 'percentile',
+      header: 'Percentile',
+      align: 'right',
+      hideBelow: 'lg',
+      cell: (row) => (
+        <span className='tabular font-medium text-emerald-700'>
+          {row.percentile !== null && row.percentile !== undefined ? `${row.percentile}%` : '—'}
+        </span>
+      ),
+    },
   ]
 }
 
@@ -378,7 +389,7 @@ function ResultCard({ row, subjects }: { row: ResultRow; subjects: MarkSubject[]
           <div className='grid min-w-0'>
             <span className='truncate font-bold'>{row.full_name}</span>
             <span className='truncate text-xs text-muted-foreground'>
-              Roll {row.roll_no ?? '—'} · Class rank {rankText(row.class_rank)}
+              Roll {row.roll_no ?? '—'} · Class rank {rankText(row.class_rank)}{row.percentile !== null && row.percentile !== undefined ? ` · ${row.percentile}th %ile` : ''}
             </span>
           </div>
         </div>
