@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const ATTENDANCE_TABS = ['students', 'staff', 'leave'] as const
+export const ATTENDANCE_TABS = ['students', 'staff', 'leave', 'leave_types'] as const
 export type AttendanceTab = (typeof ATTENDANCE_TABS)[number]
 
 export const LEAVE_KINDS = ['student', 'staff'] as const
