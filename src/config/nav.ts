@@ -36,6 +36,7 @@ import {
   Boxes,
   Megaphone,
   MessagesSquare,
+  Scale,
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
@@ -73,6 +74,7 @@ export type NavPath =
   | '/diary'
   | '/announcements'
   | '/events'
+  | '/grievances'
   | '/chat'
   | '/app-banners'
   | '/fleet'
@@ -372,6 +374,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: CalendarCheck,
         shortcut: 'nav.events',
         permission: 'events.view',
+      },
+      {
+        to: '/grievances',
+        label: 'Grievances',
+        description: 'Complaints, investigation notes, and SLA tracking for parents and staff',
+        icon: Scale,
+        shortcut: 'nav.grievances',
+        permission: 'notifications.view',
       },
       {
         to: '/chat',
