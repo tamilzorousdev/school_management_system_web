@@ -15,6 +15,7 @@ import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
 import { feedbackSearchSchema } from '@/features/feedback/search'
 import { emergencySearchSchema } from '@/features/emergency/search'
+import { surveyResultsSearchSchema, surveysSearchSchema } from '@/features/surveys/search'
 import { gateSearchSchema } from '@/features/gate/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
@@ -343,6 +344,45 @@ const emergencyRoute = createRoute({
   ),
 })
 
+const surveysRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/surveys',
+  validateSearch: surveysSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/surveys/pages/surveys-page'),
+    'SurveysPage'
+  ),
+})
+
+const surveyNewRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/surveys/new',
+  component: lazyRouteComponent(
+    () => import('@/features/surveys/pages/survey-builder-page'),
+    'SurveyBuilderPage'
+  ),
+})
+
+const surveyEditRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/surveys/$surveyId/edit',
+  validateSearch: z.object({ send: z.boolean().optional().catch(undefined) }),
+  component: lazyRouteComponent(
+    () => import('@/features/surveys/pages/survey-builder-page'),
+    'SurveyBuilderPage'
+  ),
+})
+
+const surveyResultsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/surveys/$surveyId',
+  validateSearch: surveyResultsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/surveys/pages/survey-results-page'),
+    'SurveyResultsPage'
+  ),
+})
+
 const gateRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/gate',
@@ -561,6 +601,10 @@ const routeTree = rootRoute.addChildren([
     performanceRoute,
     feedbackRoute,
     emergencyRoute,
+    surveysRoute,
+    surveyNewRoute,
+    surveyEditRoute,
+    surveyResultsRoute,
     gateRoute,
     timetableRoute,
     substitutesRoute,

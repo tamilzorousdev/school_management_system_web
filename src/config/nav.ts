@@ -62,6 +62,7 @@ export type NavPath =
   | '/class-performance'
   | '/teacher-feedback'
   | '/emergency'
+  | '/surveys'
   | '/gate'
   | '/activities'
   | '/transport'
@@ -328,6 +329,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Siren,
         shortcut: 'nav.emergency',
         permission: 'emergency.view',
+      },
+      {
+        to: '/surveys',
+        label: 'Surveys & forms',
+        description: 'Feedback forms and surveys for parents and staff, answered in the apps',
+        icon: ClipboardList,
+        shortcut: 'nav.surveys',
+        permission: 'surveys.view',
       },
       {
         to: '/gate',

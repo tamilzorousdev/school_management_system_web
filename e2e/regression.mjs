@@ -3213,6 +3213,41 @@ await test(
     await page.keyboard.press('Escape')
   }
 )
+await test(
+  {
+    id: 'SV-01',
+    module: 'Surveys and forms',
+    type: 'View',
+    title: 'Surveys list shows insight cards and status tabs',
+    steps: 'Sidebar, Communication, Surveys & forms.',
+    expected:
+      'Open now, Drafts, Answers this month, Average response rate; Open, Scheduled, Drafts, Closed tabs',
+  },
+  async () => {
+    await go('/surveys')
+    for (const text of ['Open now', 'Answers this month', 'Average response rate']) await see(text)
+    for (const name of ['Open', 'Scheduled', 'Drafts', 'Closed'])
+      await page.getByRole('tab', { name, exact: true }).waitFor({ timeout: 8000 })
+  }
+)
+await test(
+  {
+    id: 'SV-02',
+    module: 'Surveys and forms',
+    type: 'Create',
+    title: 'Builder starts from a ready-made form with a phone preview',
+    steps: 'Surveys & forms, New form, Start from a ready-made form: Event feedback.',
+    expected: 'Title, questions and the phone preview fill in; nothing is saved',
+  },
+  async () => {
+    await go('/surveys/new')
+    await see('Phone preview')
+    await pick(page, 'Ready-made forms', /Event feedback/)
+    await see('How would you rate the event overall?', page.locator('aside'))
+    const questions = await page.locator('[data-testid=survey-question]').count()
+    if (questions < 3) throw new Error(`Only ${questions} questions`)
+  }
+)
 {
   const phone = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -3247,6 +3282,8 @@ await test(
     ['RS-24', '/fleet/maintenance?tab=bus-log', /Every fill, service/],
     ['RS-25', '/fleet/maintenance?tab=reports', 'Cost per bus'],
     ['RS-26', '/fleet/maintenance?tab=settings', 'Month lock'],
+    ['RS-27', '/surveys', 'Average response rate'],
+    ['RS-28', '/surveys/new', 'Phone preview'],
   ]) {
     await test(
       {
