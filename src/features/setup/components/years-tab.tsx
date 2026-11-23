@@ -1,5 +1,14 @@
 import { useState } from 'react'
-import { Archive, ArchiveRestore, CalendarRange, Pencil, Plus, Star, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  CalendarRange,
+  GraduationCap,
+  Pencil,
+  Plus,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -8,6 +17,8 @@ import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { usePassOutPreview } from '@/features/alumni/api'
+import { can, useMe } from '@/features/auth/api'
 import { formatDate } from '@/lib/format'
 import {
   setupApi,
@@ -62,7 +73,10 @@ export function YearsTab({ canManage }: { canManage: boolean }) {
   if (years.isError)
     return <ErrorState message={years.error.message} onRetry={() => years.refetch()} />
   if (!years.data) return <Skeleton className='h-72' />
-  const currentName = years.data.find((year) => year.is_current)?.name
+  const current = years.data.find((year) => year.is_current)
+  const currentName = current?.name
+  const closing =
+    action?.kind === 'activate' && current && current.id !== action.year.id ? current : null
 
   return (
     <Section
@@ -229,7 +243,16 @@ export function YearsTab({ canManage }: { canManage: boolean }) {
         open={Boolean(action)}
         onOpenChange={(open) => !open && setAction(null)}
         title={action ? ACTION_TEXT[action.kind].title(action.year) : ''}
-        description={action ? ACTION_TEXT[action.kind].description(action.year, currentName) : ''}
+        description={
+          action ? (
+            <>
+              {ACTION_TEXT[action.kind].description(action.year, currentName)}
+              {closing && <PassOutNote yearId={closing.id} yearName={closing.name} />}
+            </>
+          ) : (
+            ''
+          )
+        }
         confirmText={action ? ACTION_TEXT[action.kind].confirm : ''}
         loading={changeStatus.isPending}
         onConfirm={async () => {
@@ -294,6 +317,29 @@ const ACTION_TEXT: Record<
     confirm: 'Restore',
     done: (year) => `${year.name} restored`,
   },
+}
+
+function PassOutNote({ yearId, yearName }: { yearId: number; yearName: string }) {
+  const allowed = can(useMe().data, 'alumni.view')
+  const preview = usePassOutPreview(yearId, allowed)
+  const data = preview.data
+  if (!allowed || !data || !data.final_class) return null
+  return (
+    <span className='mt-3 flex items-start gap-2 rounded-lg border border-info/30 bg-info/5 p-3 text-foreground'>
+      <GraduationCap className='mt-0.5 size-4 shrink-0 text-info' />
+      <span className='grid gap-0.5'>
+        <span className='font-semibold'>
+          {data.will_convert} {data.will_convert === 1 ? 'student' : 'students'} of Class{' '}
+          {data.final_class.name} will become alumni
+        </span>
+        <span className='text-xs text-muted-foreground'>
+          Closing {yearName} passes out the final class.
+          {data.detained > 0 ? ` ${data.detained} detained will stay.` : ''}
+          {data.already_alumni > 0 ? ` ${data.already_alumni} already have alumni records.` : ''}
+        </span>
+      </span>
+    </span>
+  )
 }
 
 function YearHistory({ year }: { year: AcademicYear }) {

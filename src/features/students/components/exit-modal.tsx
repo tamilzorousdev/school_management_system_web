@@ -30,7 +30,7 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
       open
       onOpenChange={(open) => !open && onClose()}
       title={`${student.full_name} is leaving`}
-      description='The student is marked as left, the roll number is freed and a transfer certificate is issued.'
+      description='The student is marked as left, the roll number is freed, a transfer certificate is issued and the student is added to alumni.'
       formId='exit-form'
       submitText={dues ? 'Issue TC with dues' : 'Issue TC'}
       loading={save.isPending}
