@@ -28,11 +28,11 @@ import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
 import { setupSearchSchema } from '@/features/setup/search'
 import {
-  appraisalsSearchSchema,
   assignmentsSearchSchema,
   staffProfileSearchSchema,
   staffSearchSchema,
 } from '@/features/staff/search'
+import { appraisalsSearchSchema } from '@/features/appraisals/search'
 import { crewProfileSearchSchema, crewSearchSchema } from '@/features/crew/search'
 import {
   admissionsSearchSchema,
@@ -311,7 +311,7 @@ const staffAppraisalsRoute = createRoute({
   path: '/staff/appraisals',
   validateSearch: appraisalsSearchSchema,
   component: lazyRouteComponent(
-    () => import('@/features/staff/pages/appraisals-page'),
+    () => import('@/features/appraisals/pages/appraisals-page'),
     'AppraisalsPage'
   ),
 })

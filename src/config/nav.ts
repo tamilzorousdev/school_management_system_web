@@ -182,10 +182,10 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: '/staff/appraisals',
         label: 'Performance & Appraisals',
-        description: 'Track teacher performance reviews, KRA ratings and salary hike approvals',
+        description: 'Appraisal groups with their own KRAs, cycles with self, HOD and Principal review, and appeals',
         icon: Award,
         shortcut: 'nav.appraisals',
-        permission: 'staff.view',
+        permission: 'appraisals.view',
       },
       {
         to: '/crew',
