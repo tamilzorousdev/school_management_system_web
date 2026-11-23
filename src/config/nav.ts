@@ -1,5 +1,6 @@
 import {
   Award,
+  BookUser,
   BellRing,
   GalleryHorizontal,
   Building2,
@@ -54,6 +55,7 @@ export type NavPath =
   | '/teacher-preview'
   | '/students'
   | '/admissions'
+  | '/alumni'
   | '/guardians'
   | '/staff'
   | '/staff/assignments'
@@ -167,6 +169,14 @@ export const NAV_GROUPS: NavGroup[] = [
         shortcut: 'nav.admissions',
         permission: 'students.view',
       },
+      {
+        to: '/alumni',
+        label: 'Alumni',
+        description: 'Former students, their batches, careers and contact details',
+        icon: BookUser,
+        shortcut: 'nav.alumni',
+        permission: 'alumni.view',
+      },
       // {
       //   to: '/guardians',
       //   label: 'Parents',
@@ -194,10 +204,10 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: '/staff/appraisals',
         label: 'Performance & Appraisals',
-        description: 'Track teacher performance reviews, KRA ratings and salary hike approvals',
+        description: 'Appraisal groups with their own KRAs, cycles with self, HOD and Principal review, and appeals',
         icon: Award,
         shortcut: 'nav.appraisals',
-        permission: 'staff.view',
+        permission: 'appraisals.view',
       },
       {
         to: '/crew',

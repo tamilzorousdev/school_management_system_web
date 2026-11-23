@@ -8,14 +8,17 @@ import {
   Eye,
   FileQuestion,
   Mic,
+  Plus,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { alerts } from '@/lib/alerts'
 import { formatDate } from '@/lib/format'
-import { useQuizzes, type OnlineQuiz, type QuizQuery } from '../api'
+import { quizzesApi, useQuizzes, type OnlineQuiz, type QuizQuery } from '../api'
 import { QuizReviewModal } from './quiz-review-modal'
 import { QuizAnalyticsModal } from './quiz-analytics-modal'
 
@@ -29,9 +32,11 @@ const STATUS_OPTIONS = [
 export function QuizzesTab({
   search,
   onSearchChange,
+  onCreateClick,
 }: {
   search: { status?: string; search?: string; page?: number }
   onSearchChange: (patch: Partial<{ status?: string; search?: string; page?: number }>) => void
+  onCreateClick?: () => void
 }) {
   const page = search.page ?? 1
   const query: QuizQuery = {
@@ -44,6 +49,18 @@ export function QuizzesTab({
   const { data, isLoading, refetch } = useQuizzes(query)
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null)
   const [selectedAnalyticsId, setSelectedAnalyticsId] = useState<number | null>(null)
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this online quiz?')) return
+    try {
+      await quizzesApi.remove(id)
+      alerts.success('Online test deleted')
+      void refetch()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Delete failed'
+      alerts.error('Failed to delete online test', { description: msg })
+    }
+  }
 
   const columns: Column<OnlineQuiz>[] = [
     {
@@ -165,6 +182,18 @@ export function QuizzesTab({
               <BarChart3 className='h-4 w-4' />
             </Button>
           )}
+
+          {(quiz.status === 'draft' || quiz.status === 'rejected') && (
+            <Button
+              size='sm'
+              variant='ghost'
+              className='h-8 px-2 text-xs text-muted-foreground hover:text-destructive'
+              onClick={() => void handleDelete(quiz.id)}
+              title='Delete online test'
+            >
+              <Trash2 className='h-3.5 w-3.5' />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -199,7 +228,12 @@ export function QuizzesTab({
         empty={{
           icon: FileQuestion,
           title: 'No online quizzes found',
-          description: 'Quizzes created by subject teachers will appear here for review and tracking.',
+          description: 'Create an online test or review tests submitted by teachers.',
+          action: onCreateClick ? (
+            <Button size='sm' onClick={onCreateClick}>
+              <Plus className='h-3.5 w-3.5 mr-1' /> Create Online Test
+            </Button>
+          ) : undefined,
         }}
         card={(quiz) => (
           <div className='grid gap-2 p-3 border rounded-lg bg-card'>

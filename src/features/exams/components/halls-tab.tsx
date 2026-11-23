@@ -9,6 +9,8 @@ import {
   Trash2,
   UserCheck,
 } from 'lucide-react'
+import { Combobox } from '@/components/common/combobox'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState } from '@/components/common/display'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,9 +24,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useStaffList } from '@/features/staff/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import {
+  useAssignInvigilator,
   useAutoAllocateSeats,
   useClearSeating,
   useCreateExamHall,
@@ -59,12 +63,33 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
   const invigilatorsQuery = useExamInvigilators(activeExamId)
   const invigilators = invigilatorsQuery.data ?? []
 
+  // Staff query for teacher list in invigilator duty assignment
+  const staffQuery = useStaffList({ page: 1, limit: 100 })
+  const staffMembers = (staffQuery.data?.items ?? []).filter((s) => s.user_id)
+
   // Mutations
   const createHallMutation = useCreateExamHall()
   const deleteHallMutation = useDeleteExamHall()
   const autoAllocateMutation = useAutoAllocateSeats()
   const clearSeatingMutation = useClearSeating()
+  const assignInvigMutation = useAssignInvigilator()
   const deleteInvigMutation = useDeleteInvigilator()
+
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean
+    title: string
+    description: React.ReactNode
+    confirmText?: string
+    destructive?: boolean
+    loading?: boolean
+    onConfirm: () => Promise<void> | void
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  })
 
   // Dialog States
   const [isCreateHallOpen, setIsCreateHallOpen] = useState(false)
@@ -82,6 +107,19 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
   const [selectedHallIds, setSelectedHallIds] = useState<number[]>([])
   const [allocationStrategy, setAllocationStrategy] = useState<'alternate_section' | 'sequential'>('alternate_section')
 
+  const [isAssignInvigOpen, setIsAssignInvigOpen] = useState(false)
+  const [invigForm, setInvigForm] = useState<{
+    hall_id: number | undefined
+    teacher_user_id: number | undefined
+    exam_date: string
+    session: string
+  }>({
+    hall_id: undefined,
+    teacher_user_id: undefined,
+    exam_date: new Date().toISOString().slice(0, 10),
+    session: 'Morning',
+  })
+
   // Handlers
   const handleCreateHall = async () => {
     if (!hallForm.name.trim()) {
@@ -89,7 +127,16 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
       return
     }
     try {
-      await createHallMutation.mutateAsync(hallForm)
+      const payload: CreateExamHallInput = {
+        name: hallForm.name.trim(),
+        building: hallForm.building?.trim() || undefined,
+        floor: hallForm.floor?.trim() || undefined,
+        capacity: Number(hallForm.capacity) || 30,
+        rows_count: hallForm.rows_count ? Number(hallForm.rows_count) : undefined,
+        columns_count: hallForm.columns_count ? Number(hallForm.columns_count) : undefined,
+        is_active: hallForm.is_active,
+      }
+      await createHallMutation.mutateAsync(payload)
       alerts.success('Exam hall created successfully')
       setIsCreateHallOpen(false)
       setHallForm({
@@ -106,14 +153,24 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
     }
   }
 
-  const handleDeleteHall = async (hallId: number) => {
-    if (!confirm('Are you sure you want to delete this hall?')) return
-    try {
-      await deleteHallMutation.mutateAsync(hallId)
-      alerts.success('Hall deleted')
-    } catch (err) {
-      alerts.error(toApiError(err).message)
-    }
+  const handleDeleteHall = (hallId: number) => {
+    const targetHall = halls.find((h) => h.id === hallId)
+    setConfirmState({
+      open: true,
+      title: 'Delete Exam Hall',
+      description: `Are you sure you want to delete ${targetHall?.name ?? 'this hall'}? Any existing seat allocations will be removed.`,
+      confirmText: 'Delete Hall',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteHallMutation.mutateAsync(hallId)
+          alerts.success('Exam hall deleted')
+          setConfirmState((prev) => ({ ...prev, open: false }))
+        } catch (err) {
+          alerts.error(toApiError(err).message)
+        }
+      },
+    })
   }
 
   const handleOpenAutoAllocate = () => {
@@ -140,12 +197,79 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
     }
   }
 
-  const handleClearSeating = async () => {
+  const handleClearSeating = () => {
     if (!activeExamId) return
-    if (!confirm('Clear all seating allocations for this exam?')) return
+    setConfirmState({
+      open: true,
+      title: 'Clear All Seating Allocations',
+      description: 'Are you sure you want to clear all seating allocations for this examination? This action cannot be undone.',
+      confirmText: 'Clear Seating',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await clearSeatingMutation.mutateAsync(activeExamId)
+          alerts.success('Seating cleared successfully')
+          setConfirmState((prev) => ({ ...prev, open: false }))
+        } catch (err) {
+          alerts.error(toApiError(err).message)
+        }
+      },
+    })
+  }
+
+  const handleDeleteInvigilator = (invId: number, teacherName: string) => {
+    if (!activeExamId) return
+    setConfirmState({
+      open: true,
+      title: 'Remove Invigilation Duty',
+      description: `Are you sure you want to unassign ${teacherName} from this invigilation session?`,
+      confirmText: 'Remove Duty',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deleteInvigMutation.mutateAsync({
+            examId: activeExamId,
+            invigilatorId: invId,
+          })
+          alerts.success('Invigilator unassigned')
+          setConfirmState((prev) => ({ ...prev, open: false }))
+        } catch (err) {
+          alerts.error(toApiError(err).message)
+        }
+      },
+    })
+  }
+
+  const handleAssignInvigilator = async () => {
+    if (!activeExamId) return
+    if (!invigForm.hall_id) {
+      alerts.error('Please select an exam hall')
+      return
+    }
+    if (!invigForm.teacher_user_id) {
+      alerts.error('Please select a teacher')
+      return
+    }
+    if (!invigForm.exam_date) {
+      alerts.error('Please select an exam date')
+      return
+    }
     try {
-      await clearSeatingMutation.mutateAsync(activeExamId)
-      alerts.success('Seating cleared')
+      await assignInvigMutation.mutateAsync({
+        examId: activeExamId,
+        hall_id: invigForm.hall_id,
+        teacher_user_id: invigForm.teacher_user_id,
+        exam_date: invigForm.exam_date,
+        session: invigForm.session || 'Morning',
+      })
+      alerts.success('Invigilator duty assigned successfully')
+      setIsAssignInvigOpen(false)
+      setInvigForm({
+        hall_id: undefined,
+        teacher_user_id: undefined,
+        exam_date: new Date().toISOString().slice(0, 10),
+        session: 'Morning',
+      })
     } catch (err) {
       alerts.error(toApiError(err).message)
     }
@@ -182,21 +306,22 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
           </div>
 
           <div className='flex flex-wrap items-center gap-3'>
-            <select
-              aria-label='Select Examination'
-              value={activeExamId ? String(activeExamId) : ''}
-              onChange={(e) => onExamChange?.(Number(e.target.value))}
-              className='h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring'
-            >
-              <option value='' disabled>
-                Select Examination
-              </option>
-              {exams.map((ex) => (
-                <option key={ex.id} value={String(ex.id)}>
-                  {ex.name}
-                </option>
-              ))}
-            </select>
+            <div className='w-56'>
+              <Combobox
+                id='exam-switcher-combobox'
+                label='Examination'
+                value={activeExamId ? String(activeExamId) : undefined}
+                placeholder='Select Examination'
+                searchPlaceholder='Search examination...'
+                options={exams.map((ex) => ({
+                  value: String(ex.id),
+                  label: ex.name,
+                }))}
+                onChange={(val) => {
+                  if (val) onExamChange?.(Number(val))
+                }}
+              />
+            </div>
 
             {canManage && (
               <>
@@ -257,14 +382,15 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
             description='Add physical rooms, auditoriums or laboratories with desk capacity to enable automated seating.'
           />
         ) : (
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
             {halls.map((hall) => (
-              <Card key={hall.id} className='relative p-4 transition-all hover:shadow-md'>
+              <Card key={hall.id} className='relative p-4 hover:shadow-md transition-shadow'>
                 <div className='flex items-start justify-between'>
-                  <div className='space-y-1'>
+                  <div>
                     <h4 className='font-semibold text-gray-900'>{hall.name}</h4>
                     <p className='text-xs text-gray-500'>
-                      {[hall.building, hall.floor].filter(Boolean).join(' • ') || 'Main Campus'}
+                      {hall.building ? `${hall.building} • ` : ''}
+                      {hall.floor ?? 'Ground'}
                     </p>
                   </div>
                   <Badge tone={hall.is_active ? 'success' : 'neutral'}>
@@ -272,16 +398,18 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
                   </Badge>
                 </div>
 
-                <div className='mt-4 flex items-center justify-between border-t pt-3 text-xs text-gray-600'>
-                  <span className='flex items-center gap-1.5 font-medium text-emerald-700'>
+                <div className='mt-4 flex items-center justify-between text-xs text-gray-600 border-t pt-2'>
+                  <span className='flex items-center gap-1 font-medium text-emerald-700'>
                     <Armchair className='h-3.5 w-3.5' /> {hall.capacity} Desks
                   </span>
-                  <span>{hall.rows_count}R × {hall.columns_count}C</span>
+                  <span className='text-gray-400'>
+                    {hall.rows_count}R • {hall.columns_count}C
+                  </span>
                   {canManage && (
                     <Button
                       variant='ghost'
                       size='icon'
-                      className='h-7 w-7 text-red-500 hover:bg-red-50'
+                      className='h-6 w-6 text-red-500 hover:bg-red-50'
                       onClick={() => handleDeleteHall(hall.id)}
                     >
                       <Trash2 className='h-3.5 w-3.5' />
@@ -294,8 +422,8 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
         )}
       </div>
 
-      {/* 3. Seating Allocation Table */}
-      <div className='space-y-3'>
+      {/* 3. Seating Allocations Table */}
+      <div className='space-y-3 pt-4 border-t'>
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <div>
             <h3 className='text-base font-semibold text-gray-900'>
@@ -305,19 +433,22 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
           </div>
 
           <div className='flex items-center gap-3'>
-            <select
-              aria-label='Filter by Hall'
-              value={selectedHallFilter ? String(selectedHallFilter) : 'all'}
-              onChange={(e) => setSelectedHallFilter(e.target.value === 'all' ? undefined : Number(e.target.value))}
-              className='h-8 rounded-md border border-input bg-background px-2.5 py-0.5 text-xs shadow-sm'
-            >
-              <option value='all'>All Halls</option>
-              {halls.map((h) => (
-                <option key={h.id} value={String(h.id)}>
-                  {h.name}
-                </option>
-              ))}
-            </select>
+            <div className='w-44'>
+              <Combobox
+                id='hall-filter-combobox'
+                label='Filter by Hall'
+                value={selectedHallFilter ? String(selectedHallFilter) : undefined}
+                placeholder='All Halls'
+                allLabel='All Halls'
+                options={halls.map((h) => ({
+                  value: String(h.id),
+                  label: h.name,
+                }))}
+                onChange={(val) => {
+                  setSelectedHallFilter(val ? Number(val) : undefined)
+                }}
+              />
+            </div>
 
             {canManage && seating.length > 0 && (
               <Button
@@ -345,7 +476,7 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
                 <thead className='sticky top-0 bg-gray-50 text-gray-600 uppercase tracking-wider font-semibold border-b'>
                   <tr>
                     <th className='p-3'>Seat No</th>
-                    <th className='p-3'>Exam Hall</th>
+                    <th className='p-3'>Hall</th>
                     <th className='p-3'>Roll No</th>
                     <th className='p-3'>Student Name</th>
                     <th className='p-3'>Admission No</th>
@@ -385,6 +516,24 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
             <h3 className='text-base font-semibold text-gray-900'>Invigilation Duty Roster</h3>
             <p className='text-xs text-gray-500'>Teacher assignments per hall and date for this exam</p>
           </div>
+          {canManage && (
+            <Button
+              size='sm'
+              onClick={() => {
+                setInvigForm({
+                  hall_id: halls.length > 0 ? halls[0].id : undefined,
+                  teacher_user_id: staffMembers.length > 0 ? staffMembers[0].user_id : undefined,
+                  exam_date: new Date().toISOString().slice(0, 10),
+                  session: 'Morning',
+                })
+                setIsAssignInvigOpen(true)
+              }}
+              disabled={!activeExamId || halls.length === 0}
+              className='gap-1.5'
+            >
+              <Plus className='h-4 w-4' /> Assign Invigilator
+            </Button>
+          )}
         </div>
 
         {invigilators.length === 0 ? (
@@ -422,14 +571,7 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
                           variant='ghost'
                           size='icon'
                           className='h-7 w-7 text-red-500 hover:bg-red-50'
-                          onClick={async () => {
-                            if (!confirm('Remove this invigilation duty?')) return
-                            await deleteInvigMutation.mutateAsync({
-                              examId: activeExamId!,
-                              invigilatorId: inv.id,
-                            })
-                            alerts.success('Invigilator unassigned')
-                          }}
+                          onClick={() => handleDeleteInvigilator(inv.id, inv.teacher_name)}
                         >
                           <Trash2 className='h-3.5 w-3.5' />
                         </Button>
@@ -596,6 +738,102 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Assign Invigilator Modal */}
+      <Dialog open={isAssignInvigOpen} onOpenChange={setIsAssignInvigOpen}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>Assign Invigilator Duty</DialogTitle>
+            <DialogDescription>
+              Assign a faculty member / teacher to supervise an exam hall on a specific date.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className='space-y-4 py-2 text-sm'>
+            <div className='space-y-1.5'>
+              <label className='text-xs font-semibold text-gray-700'>Exam Hall / Room *</label>
+              <Combobox
+                id='assign-hall-combobox'
+                label='Exam Hall'
+                value={invigForm.hall_id ? String(invigForm.hall_id) : undefined}
+                placeholder='Choose Hall'
+                searchPlaceholder='Search hall...'
+                options={halls.map((h) => ({
+                  value: String(h.id),
+                  label: `${h.name} (${h.capacity} seats)`,
+                }))}
+                onChange={(val) => setInvigForm((p) => ({ ...p, hall_id: val ? Number(val) : undefined }))}
+              />
+            </div>
+
+            <div className='space-y-1.5'>
+              <label className='text-xs font-semibold text-gray-700'>Teacher / Invigilator *</label>
+              <Combobox
+                id='assign-teacher-combobox'
+                label='Teacher'
+                value={invigForm.teacher_user_id ? String(invigForm.teacher_user_id) : undefined}
+                placeholder='Choose Teacher'
+                searchPlaceholder='Search teacher...'
+                options={staffMembers.map((s) => ({
+                  value: String(s.user_id),
+                  label: `${s.name}${s.designation ? ` (${s.designation})` : ''}`,
+                }))}
+                onChange={(val) => setInvigForm((p) => ({ ...p, teacher_user_id: val ? Number(val) : undefined }))}
+              />
+            </div>
+
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='space-y-1.5'>
+                <label className='text-xs font-semibold text-gray-700'>Exam Date *</label>
+                <Input
+                  type='date'
+                  value={invigForm.exam_date}
+                  onChange={(e) => setInvigForm((p) => ({ ...p, exam_date: e.target.value }))}
+                  className='h-9 text-xs'
+                />
+              </div>
+
+              <div className='space-y-1.5'>
+                <label className='text-xs font-semibold text-gray-700'>Session</label>
+                <select
+                  value={invigForm.session}
+                  onChange={(e) => setInvigForm((p) => ({ ...p, session: e.target.value }))}
+                  className='h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring'
+                >
+                  <option value='Morning'>Morning (FN)</option>
+                  <option value='Afternoon'>Afternoon (AN)</option>
+                  <option value='Full Day'>Full Day</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setIsAssignInvigOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignInvigilator}
+              disabled={assignInvigMutation.isPending}
+              className='bg-emerald-600 text-white hover:bg-emerald-700'
+            >
+              Assign Duty
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Modal */}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmText={confirmState.confirmText}
+        destructive={confirmState.destructive}
+        loading={confirmState.loading}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   )
 }

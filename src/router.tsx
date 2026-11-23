@@ -37,11 +37,11 @@ import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
 import { setupSearchSchema } from '@/features/setup/search'
 import {
-  appraisalsSearchSchema,
   assignmentsSearchSchema,
   staffProfileSearchSchema,
   staffSearchSchema,
 } from '@/features/staff/search'
+import { appraisalsSearchSchema } from '@/features/appraisals/search'
 import { crewProfileSearchSchema, crewSearchSchema } from '@/features/crew/search'
 import {
   admissionsSearchSchema,
@@ -63,6 +63,7 @@ import { substitutesSearchSchema } from '@/features/substitutes/search'
 import { timetableSearchSchema } from '@/features/timetable/search'
 import { transportSearchSchema } from '@/features/transport/search'
 import { usersSearchSchema } from '@/features/users/search'
+import { alumniSearchSchema } from '@/features/alumni/search'
 import {
   assetPageSearchSchema,
   inventorySearchSchema,
@@ -85,6 +86,24 @@ const loginRoute = createRoute({
     if (session.get()) throw redirect({ to: '/' })
   },
   component: lazyRouteComponent(() => import('@/features/auth/pages/login-page'), 'LoginPage'),
+})
+
+const alumniRegisterRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/alumni-register/$schoolCode',
+  component: lazyRouteComponent(
+    () => import('@/features/alumni/pages/public-register-page'),
+    'PublicRegisterPage'
+  ),
+})
+
+const alumniUpdateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/alumni-update/$token',
+  component: lazyRouteComponent(
+    () => import('@/features/alumni/pages/public-update-page'),
+    'PublicUpdatePage'
+  ),
 })
 
 const appRoute = createRoute({
@@ -261,6 +280,22 @@ const studentRoute = createRoute({
   ),
 })
 
+const alumniRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/alumni',
+  validateSearch: alumniSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/alumni/pages/alumni-page'), 'AlumniPage'),
+})
+
+const alumnusRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/alumni/$id',
+  component: lazyRouteComponent(
+    () => import('@/features/alumni/pages/alumni-profile-page'),
+    'AlumniProfilePage'
+  ),
+})
+
 const admissionsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/admissions',
@@ -320,7 +355,7 @@ const staffAppraisalsRoute = createRoute({
   path: '/staff/appraisals',
   validateSearch: appraisalsSearchSchema,
   component: lazyRouteComponent(
-    () => import('@/features/staff/pages/appraisals-page'),
+    () => import('@/features/appraisals/pages/appraisals-page'),
     'AppraisalsPage'
   ),
 })
@@ -684,10 +719,14 @@ const schoolsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  alumniRegisterRoute,
+  alumniUpdateRoute,
   appRoute.addChildren([
     dashboardRoute,
     studentsRoute,
     studentRoute,
+    alumniRoute,
+    alumnusRoute,
     admissionsRoute,
     guardiansRoute,
     staffRoute,
