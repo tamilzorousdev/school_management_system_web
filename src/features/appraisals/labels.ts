@@ -10,6 +10,7 @@ export const APPRAISAL_STATUS: Record<AppraisalStatus, { label: string; tone: Ba
   draft: { label: 'Draft', tone: 'neutral' },
   submitted: { label: 'Submitted', tone: 'info' },
   reviewed: { label: 'Reviewed', tone: 'warning' },
+  appealed: { label: 'Appealed', tone: 'danger' },
   finalized: { label: 'Finalized', tone: 'success' },
 }
 

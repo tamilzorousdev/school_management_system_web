@@ -11,7 +11,6 @@ import { z } from 'zod'
 import { AppLayout } from '@/components/layout/app-layout'
 import { queryClient } from '@/lib/api/query-client'
 import { session } from '@/lib/auth/session'
-import { appraisalsSearchSchema } from '@/features/appraisals/search'
 import { attendanceSearchSchema } from '@/features/attendance/search'
 import { performanceSearchSchema } from '@/features/performance/search'
 import { feedbackSearchSchema } from '@/features/feedback/search'
@@ -23,11 +22,13 @@ import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
 import { announcementsSearchSchema } from '@/features/announcements/search'
 import { eventsSearchSchema } from '@/features/events/search'
+import { grievancesSearchSchema } from '@/features/grievances/search'
 import { chatSearchSchema } from '@/features/chat/search'
 import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
 import { setupSearchSchema } from '@/features/setup/search'
 import {
+  appraisalsSearchSchema,
   assignmentsSearchSchema,
   staffProfileSearchSchema,
   staffSearchSchema,
@@ -136,6 +137,16 @@ const eventsRoute = createRoute({
   path: '/events',
   validateSearch: eventsSearchSchema,
   component: lazyRouteComponent(() => import('@/features/events/pages/events-page'), 'EventsPage'),
+})
+
+const grievancesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/grievances',
+  validateSearch: grievancesSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/grievances/pages/grievances-page'),
+    'GrievancesPage'
+  ),
 })
 
 const chatRoute = createRoute({
@@ -300,7 +311,7 @@ const staffAppraisalsRoute = createRoute({
   path: '/staff/appraisals',
   validateSearch: appraisalsSearchSchema,
   component: lazyRouteComponent(
-    () => import('@/features/appraisals/pages/appraisals-page'),
+    () => import('@/features/staff/pages/appraisals-page'),
     'AppraisalsPage'
   ),
 })
@@ -645,6 +656,7 @@ const routeTree = rootRoute.addChildren([
     diaryRoute,
     announcementsRoute,
     eventsRoute,
+    grievancesRoute,
     chatRoute,
     fleetRoute,
     tripRoute,
