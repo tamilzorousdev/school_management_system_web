@@ -43,6 +43,24 @@ export const SHORTCUTS = {
   'nav.grievances': { combo: 'g shift+g', label: 'Go to grievances', group: 'Navigation' },
   'nav.chat': { combo: 'g g', label: 'Go to chat audit', group: 'Navigation' },
   'nav.appBanners': { combo: 'g 2', label: 'Go to app banners', group: 'Navigation' },
+  'nav.gallery': { combo: 'g shift+m', label: 'Go to gallery', group: 'Navigation' },
+  'nav.galleryTrash': { combo: 'g shift+t', label: 'Go to gallery trash', group: 'Navigation' },
+  'nav.galleryCleanup': {
+    combo: 'g shift+c',
+    label: 'Go to gallery cleanup',
+    group: 'Navigation',
+  },
+  'nav.galleryReports': {
+    combo: 'g shift+r',
+    label: 'Go to gallery reports',
+    group: 'Navigation',
+  },
+  'nav.galleryAudit': { combo: 'g shift+l', label: 'Go to gallery audit log', group: 'Navigation' },
+  'nav.gallerySettings': {
+    combo: 'g shift+e',
+    label: 'Go to gallery settings',
+    group: 'Navigation',
+  },
   'nav.fleet': { combo: 'g b', label: 'Go to bus tracking', group: 'Navigation' },
   'nav.alerts': { combo: 'g l', label: 'Go to fleet alerts', group: 'Navigation' },
   'nav.tripHistory': { combo: 'g h', label: 'Go to trip history', group: 'Navigation' },
@@ -79,6 +97,7 @@ export const SHORTCUTS = {
     label: 'Add a banner',
     group: 'Users',
   },
+  'gallery.create': { combo: 'alt+n', label: 'Create a gallery album', group: 'Users' },
   'gate.create': {
     combo: 'alt+n',
     label: 'Add a pass, invite a visitor or block a person in Gate',

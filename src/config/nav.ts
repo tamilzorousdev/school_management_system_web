@@ -34,6 +34,12 @@ import {
   UsersRound,
   Video,
   BookOpenCheck,
+  BarChart3,
+  Images,
+  ScrollText,
+  Settings2,
+  Sparkles,
+  Trash2,
   Boxes,
   Megaphone,
   MessagesSquare,
@@ -79,6 +85,12 @@ export type NavPath =
   | '/grievances'
   | '/chat'
   | '/app-banners'
+  | '/gallery'
+  | '/gallery/trash'
+  | '/gallery/cleanup'
+  | '/gallery/reports'
+  | '/gallery/audit'
+  | '/gallery/settings'
   | '/fleet'
   | '/fleet/alerts'
   | '/fleet/history'
@@ -408,6 +420,59 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: GalleryHorizontal,
         shortcut: 'nav.appBanners',
         permission: 'notifications.view',
+      },
+    ],
+  },
+  {
+    label: 'Gallery',
+    items: [
+      {
+        to: '/gallery',
+        label: 'Gallery',
+        description: 'Photo and video albums for the App Media Gallery and every class and section',
+        icon: Images,
+        shortcut: 'nav.gallery',
+        permission: 'gallery.view',
+      },
+      {
+        to: '/gallery/trash',
+        label: 'Gallery trash',
+        description: 'Deleted albums, photos and videos you can restore before they go for good',
+        icon: Trash2,
+        shortcut: 'nav.galleryTrash',
+        permission: 'gallery.manage',
+      },
+      {
+        to: '/gallery/cleanup',
+        label: 'Gallery cleanup',
+        description: 'Automatic media cleanup: last and next run, history and failures',
+        icon: Sparkles,
+        shortcut: 'nav.galleryCleanup',
+        permission: 'gallery.view',
+      },
+      {
+        to: '/gallery/reports',
+        label: 'Gallery reports',
+        description: 'Usage, uploads, storage, deletions and cleanup reports with export',
+        icon: BarChart3,
+        shortcut: 'nav.galleryReports',
+        permission: 'gallery.view',
+      },
+      {
+        to: '/gallery/audit',
+        label: 'Gallery audit log',
+        description: 'Every upload, edit, deletion, restore and setting change',
+        icon: ScrollText,
+        shortcut: 'nav.galleryAudit',
+        permission: 'gallery.audit',
+      },
+      {
+        to: '/gallery/settings',
+        label: 'Gallery settings',
+        description: 'Switches, upload limits, storage, retention, categories and holds',
+        icon: Settings2,
+        shortcut: 'nav.gallerySettings',
+        permission: 'gallery.view',
       },
     ],
   },

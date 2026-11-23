@@ -17,6 +17,15 @@ import { feedbackSearchSchema } from '@/features/feedback/search'
 import { emergencySearchSchema } from '@/features/emergency/search'
 import { surveyResultsSearchSchema, surveysSearchSchema } from '@/features/surveys/search'
 import { gateSearchSchema } from '@/features/gate/search'
+import {
+  albumSearchSchema,
+  cleanupSearchSchema,
+  galleryAuditSearchSchema,
+  galleryReportsSearchSchema,
+  gallerySearchSchema,
+  gallerySettingsSearchSchema,
+  trashSearchSchema,
+} from '@/features/gallery/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
@@ -440,6 +449,70 @@ const surveyResultsRoute = createRoute({
   ),
 })
 
+const galleryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery',
+  validateSearch: gallerySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/gallery-page'),
+    'GalleryPage'
+  ),
+})
+
+const galleryAlbumRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/albums/$albumId',
+  validateSearch: albumSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/gallery/pages/album-page'), 'AlbumPage'),
+})
+
+const galleryTrashRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/trash',
+  validateSearch: trashSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/gallery/pages/trash-page'), 'TrashPage'),
+})
+
+const gallerySettingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/settings',
+  validateSearch: gallerySettingsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/settings-page'),
+    'GallerySettingsPage'
+  ),
+})
+
+const galleryCleanupRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/cleanup',
+  validateSearch: cleanupSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/cleanup-page'),
+    'CleanupPage'
+  ),
+})
+
+const galleryReportsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/reports',
+  validateSearch: galleryReportsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/reports-page'),
+    'GalleryReportsPage'
+  ),
+})
+
+const galleryAuditRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/audit',
+  validateSearch: galleryAuditSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/audit-page'),
+    'GalleryAuditPage'
+  ),
+})
+
 const gateRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/gate',
@@ -529,7 +602,10 @@ const quizzesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/quizzes',
   validateSearch: quizSearchSchema,
-  component: lazyRouteComponent(() => import('@/features/quizzes/pages/quizzes-page'), 'QuizzesPage'),
+  component: lazyRouteComponent(
+    () => import('@/features/quizzes/pages/quizzes-page'),
+    'QuizzesPage'
+  ),
 })
 
 const activitiesRoute = createRoute({
@@ -667,6 +743,13 @@ const routeTree = rootRoute.addChildren([
     surveyNewRoute,
     surveyEditRoute,
     surveyResultsRoute,
+    galleryRoute,
+    galleryAlbumRoute,
+    galleryTrashRoute,
+    gallerySettingsRoute,
+    galleryCleanupRoute,
+    galleryReportsRoute,
+    galleryAuditRoute,
     gateRoute,
     timetableRoute,
     substitutesRoute,
