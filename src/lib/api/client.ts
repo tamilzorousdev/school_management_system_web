@@ -36,10 +36,11 @@ export const http = axios.create({
 })
 
 const PUBLIC_PATHS = ['/auth/otp/request', '/auth/otp/resend', '/auth/otp/verify', '/auth/refresh']
+const isPublicPath = (url = '') => PUBLIC_PATHS.includes(url) || url.startsWith('/public/')
 
 http.interceptors.request.use((request) => {
   const current = session.get()
-  if (current && !PUBLIC_PATHS.includes(request.url ?? '')) {
+  if (current && !isPublicPath(request.url)) {
     request.headers.set('Authorization', `Bearer ${current.accessToken}`)
     const schoolId = schoolContext.get()
     if (schoolId) request.headers.set('X-School-Id', String(schoolId))
@@ -86,7 +87,7 @@ http.interceptors.response.use(
     }
     const apiError = toApiError(error)
     const request = (error as { config?: RetriableConfig }).config
-    const isPublic = PUBLIC_PATHS.includes(request?.url ?? '')
+    const isPublic = isPublicPath(request?.url)
 
     if (apiError.status === 401 && request && !isPublic) {
       if (apiError.code === 'TOKEN_EXPIRED' && !request._retried) {

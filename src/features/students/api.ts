@@ -45,6 +45,8 @@ export interface StudentListItem {
 }
 
 export interface StudentDetail extends StudentListItem {
+  left_on: string | null
+  alumni_id: number | null
   blood_group: BloodGroup | null
   address_line: string | null
   city: string | null
@@ -376,6 +378,7 @@ export function useStudentMutation<TInput, TResult>(fn: (input: TInput) => Promi
       void queryClient.invalidateQueries({ queryKey: studentKeys.all })
       void queryClient.invalidateQueries({ queryKey: ['setup'] })
       void queryClient.invalidateQueries({ queryKey: ['users'] })
+      void queryClient.invalidateQueries({ queryKey: ['alumni'] })
     },
   })
 }

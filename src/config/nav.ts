@@ -1,5 +1,6 @@
 import {
   Award,
+  BookUser,
   BellRing,
   GalleryHorizontal,
   Building2,
@@ -48,6 +49,7 @@ export type NavPath =
   | '/teacher-preview'
   | '/students'
   | '/admissions'
+  | '/alumni'
   | '/guardians'
   | '/staff'
   | '/staff/assignments'
@@ -154,6 +156,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: ClipboardList,
         shortcut: 'nav.admissions',
         permission: 'students.view',
+      },
+      {
+        to: '/alumni',
+        label: 'Alumni',
+        description: 'Former students, their batches, careers and contact details',
+        icon: BookUser,
+        shortcut: 'nav.alumni',
+        permission: 'alumni.view',
       },
       // {
       //   to: '/guardians',
