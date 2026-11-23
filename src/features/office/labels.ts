@@ -1,3 +1,4 @@
+import { config } from '@/config/env'
 import type { BadgeTone } from '@/components/ui/badge'
 import type {
   AttendanceToday,
@@ -80,7 +81,7 @@ export const flagTone = (code: string): BadgeTone => STUDENT_FLAG[code]?.tone ??
 
 export const AO_FLAG: Record<string, { label: string; tone: BadgeTone }> = {
   inactive: { label: 'Inactive', tone: 'neutral' },
-  overdue_approvals: { label: 'Overdue approvals', tone: 'danger' },
+  overdue_approvals: { label: 'Approvals pending over 1 day', tone: 'danger' },
   attendance_not_marked: { label: 'Attendance not marked', tone: 'warning' },
 }
 
@@ -118,5 +119,46 @@ export const DOCUMENT_STATUS: Record<string, { label: string; tone: BadgeTone }>
   rejected: { label: 'Rejected', tone: 'danger' },
 }
 
-export const ageLabel = (hours: number) =>
-  hours < 1 ? 'Under 1 h' : hours < 48 ? `${Math.round(hours)} h` : `${Math.floor(hours / 24)} d`
+export const pendingAge = (hours: number) => {
+  if (hours < 1) return 'Pending under 1 hour'
+  if (hours < 24) {
+    const whole = Math.round(hours)
+    return `Pending ${whole} ${whole === 1 ? 'hour' : 'hours'}`
+  }
+  const days = Math.floor(hours / 24)
+  return `Pending ${days} ${days === 1 ? 'day' : 'days'}`
+}
+
+const clockFormat = new Intl.DateTimeFormat('en-IN', {
+  timeZone: config.timeZone,
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+})
+
+export const clockTime = (value: string) => clockFormat.format(new Date(value)).toUpperCase()
+
+const longDateFormat = new Intl.DateTimeFormat('en-IN', {
+  timeZone: 'UTC',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+
+export const longDate = (value: string) =>
+  longDateFormat.format(new Date(`${value.slice(0, 10)}T00:00:00Z`))
+
+const hourFormat = new Intl.DateTimeFormat('en-GB', {
+  timeZone: config.timeZone,
+  hour: 'numeric',
+  hourCycle: 'h23',
+})
+
+export const greeting = (now: number) => {
+  const hour = Number(hourFormat.format(now))
+  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+}
+
+export const plural = (count: number, one: string, many = `${one}s`) =>
+  `${count} ${count === 1 ? one : many}`

@@ -3294,16 +3294,31 @@ await test(
     id: 'OF-03',
     module: 'Office',
     type: 'View',
-    title: 'Office dashboard shows stat cards, waiting items, defaulters, exams and AO cards',
+    title:
+      'Office dashboard shows the hero, today strip, teachers, buses, pending approvals, defaulters, exams and AO cards',
     steps: 'Office, Office dashboard as the school admin.',
     expected:
-      'Whole-school banner, stat cards, Waiting for you, Top fee defaulters, exams per class, alerts and the AO strip',
+      'Hero with "Admin · whole school", 4 today tiles, Teachers today, Buses today, Pending approvals, Fee defaulters, Latest exams, OD, alerts and the AO strip',
   },
   async () => {
     await go('/office/dashboard')
-    await see('Whole school', page.getByTestId('office-scope'))
-    for (const text of ['Fees this month', 'Staff on leave today', 'Top fee defaulters'])
+    await see('Admin · whole school', page.getByTestId('office-scope'))
+    for (const text of [
+      'Collected today',
+      'This month',
+      'Staff on leave',
+      'Teachers today',
+      'Pending approvals',
+      'Fee defaulters',
+      'Latest exams',
+      'On sports OD today',
+    ])
       await see(text)
+    const overdue = await page
+      .getByTestId('office-pending')
+      .getByText(/Overdue|Waiting/)
+      .count()
+    if (overdue) throw new Error('Old Overdue/Waiting wording is still shown')
     await page.getByTestId('office-exams').waitFor({ timeout: 8000 })
     await page.getByTestId('office-alerts').getByText('Health alerts').waitFor({ timeout: 8000 })
     const cards = await page
@@ -3311,7 +3326,12 @@ await test(
       .getByRole('button', { name: /^Open / })
       .count()
     if (cards < 2) throw new Error(`${cards} AO cards`)
-    await page.getByTestId('office-defaulters').getByRole('link').first().click()
+    await page
+      .getByTestId('office-defaulters')
+      .getByRole('listitem')
+      .first()
+      .getByRole('link')
+      .click()
     await page.waitForURL(/\/office\/students\/\d+/, { timeout: 8000 })
   }
 )
@@ -3322,7 +3342,8 @@ await test(
     type: 'View',
     title: 'An AO who signs in lands on the Office dashboard',
     steps: 'Sign in as Suresh (9000000024, Secondary AO) with OTP 123456.',
-    expected: 'After sign-in the app opens /office/dashboard with "Wing AO · Secondary"',
+    expected:
+      'After sign-in the app opens /office/dashboard with the hero role line "Wing AO · Secondary"',
   },
   async () => {
     const file = '.auth-ao-suresh-ui.json'
@@ -3400,7 +3421,7 @@ await test(
     ['RS-31', '/office/students/2', 'Exams & rank card'],
     ['RS-32', '/office/monitor', 'Karthik Raman'],
     ['RS-33', '/office/wings', 'Head AO · whole school'],
-    ['RS-34', '/office/dashboard', 'Top fee defaulters'],
+    ['RS-34', '/office/dashboard', 'Fee defaulters'],
     ['RS-35', '/office/students/2?tab=documents', 'Municipal Birth Certificate'],
   ]) {
     await test(

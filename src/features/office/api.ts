@@ -426,6 +426,75 @@ export interface DashboardAlerts {
   health_alerts: number
 }
 
+export interface OdStudent {
+  id: number
+  student_id: number
+  name: string
+  class_section: string | null
+  sport_name: string
+  title: string
+  from_date: string
+  to_date: string
+  session: string | null
+  venue: string | null
+}
+
+export interface OdToday {
+  count: number
+  students: OdStudent[]
+}
+
+export interface TeachersToday {
+  total: number
+  present: number
+  late: number
+  on_leave: number
+  not_checked_in: number
+}
+
+export interface NotBoarded {
+  student_id: number
+  name: string
+  class_section: string | null
+  route: string
+}
+
+export interface BusesToday {
+  buses: number
+  reached: number
+  running: number
+  not_started: number
+  late: number
+  students: number
+  not_boarded: NotBoarded[]
+}
+
+export type MyCheckInStatus =
+  'present' | 'late' | 'half_day' | 'absent' | 'on_leave' | 'not_checked_in'
+
+export interface MyCheckIn {
+  date: string
+  status: MyCheckInStatus
+  check_in_at: string | null
+  check_out_at: string | null
+  check_in_distance_m: number | null
+  source: string | null
+  remarks: string | null
+  reporting_time: string
+  geofence_radius_m: number
+  school_latitude: number | null
+  school_longitude: number | null
+  geofence_ready: boolean
+  can_check_in: boolean
+  can_check_out: boolean
+}
+
+export interface CheckInLocation {
+  lat: number
+  lng: number
+  accuracy_m?: number
+}
+
 export interface OfficeDashboard {
   me: OfficeMe
   attendance: AttendanceToday
@@ -437,6 +506,9 @@ export interface OfficeDashboard {
   exams: ClassExam[]
   alerts: DashboardAlerts
   aos: AoCard[] | null
+  od_today: OdToday
+  teachers: TeachersToday
+  buses: BusesToday
 }
 
 export interface StudentDocument {
@@ -468,6 +540,7 @@ export const officeKeys = {
   all: ['office'] as const,
   me: () => [...officeKeys.all, 'me'] as const,
   dashboard: () => [...officeKeys.all, 'dashboard'] as const,
+  checkIn: () => [...officeKeys.all, 'check-in'] as const,
   wings: () => [...officeKeys.all, 'wings'] as const,
   wingClasses: (id: number) => [...officeKeys.all, 'wing', id] as const,
   classSections: (id: number) => [...officeKeys.all, 'class', id] as const,
@@ -485,6 +558,9 @@ export const officeKeys = {
 export const officeApi = {
   me: () => api.get<OfficeMe>(`${base}/me`),
   dashboard: () => api.get<OfficeDashboard>(`${base}/dashboard`),
+  myCheckIn: () => api.get<MyCheckIn>('/me/staff/check-in'),
+  checkIn: (location: CheckInLocation) => api.post<MyCheckIn>('/me/staff/check-in', location),
+  checkOut: (location: CheckInLocation) => api.post<MyCheckIn>('/me/staff/check-out', location),
   wings: () => api.get<OfficeWings>(`${base}/wings`),
   wingClasses: (id: number) => api.get<WingClasses>(`${base}/wings/${id}/classes`),
   classSections: (id: number) => api.get<ClassSections>(`${base}/classes/${id}/sections`),
@@ -524,6 +600,16 @@ export function useOfficeDashboard() {
     meta: silent,
     queryKey: officeKeys.dashboard(),
     queryFn: officeApi.dashboard,
+  })
+}
+
+export function useMyCheckIn() {
+  return useQuery({
+    meta: silent,
+    queryKey: officeKeys.checkIn(),
+    queryFn: officeApi.myCheckIn,
+    retry: false,
+    staleTime: 30_000,
   })
 }
 

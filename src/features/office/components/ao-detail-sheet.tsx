@@ -14,7 +14,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDateTime } from '@/lib/format'
 import { useAoDetail, type AoCard } from '../api'
-import { PENDING_LABEL, ageLabel } from '../labels'
+import { PENDING_LABEL, pendingAge } from '../labels'
 import { AoStats } from './ao-card'
 
 interface AoDetailSheetProps {
@@ -100,7 +100,7 @@ export function AoDetailSheet({
                             </span>
                           )}
                           <span className={item.overdue ? 'font-semibold text-destructive' : ''}>
-                            Waiting {ageLabel(item.age_hours)}
+                            {pendingAge(item.age_hours)}
                           </span>
                           <span>{formatDateTime(item.created_at)}</span>
                         </div>

@@ -9,7 +9,7 @@ import { Chips, Stat } from './shared'
 function PendingLine({ label, count }: { label: string; count: number }) {
   return (
     <div className='grid min-w-0 rounded-md border px-2 py-1.5 text-center'>
-      <span className='truncate text-[11px] font-semibold text-muted-foreground'>{label}</span>
+      <span className='text-[11px] leading-tight font-semibold text-muted-foreground'>{label}</span>
       <span className={cn('tabular font-bold', count > 0 && 'text-warning')}>{count}</span>
     </div>
   )
@@ -18,7 +18,7 @@ function PendingLine({ label, count }: { label: string; count: number }) {
 export function AoStats({ card }: { card: AoCard }) {
   return (
     <div className='grid gap-3'>
-      <div className='grid grid-cols-2 gap-2 sm:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-2'>
         <PendingLine label='Gate passes' count={card.pending.gate_passes} />
         <PendingLine label='Fee requests' count={card.pending.fee_requests} />
         <PendingLine label='Leave' count={card.pending.leave_requests} />
@@ -27,13 +27,13 @@ export function AoStats({ card }: { card: AoCard }) {
       <div className='grid grid-cols-2 gap-3'>
         <Stat
           icon={Clock}
-          label='Pending · overdue'
+          label='Pending approvals'
           value={
             <>
               {card.pending.total}
               {' · '}
               <span className={card.pending.overdue > 0 ? 'text-destructive' : ''}>
-                {card.pending.overdue} overdue
+                {card.pending.overdue} over 1 day
               </span>
             </>
           }
