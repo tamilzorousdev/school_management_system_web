@@ -1,5 +1,4 @@
 import {
-  Award,
   BellRing,
   GalleryHorizontal,
   Building2,
@@ -177,14 +176,6 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Who teaches each subject in each section',
         icon: Grid3x3,
         shortcut: 'nav.assignments',
-        permission: 'staff.view',
-      },
-      {
-        to: '/staff/appraisals',
-        label: 'Performance & Appraisals',
-        description: 'Track teacher performance reviews, KRA ratings and salary hike approvals',
-        icon: Award,
-        shortcut: 'nav.appraisals',
         permission: 'staff.view',
       },
       {
