@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
@@ -29,7 +29,8 @@ export function KraConfigurationModal({
   onClose: () => void
 }) {
   const query = useKraConfigs()
-  const [items, setItems] = useState<KraConfig[]>([])
+  const [items, setItems] = useState<KraConfig[]>(() => query.data ?? [])
+  const [syncedData, setSyncedData] = useState(query.data)
   const [isSaving, setIsSaving] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
@@ -44,11 +45,10 @@ export function KraConfigurationModal({
   >('pedagogy')
   const [isSubmittingNew, setIsSubmittingNew] = useState(false)
 
-  useEffect(() => {
-    if (query.data) {
-      setItems(query.data)
-    }
-  }, [query.data])
+  if (query.data !== syncedData) {
+    setSyncedData(query.data)
+    if (query.data) setItems(query.data)
+  }
 
   const totalWeight = items.reduce((sum, item) => sum + (Number(item.weightage_percent) || 0), 0)
   const isWeightValid = Math.abs(totalWeight - 100) < 0.01
