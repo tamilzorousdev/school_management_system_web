@@ -6,7 +6,7 @@ export const appraisalsSearchSchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),
   academic_year_id: id,
   staff_id: id,
-  status: z.enum(['draft', 'submitted', 'reviewed', 'finalized']).optional().catch(undefined),
+  status: z.enum(['draft', 'submitted', 'reviewed', 'appealed', 'finalized']).optional().catch(undefined),
   rating: z
     .enum([
       'outstanding',

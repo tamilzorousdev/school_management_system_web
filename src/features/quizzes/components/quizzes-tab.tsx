@@ -8,6 +8,7 @@ import {
   Eye,
   FileQuestion,
   Mic,
+  Plus,
   ShieldAlert,
   Trash2,
 } from 'lucide-react'
@@ -60,9 +61,11 @@ function deleteWarning(quiz: OnlineQuiz): string {
 export function QuizzesTab({
   search,
   onSearchChange,
+  onCreateClick,
 }: {
   search: { status?: string; search?: string; page?: number }
   onSearchChange: (patch: Partial<{ status?: string; search?: string; page?: number }>) => void
+  onCreateClick?: () => void
 }) {
   const page = search.page ?? 1
   const query: QuizQuery = {
@@ -258,8 +261,12 @@ export function QuizzesTab({
         empty={{
           icon: FileQuestion,
           title: 'No online quizzes found',
-          description:
-            'Quizzes created by subject teachers will appear here for review and tracking.',
+          description: 'Create an online test or review tests submitted by teachers.',
+          action: onCreateClick ? (
+            <Button size='sm' onClick={onCreateClick}>
+              <Plus className='mr-1 h-3.5 w-3.5' /> Create Online Test
+            </Button>
+          ) : undefined,
         }}
         card={(quiz) => (
           <div className='grid gap-2 rounded-lg border bg-card p-3'>

@@ -1,5 +1,4 @@
 import {
-  Award,
   BellRing,
   GalleryHorizontal,
   Building2,
@@ -36,6 +35,7 @@ import {
   Boxes,
   Megaphone,
   MessagesSquare,
+  Scale,
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
@@ -73,6 +73,7 @@ export type NavPath =
   | '/diary'
   | '/announcements'
   | '/events'
+  | '/grievances'
   | '/chat'
   | '/app-banners'
   | '/fleet'
@@ -175,14 +176,6 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Who teaches each subject in each section',
         icon: Grid3x3,
         shortcut: 'nav.assignments',
-        permission: 'staff.view',
-      },
-      {
-        to: '/staff/appraisals',
-        label: 'Staff appraisals',
-        description: 'Performance reviews, ratings and teacher comments from the Staff app',
-        icon: Award,
-        shortcut: 'nav.appraisals',
         permission: 'staff.view',
       },
       {
@@ -372,6 +365,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: CalendarCheck,
         shortcut: 'nav.events',
         permission: 'events.view',
+      },
+      {
+        to: '/grievances',
+        label: 'Grievances',
+        description: 'Complaints, investigation notes, and SLA tracking for parents and staff',
+        icon: Scale,
+        shortcut: 'nav.grievances',
+        permission: 'notifications.view',
       },
       {
         to: '/chat',
