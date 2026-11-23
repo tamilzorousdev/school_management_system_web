@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   AlertCircle,
@@ -846,7 +846,7 @@ function AppraisalDetailModal({
   onReviewAppeal?: (item: StaffAppraisal) => void
   onRaiseAppeal?: (item: StaffAppraisal) => void
 }) {
-  const metricsQuery = useTeacherMetrics(item.staff_id, item.academic_year_id)
+  const metricsQuery = useTeacherMetrics(item.staff_id || item.user_id, item.academic_year_id)
   const metrics = metricsQuery.data
 
   return (
@@ -1095,7 +1095,7 @@ function AppraisalReviewModal({
   onClose: () => void
   onSaved: () => void
 }) {
-  const metricsQuery = useTeacherMetrics(item.staff_id, item.academic_year_id)
+  const metricsQuery = useTeacherMetrics(item.staff_id || item.user_id, item.academic_year_id)
   const metrics = metricsQuery.data
 
   const kraQuery = useKraConfigs()
@@ -1111,26 +1111,22 @@ function AppraisalReviewModal({
     return initial
   })
 
-  useEffect(() => {
-    if (kras.length > 0) {
-      setKraScores((prev) => {
-        const next: Record<string, { score: number; remarks: string }> = { ...prev }
-        for (const k of kras) {
-          if (!next[k.code]) {
-            let defaultScore = 4.0
-            if (k.code === 'curriculum_pedagogy') defaultScore = item.teaching_effectiveness
-            else if (k.code === 'student_outcomes') defaultScore = item.student_outcomes
-            else if (k.code === 'classroom_management') defaultScore = item.classroom_management
-            else if (k.code === 'professional_conduct') defaultScore = item.professional_conduct
-            else if (k.code === 'extracurricular') defaultScore = item.extracurricular_contribution
+  const effectiveKraScores = useMemo(() => {
+    const res: Record<string, { score: number; remarks: string }> = { ...kraScores }
+    for (const k of kras) {
+      if (!res[k.code]) {
+        let defaultScore = 4.0
+        if (k.code === 'curriculum_pedagogy') defaultScore = item.teaching_effectiveness
+        else if (k.code === 'student_outcomes') defaultScore = item.student_outcomes
+        else if (k.code === 'classroom_management') defaultScore = item.classroom_management
+        else if (k.code === 'professional_conduct') defaultScore = item.professional_conduct
+        else if (k.code === 'extracurricular') defaultScore = item.extracurricular_contribution
 
-            next[k.code] = { score: defaultScore, remarks: '' }
-          }
-        }
-        return next
-      })
+        res[k.code] = { score: defaultScore, remarks: '' }
+      }
     }
-  }, [kras, item])
+    return res
+  }, [kras, kraScores, item])
 
   const [incrementPercent, setIncrementPercent] = useState<number>(item.increment_percent)
   const [recommendation, setRecommendation] = useState<string>(item.recommendation)
@@ -1149,7 +1145,7 @@ function AppraisalReviewModal({
       let weightedSum = 0
       let totalWeight = 0
       for (const k of kras) {
-        const sc = kraScores[k.code]?.score ?? 4.0
+        const sc = effectiveKraScores[k.code]?.score ?? 4.0
         const wt = Number(k.weightage_percent) || 0
         weightedSum += sc * wt
         totalWeight += wt
@@ -1157,7 +1153,7 @@ function AppraisalReviewModal({
       return totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 10) / 10 : item.overall_score
     }
     return item.overall_score
-  }, [kras, kraScores, item.overall_score])
+  }, [kras, effectiveKraScores, item.overall_score])
 
   const overallRating = computeRating(overallScore)
   const ratingConfig = APPRAISAL_RATING_LABELS[overallRating]
@@ -1192,8 +1188,8 @@ function AppraisalReviewModal({
         code: k.code,
         title: k.title,
         weightage: Number(k.weightage_percent),
-        score: kraScores[k.code]?.score ?? 4.0,
-        remarks: kraScores[k.code]?.remarks || null,
+        score: effectiveKraScores[k.code]?.score ?? 4.0,
+        remarks: effectiveKraScores[k.code]?.remarks || null,
       }))
 
       const payload = {
@@ -1201,11 +1197,11 @@ function AppraisalReviewModal({
         recommendation: recommendation as 'increment' | 'promotion' | 'retention' | 'pip',
         reviewer_remarks: reviewerRemarks || null,
         kra_scores: kraScorePayload,
-        teaching_effectiveness: kraScores['curriculum_pedagogy']?.score ?? item.teaching_effectiveness,
-        student_outcomes: kraScores['student_outcomes']?.score ?? item.student_outcomes,
-        classroom_management: kraScores['classroom_management']?.score ?? item.classroom_management,
-        professional_conduct: kraScores['professional_conduct']?.score ?? item.professional_conduct,
-        extracurricular_contribution: kraScores['extracurricular']?.score ?? item.extracurricular_contribution,
+        teaching_effectiveness: effectiveKraScores['curriculum_pedagogy']?.score ?? item.teaching_effectiveness,
+        student_outcomes: effectiveKraScores['student_outcomes']?.score ?? item.student_outcomes,
+        classroom_management: effectiveKraScores['classroom_management']?.score ?? item.classroom_management,
+        professional_conduct: effectiveKraScores['professional_conduct']?.score ?? item.professional_conduct,
+        extracurricular_contribution: effectiveKraScores['extracurricular']?.score ?? item.extracurricular_contribution,
         strengths: strengths || null,
         areas_for_improvement: areasForImprovement || null,
         goals_next_period: goalsNextPeriod || null,
