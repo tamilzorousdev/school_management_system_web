@@ -27,6 +27,7 @@ const whole = (min: number, max: number, message: string) =>
 const schema = z.object({
   grace_minutes: whole(5, 180, 'Enter 5 to 180 minutes'),
   emergency_wait_minutes: whole(1, 60, 'Enter 1 to 60 minutes'),
+  office_escalate_minutes: whole(5, 240, 'Enter 5 to 240 minutes'),
   visitor_checkout_time: z
     .string()
     .trim()
@@ -37,6 +38,7 @@ type FormValues = z.infer<typeof schema>
 const FIELDS: (keyof FormValues)[] = [
   'grace_minutes',
   'emergency_wait_minutes',
+  'office_escalate_minutes',
   'visitor_checkout_time',
 ]
 
@@ -81,6 +83,7 @@ function SettingsForm({ settings, canManage }: { settings: GateSettings; canMana
     defaultValues: {
       grace_minutes: String(settings.grace_minutes),
       emergency_wait_minutes: String(settings.emergency_wait_minutes),
+      office_escalate_minutes: String(settings.office_escalate_minutes ?? 30),
       visitor_checkout_time: settings.visitor_checkout_time || '18:00',
     },
   })
@@ -90,6 +93,7 @@ function SettingsForm({ settings, canManage }: { settings: GateSettings; canMana
       await save.mutateAsync({
         grace_minutes: Number(values.grace_minutes),
         emergency_wait_minutes: Number(values.emergency_wait_minutes),
+        office_escalate_minutes: Number(values.office_escalate_minutes),
         visitor_checkout_time: values.visitor_checkout_time,
       })
       alerts.success('Settings saved')
@@ -150,11 +154,27 @@ function SettingsForm({ settings, canManage }: { settings: GateSettings; canMana
         />
       </FormField>
       <FormField
+        id='settings-office-escalate'
+        label='Send to head AO after (minutes)'
+        hint='A gate pass still waiting this long goes to the head AO'
+        error={errors.office_escalate_minutes?.message}
+      >
+        <Input
+          id='settings-office-escalate'
+          type='number'
+          inputMode='numeric'
+          disabled={!canManage}
+          min={5}
+          max={240}
+          aria-invalid={Boolean(errors.office_escalate_minutes) || undefined}
+          {...register('office_escalate_minutes')}
+        />
+      </FormField>
+      <FormField
         id='settings-checkout'
         label='Daily visitor auto checkout'
         hint='Time of day (HH:MM) when visitors inside are automatically checked out'
         error={errors.visitor_checkout_time?.message}
-        className='sm:col-span-2 sm:max-w-xs'
       >
         <Input
           id='settings-checkout'
@@ -256,4 +276,3 @@ function SecurityRules({ settings, canManage }: { settings: GateSettings; canMan
     </div>
   )
 }
-

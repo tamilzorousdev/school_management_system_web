@@ -4,6 +4,7 @@ import { BrandLogo, BrandMark } from '@/components/common/brand-logo'
 import { Button } from '@/components/ui/button'
 import { currentNav, NAV_GROUPS } from '@/config/nav'
 import { can, type Me } from '@/features/auth/api'
+import { useOfficeMe } from '@/features/office/api'
 import { cn } from '@/lib/utils'
 import { useSelectedSchool } from '@/lib/auth/school-context'
 import { SchoolSwitcher } from './school-switcher'
@@ -23,6 +24,9 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
   const chosenSchool = useSelectedSchool()
   const selectedSchool = can(me, 'platform.schools') ? chosenSchool : null
   const navRef = useSteadyScroll<HTMLElement>()
+  const officeMe = useOfficeMe(
+    can(me, 'office.monitor') && can(me, 'office.view') && Boolean(me.school || selectedSchool)
+  )
 
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
@@ -30,6 +34,7 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
       if (item.to === '/parent-preview' && me.apps.includes('parent')) return true
       if (item.to === '/teacher-preview' && me.apps.includes('staff')) return true
       if (item.to === '/exams' && me.apps.includes('staff')) return true
+      if (item.to === '/office/monitor' && officeMe.data?.can_monitor === false) return false
       return can(me, item.permission)
     }),
   })).filter((group) => group.items.length > 0)

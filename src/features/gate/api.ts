@@ -94,6 +94,7 @@ export interface GatePass {
   id_proof_kind: IdProof | null
   id_proof_last4: string | null
   escalated: boolean
+  escalated_to_head_ao: boolean
   qr_token: string | null
   code: string | null
   created_at: string
@@ -232,6 +233,7 @@ export interface StaffOption {
 export interface GateSettings {
   grace_minutes: number
   emergency_wait_minutes: number
+  office_escalate_minutes: number
   visitor_photo_required: boolean
   visitor_id_required: boolean
   visitor_checkout_time: string

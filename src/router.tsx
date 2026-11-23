@@ -18,6 +18,11 @@ import { emergencySearchSchema } from '@/features/emergency/search'
 import { surveyResultsSearchSchema, surveysSearchSchema } from '@/features/surveys/search'
 import { gateSearchSchema } from '@/features/gate/search'
 import {
+  monitorSearchSchema,
+  officeSearchSchema,
+  student360SearchSchema,
+} from '@/features/office/search'
+import {
   albumSearchSchema,
   cleanupSearchSchema,
   galleryAuditSearchSchema,
@@ -520,6 +525,54 @@ const gateRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/gate/pages/gate-page'), 'GatePage'),
 })
 
+const officeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office',
+  validateSearch: officeSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/classes-page'),
+    'OfficeClassesPage'
+  ),
+})
+
+const officeDashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/dashboard',
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/dashboard-page'),
+    'OfficeDashboardPage'
+  ),
+})
+
+const officeStudentRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/students/$studentId',
+  validateSearch: student360SearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/student-360-page'),
+    'Student360Page'
+  ),
+})
+
+const officeMonitorRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/monitor',
+  validateSearch: monitorSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/monitor-page'),
+    'OfficeMonitorPage'
+  ),
+})
+
+const officeWingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/wings',
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/wings-page'),
+    'OfficeWingsPage'
+  ),
+})
+
 const timetableRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/timetable',
@@ -751,6 +804,11 @@ const routeTree = rootRoute.addChildren([
     galleryReportsRoute,
     galleryAuditRoute,
     gateRoute,
+    officeRoute,
+    officeDashboardRoute,
+    officeStudentRoute,
+    officeMonitorRoute,
+    officeWingsRoute,
     timetableRoute,
     substitutesRoute,
     payrollRoute,

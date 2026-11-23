@@ -18,3 +18,14 @@ export function fallbackLanding(me: Me | undefined): FallbackLanding | null {
   if (!me || DASHBOARD_PERMISSIONS.some((permission) => can(me, permission))) return null
   return FALLBACK_LANDINGS.find((landing) => can(me, landing.permission))?.to ?? null
 }
+
+const SCHOOL_WIDE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'PRINCIPAL']
+
+export function landsOnOffice(me: Me | undefined) {
+  const roles = me?.roles.map((role) => role.code) ?? []
+  return (
+    roles.includes('AO') &&
+    !roles.some((role) => SCHOOL_WIDE_ROLES.includes(role)) &&
+    can(me, 'office.view')
+  )
+}

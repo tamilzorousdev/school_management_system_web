@@ -4,6 +4,9 @@ import {
   BellRing,
   GalleryHorizontal,
   Building2,
+  Gauge,
+  Network,
+  Shapes,
   CalendarCheck,
   CalendarRange,
   ChartColumnBig,
@@ -75,6 +78,10 @@ export type NavPath =
   | '/emergency'
   | '/surveys'
   | '/gate'
+  | '/office'
+  | '/office/dashboard'
+  | '/office/monitor'
+  | '/office/wings'
   | '/activities'
   | '/transport'
   | '/notifications'
@@ -151,6 +158,43 @@ export const NAV_GROUPS: NavGroup[] = [
   //   ],
   // },
   {
+    label: 'Office',
+    items: [
+      {
+        to: '/office/dashboard',
+        label: 'Office dashboard',
+        description: 'Today in your wings: attendance, fees, approvals waiting, exams and alerts',
+        icon: LayoutDashboard,
+        shortcut: 'nav.officeDashboard',
+        permission: 'office.view',
+      },
+      {
+        to: '/office',
+        label: 'Classes & students',
+        description: 'Wing, class and section drill-down with every student’s full history',
+        icon: Shapes,
+        shortcut: 'nav.office',
+        permission: 'office.view',
+      },
+      {
+        to: '/office/monitor',
+        label: 'AO monitor',
+        description: 'Pending approvals, fees and attendance for every AO',
+        icon: Gauge,
+        shortcut: 'nav.aoMonitor',
+        permission: 'office.monitor',
+      },
+      {
+        to: '/office/wings',
+        label: 'Wings & AOs',
+        description: 'School wings and the AO who looks after each one',
+        icon: Network,
+        shortcut: 'nav.wings',
+        permission: 'office.view',
+      },
+    ],
+  },
+  {
     label: 'People',
     items: [
       {
@@ -204,7 +248,8 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: '/staff/appraisals',
         label: 'Performance & Appraisals',
-        description: 'Appraisal groups with their own KRAs, cycles with self, HOD and Principal review, and appeals',
+        description:
+          'Appraisal groups with their own KRAs, cycles with self, HOD and Principal review, and appeals',
         icon: Award,
         shortcut: 'nav.appraisals',
         permission: 'appraisals.view',

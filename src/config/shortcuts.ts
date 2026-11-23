@@ -65,6 +65,14 @@ export const SHORTCUTS = {
   'nav.alerts': { combo: 'g l', label: 'Go to fleet alerts', group: 'Navigation' },
   'nav.tripHistory': { combo: 'g h', label: 'Go to trip history', group: 'Navigation' },
   'nav.maintenance': { combo: 'g i', label: 'Go to maintenance', group: 'Navigation' },
+  'nav.officeDashboard': {
+    combo: 'g shift+d',
+    label: 'Go to office dashboard',
+    group: 'Navigation',
+  },
+  'nav.office': { combo: 'g shift+o', label: 'Go to classes and students', group: 'Navigation' },
+  'nav.aoMonitor': { combo: 'g shift+m', label: 'Go to AO monitor', group: 'Navigation' },
+  'nav.wings': { combo: 'g shift+w', label: 'Go to wings and AOs', group: 'Navigation' },
   'nav.gate': { combo: 'g 8', label: 'Go to gate and visitors', group: 'Navigation' },
   'nav.parentPreview': { combo: 'g 1', label: 'Go to parent app preview', group: 'Navigation' },
   'nav.teacherPreview': {
