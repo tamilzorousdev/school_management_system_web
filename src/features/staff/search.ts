@@ -53,31 +53,6 @@ export const assignmentsSearchSchema = z.object({
   class_id: id,
 })
 
-export const APPRAISAL_STATUSES = ['draft', 'submitted', 'reviewed', 'appealed', 'finalized'] as const
-export type AppraisalStatus = (typeof APPRAISAL_STATUSES)[number]
-
-export const OVERALL_RATINGS = [
-  'outstanding',
-  'exceeds_expectations',
-  'meets_expectations',
-  'needs_improvement',
-  'unsatisfactory',
-] as const
-export type OverallRating = (typeof OVERALL_RATINGS)[number]
-
-export const appraisalsSearchSchema = z.object({
-  page,
-  search: text,
-  status: z.enum(APPRAISAL_STATUSES).optional().catch(undefined),
-  rating: z.enum(OVERALL_RATINGS).optional().catch(undefined),
-  academic_year_id: id,
-  staff_id: id,
-  sort: z.enum(['review_date', 'created_at']).optional().catch(undefined),
-  order: z.enum(['asc', 'desc']).optional().catch(undefined),
-  appraisal: id,
-})
-
 export type StaffSearch = z.infer<typeof staffSearchSchema>
 export type StaffProfileSearch = z.infer<typeof staffProfileSearchSchema>
 export type AssignmentsSearch = z.infer<typeof assignmentsSearchSchema>
-export type AppraisalsSearch = z.infer<typeof appraisalsSearchSchema>
