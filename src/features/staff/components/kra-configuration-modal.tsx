@@ -46,6 +46,7 @@ export function KraConfigurationModal({
 
   useEffect(() => {
     if (query.data) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setItems(query.data)
     }
   }, [query.data])
