@@ -1,5 +1,15 @@
 import { useState, type ChangeEvent } from 'react'
-import { CheckCircle2, XCircle, AlertCircle, Clock, BookOpen, User, Camera, Mic, ShieldAlert } from 'lucide-react'
+import {
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Clock,
+  BookOpen,
+  User,
+  Camera,
+  Mic,
+  ShieldAlert,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,11 +23,13 @@ import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { formatDate } from '@/lib/format'
-import {
-  quizzesApi,
-  useQuiz,
-  useQuizActionMutation,
-} from '../api'
+import { quizzesApi, useQuiz, useQuizActionMutation } from '../api'
+
+const QUESTION_TYPE_LABEL: Record<string, string> = {
+  single_choice: 'Single choice',
+  multiple_choice: 'Multiple choice',
+  true_false: 'Yes / No',
+}
 
 interface QuizReviewModalProps {
   quizId: number | null
@@ -62,8 +74,8 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
   }
 
   const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      alerts.error('Please enter a reason for rejection')
+    if (rejectionReason.trim().length < 3) {
+      alerts.error('Please enter a reason for rejection (at least 3 characters)')
       return
     }
     try {
@@ -79,100 +91,116 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
     quiz?.status === 'approved'
       ? 'success'
       : quiz?.status === 'pending_approval'
-      ? 'warning'
-      : quiz?.status === 'rejected'
-      ? 'danger'
-      : 'neutral'
+        ? 'warning'
+        : quiz?.status === 'rejected'
+          ? 'danger'
+          : 'neutral'
 
   return (
     <Dialog open={Boolean(quizId)} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className='max-w-3xl max-h-[90vh] flex flex-col p-0'>
-        <DialogHeader className='p-6 pb-2 border-b'>
+      <DialogContent className='flex max-h-[90vh] max-w-3xl flex-col p-0'>
+        <DialogHeader className='border-b p-6 pb-2'>
           <div className='flex items-center justify-between'>
             <DialogTitle className='text-xl font-bold'>Review Online Quiz</DialogTitle>
-            {quiz && (
-              <Badge tone={statusTone}>
-                {quiz.status.replace('_', ' ').toUpperCase()}
-              </Badge>
-            )}
+            {quiz && <Badge tone={statusTone}>{quiz.status.replace('_', ' ').toUpperCase()}</Badge>}
           </div>
           <DialogDescription>
             Verify quiz details, schedule, and question bank before publishing to students.
           </DialogDescription>
         </DialogHeader>
 
-        <div className='flex-1 overflow-y-auto p-6 space-y-6'>
+        <div className='flex-1 space-y-6 overflow-y-auto p-6'>
           {isLoading || !quiz ? (
             <div className='py-12 text-center text-muted-foreground'>Loading quiz details...</div>
           ) : (
             <>
               {/* Quiz Summary Info */}
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-lg bg-muted/40 text-sm'>
+              <div className='grid grid-cols-2 gap-4 rounded-lg bg-muted/40 p-4 text-sm sm:grid-cols-4'>
                 <div>
-                  <span className='text-xs text-muted-foreground block'>Subject & Class</span>
+                  <span className='block text-xs text-muted-foreground'>Subject & Class</span>
                   <span className='font-semibold'>
-                    {quiz.subject?.name} ({quiz.class?.name} - {quiz.section?.name})
+                    {quiz.subject?.name ?? '—'}
+                    {quiz.class
+                      ? ` (${quiz.class.name}${quiz.section ? ` - ${quiz.section.name}` : ''})`
+                      : ''}
                   </span>
                 </div>
                 <div>
-                  <span className='text-xs text-muted-foreground block'>Created By</span>
-                  <span className='font-semibold flex items-center gap-1'>
+                  <span className='block text-xs text-muted-foreground'>Created By</span>
+                  <span className='flex items-center gap-1 font-semibold'>
                     <User className='h-3.5 w-3.5' />
-                    {quiz.teacher ? `${quiz.teacher.first_name} ${quiz.teacher.last_name}` : 'Teacher'}
+                    {quiz.teacher?.name ?? '—'}
                   </span>
                 </div>
                 <div>
-                  <span className='text-xs text-muted-foreground block'>Duration</span>
-                  <span className='font-semibold flex items-center gap-1'>
+                  <span className='block text-xs text-muted-foreground'>Duration</span>
+                  <span className='flex items-center gap-1 font-semibold'>
                     <Clock className='h-3.5 w-3.5' />
                     {quiz.duration_minutes} mins
                   </span>
                 </div>
                 <div>
-                  <span className='text-xs text-muted-foreground block'>Total Marks</span>
+                  <span className='block text-xs text-muted-foreground'>Total Marks</span>
                   <span className='font-semibold'>
                     {quiz.total_marks} Marks ({quiz.questions?.length ?? 0} Questions)
                   </span>
                 </div>
                 <div className='col-span-2'>
-                  <span className='text-xs text-muted-foreground block'>Available Window</span>
-                  <span className='font-medium text-xs'>
+                  <span className='block text-xs text-muted-foreground'>Available Window</span>
+                  <span className='text-xs font-medium'>
                     {formatDate(quiz.start_at)} — {formatDate(quiz.end_at)}
                   </span>
                 </div>
                 <div className='col-span-2'>
-                  <span className='text-xs text-muted-foreground block'>Passing Cutoff</span>
-                  <span className='font-medium text-xs'>{quiz.pass_percentage}% minimum to pass</span>
+                  <span className='block text-xs text-muted-foreground'>Passing Cutoff</span>
+                  <span className='text-xs font-medium'>
+                    {quiz.pass_percentage === null
+                      ? 'No pass mark set: students see only their score'
+                      : `${quiz.pass_marks} marks (${quiz.pass_percentage}%) minimum to pass`}
+                  </span>
                 </div>
               </div>
 
               {quiz.instructions && (
-                <div className='p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md text-xs space-y-1'>
-                  <div className='font-semibold text-amber-900 dark:text-amber-200'>Instructions for Students:</div>
-                  <div className='text-amber-800 dark:text-amber-300 whitespace-pre-wrap'>{quiz.instructions}</div>
+                <div className='space-y-1 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs dark:border-amber-800 dark:bg-amber-950/20'>
+                  <div className='font-semibold text-amber-900 dark:text-amber-200'>
+                    Instructions for Students:
+                  </div>
+                  <div className='whitespace-pre-wrap text-amber-800 dark:text-amber-300'>
+                    {quiz.instructions}
+                  </div>
                 </div>
               )}
 
-              <div className='p-3 bg-slate-50 dark:bg-slate-900 border rounded-md text-xs space-y-2'>
-                <div className='font-semibold text-foreground flex items-center gap-1.5'>
+              <div className='space-y-2 rounded-md border bg-slate-50 p-3 text-xs dark:bg-slate-900'>
+                <div className='flex items-center gap-1.5 font-semibold text-foreground'>
                   <ShieldAlert className='h-3.5 w-3.5 text-primary' />
                   Proctoring & Anti-Cheat Rules:
                 </div>
-                <div className='flex items-center gap-4 flex-wrap'>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-medium ${quiz.require_camera ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-muted text-muted-foreground line-through'}`}>
-                    <Camera className='h-3 w-3' /> Camera Monitoring {quiz.require_camera ? '(Active)' : '(Disabled)'}
+                <div className='flex flex-wrap items-center gap-4'>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium ${quiz.require_camera ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-muted text-muted-foreground line-through'}`}
+                  >
+                    <Camera className='h-3 w-3' /> Camera Monitoring{' '}
+                    {quiz.require_camera ? '(Active)' : '(Disabled)'}
                   </span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-medium ${quiz.require_microphone ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-muted text-muted-foreground line-through'}`}>
-                    <Mic className='h-3 w-3' /> Voice Monitoring {quiz.require_microphone ? '(Active)' : '(Disabled)'}
+                  <span
+                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium ${quiz.require_microphone ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-muted text-muted-foreground line-through'}`}
+                  >
+                    <Mic className='h-3 w-3' /> Voice Monitoring{' '}
+                    {quiz.require_microphone ? '(Active)' : '(Disabled)'}
                   </span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-medium ${quiz.expire_on_exit ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-muted text-muted-foreground line-through'}`}>
-                    <ShieldAlert className='h-3 w-3' /> Expire on Exit {quiz.expire_on_exit ? '(Strict Disqualification)' : '(Permissive)'}
+                  <span
+                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-medium ${quiz.expire_on_exit ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' : 'bg-muted text-muted-foreground line-through'}`}
+                  >
+                    <ShieldAlert className='h-3 w-3' /> Expire on Exit{' '}
+                    {quiz.expire_on_exit ? '(Strict Disqualification)' : '(Permissive)'}
                   </span>
                 </div>
               </div>
 
               {quiz.rejection_reason && (
-                <div className='p-3 bg-destructive/10 border border-destructive/20 rounded-md text-xs space-y-1'>
+                <div className='space-y-1 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs'>
                   <div className='font-semibold text-destructive'>Previous Rejection Notes:</div>
                   <div className='text-destructive/90'>{quiz.rejection_reason}</div>
                 </div>
@@ -180,42 +208,44 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
 
               {/* Questions List */}
               <div className='space-y-4'>
-                <h3 className='font-semibold text-sm flex items-center gap-2'>
+                <h3 className='flex items-center gap-2 text-sm font-semibold'>
                   <BookOpen className='h-4 w-4' />
-                  Question Bank ({quiz.questions?.length || 0} MCQs)
+                  Question Bank ({quiz.questions?.length || 0} Questions)
                 </h3>
 
                 <div className='space-y-4'>
                   {quiz.questions?.map((q, idx) => (
-                    <div
-                      key={q.id || idx}
-                      className='p-4 border rounded-lg bg-card space-y-3'
-                    >
+                    <div key={q.id || idx} className='space-y-3 rounded-lg border bg-card p-4'>
                       <div className='flex items-start justify-between gap-2'>
-                        <span className='font-medium text-sm leading-relaxed'>
-                          <span className='font-bold text-muted-foreground mr-1'>Q{idx + 1}.</span>
+                        <span className='text-sm leading-relaxed font-medium'>
+                          <span className='mr-1 font-bold text-muted-foreground'>Q{idx + 1}.</span>
                           {q.question_text}
                         </span>
-                        <Badge tone='neutral' className='shrink-0 text-xs'>
-                          {q.marks} {q.marks === 1 ? 'Mark' : 'Marks'}
-                        </Badge>
+                        <div className='flex shrink-0 items-center gap-1.5'>
+                          <Badge tone='info' className='text-xs'>
+                            {QUESTION_TYPE_LABEL[q.question_type] ?? 'Single choice'}
+                          </Badge>
+                          <Badge tone='neutral' className='text-xs'>
+                            {q.marks} {q.marks === 1 ? 'Mark' : 'Marks'}
+                          </Badge>
+                        </div>
                       </div>
 
                       {/* Options */}
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1'>
+                      <div className='grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2'>
                         {q.options?.map((opt) => {
-                          const isCorrect = opt.key === q.correct_option
+                          const isCorrect = q.correct_option.split(',').includes(opt.key)
                           return (
                             <div
                               key={opt.key}
-                              className={`p-2.5 rounded-md border text-xs flex items-center gap-2 ${
+                              className={`flex items-center gap-2 rounded-md border p-2.5 text-xs ${
                                 isCorrect
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-500 font-semibold text-emerald-900 dark:text-emerald-200'
-                                  : 'bg-muted/30 border-muted'
+                                  ? 'border-emerald-500 bg-emerald-50 font-semibold text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200'
+                                  : 'border-muted bg-muted/30'
                               }`}
                             >
                               <span
-                                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                                   isCorrect
                                     ? 'bg-emerald-600 text-white'
                                     : 'bg-muted text-muted-foreground'
@@ -224,15 +254,17 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
                                 {opt.key}
                               </span>
                               <span className='flex-1'>{opt.text}</span>
-                              {isCorrect && <CheckCircle2 className='h-4 w-4 text-emerald-600 shrink-0' />}
+                              {isCorrect && (
+                                <CheckCircle2 className='h-4 w-4 shrink-0 text-emerald-600' />
+                              )}
                             </div>
                           )
                         })}
                       </div>
 
                       {q.explanation && (
-                        <div className='pt-2 border-t text-xs text-muted-foreground flex items-start gap-1.5'>
-                          <AlertCircle className='h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5' />
+                        <div className='flex items-start gap-1.5 border-t pt-2 text-xs text-muted-foreground'>
+                          <AlertCircle className='mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500' />
                           <span>
                             <strong>Explanation:</strong> {q.explanation}
                           </span>
@@ -245,17 +277,23 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
 
               {/* Rejection Form Input */}
               {rejecting && (
-                <div className='p-4 border border-destructive/30 rounded-lg bg-destructive/5 space-y-3'>
-                  <label htmlFor='rejectReason' className='block text-sm font-semibold text-destructive'>
+                <div className='space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4'>
+                  <label
+                    htmlFor='rejectReason'
+                    className='block text-sm font-semibold text-destructive'
+                  >
                     Reason for Rejection / Changes Required
                   </label>
                   <textarea
                     id='rejectReason'
                     placeholder='Explain what the teacher needs to fix or modify (e.g. Question 3 options are ambiguous, extend duration, etc.)...'
                     value={rejectionReason}
-                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRejectionReason(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                      setRejectionReason(e.target.value)
+                    }
                     rows={3}
-                    className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                    maxLength={500}
+                    className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
                   />
                   <div className='flex justify-end gap-2'>
                     <Button variant='outline' size='sm' onClick={() => setRejecting(false)}>
@@ -276,7 +314,7 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
           )}
         </div>
 
-        <DialogFooter className='p-4 border-t bg-muted/20 flex items-center justify-between'>
+        <DialogFooter className='flex items-center justify-between border-t bg-muted/20 p-4'>
           <Button variant='outline' onClick={handleClose}>
             Close
           </Button>
@@ -289,16 +327,16 @@ export function QuizReviewModal({ quizId, onClose, onApproved }: QuizReviewModal
                 onClick={() => setRejecting(true)}
                 disabled={approveMutation.isPending}
               >
-                <XCircle className='h-4 w-4 mr-1.5' />
+                <XCircle className='mr-1.5 h-4 w-4' />
                 Reject
               </Button>
               <Button
                 size='sm'
-                className='bg-emerald-600 hover:bg-emerald-700 text-white'
+                className='bg-emerald-600 text-white hover:bg-emerald-700'
                 onClick={handleApprove}
                 disabled={approveMutation.isPending}
               >
-                <CheckCircle2 className='h-4 w-4 mr-1.5' />
+                <CheckCircle2 className='mr-1.5 h-4 w-4' />
                 {approveMutation.isPending ? 'Approving...' : 'Approve & Notify Parents'}
               </Button>
             </div>
