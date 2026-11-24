@@ -66,6 +66,8 @@ import {
 import { AchievementsTab } from '../components/achievements-tab'
 import { BehaviourTab } from '../components/behaviour-tab'
 import { ExitModal } from '../components/exit-modal'
+import { NocPanel } from '../components/noc-panel'
+import { NocStartModal } from '../components/noc-start-modal'
 import { HealthTab } from '../components/health-tab'
 import { TransportTab } from '../components/transport-tab'
 import {
@@ -78,6 +80,7 @@ import {
 import {
   DOCUMENT_TYPE_LABELS,
   GENDER_LABELS,
+  NOC_STATUS,
   RELATION_LABELS,
   STUDENT_STATUS,
   classSection,
@@ -107,7 +110,7 @@ export function StudentPage() {
   const student = useStudent(id)
   const counts = useRecordCounts(id)
   const data = student.data
-  const [modal, setModal] = useState<'edit' | 'class' | 'exit' | 'reissue' | null>(null)
+  const [modal, setModal] = useState<'edit' | 'class' | 'leave' | 'exit' | 'reissue' | null>(null)
   const [printing, setPrinting] = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [viewingPhoto, setViewingPhoto] = useState(false)
@@ -253,6 +256,11 @@ export function StudentPage() {
                 <Badge tone={STUDENT_STATUS[data.status].tone} dot>
                   {STUDENT_STATUS[data.status].label}
                 </Badge>
+                {data.noc_status && (
+                  <Badge tone={NOC_STATUS[data.noc_status].tone}>
+                    {NOC_STATUS[data.noc_status].label}
+                  </Badge>
+                )}
                 <Badge tone='neutral'>{yearsLabel(data.years_in_school)}</Badge>
                 {data.house && <Badge tone='neutral'>{data.house} house</Badge>}
                 {data.sibling_count > 0 && (
@@ -330,9 +338,9 @@ export function StudentPage() {
                       Remove photo
                     </DropdownMenuItem>
                   )}
-                  {active && <DropdownMenuSeparator />}
-                  {active && (
-                    <DropdownMenuItem destructive onSelect={() => setModal('exit')}>
+                  {active && !data.noc_status && <DropdownMenuSeparator />}
+                  {active && !data.noc_status && (
+                    <DropdownMenuItem destructive onSelect={() => setModal('leave')}>
                       <LogOut />
                       Leaving the school
                     </DropdownMenuItem>
@@ -345,6 +353,9 @@ export function StudentPage() {
       </Card>
 
       {!active && <LeftBanner student={data} />}
+      {active && data.noc_status && (
+        <NocPanel student={data} canManage={canManage} onIssueTc={() => setModal('exit')} />
+      )}
 
       <PageTabs
         label='Student profile sections'
@@ -416,6 +427,7 @@ export function StudentPage() {
       {modal === 'class' && (
         <EnrollmentModal open onOpenChange={(open) => !open && setModal(null)} student={data} />
       )}
+      {modal === 'leave' && <NocStartModal student={data} onClose={() => setModal(null)} />}
       {modal === 'exit' && <ExitModal student={data} onClose={() => setModal(null)} />}
       <ConfirmDialog
         open={modal === 'reissue'}

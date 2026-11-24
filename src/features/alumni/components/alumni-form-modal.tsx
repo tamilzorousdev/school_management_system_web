@@ -48,6 +48,7 @@ const schema = z.object({
   gender: z.enum(['male', 'female', 'other']).or(z.literal('')),
   dob: z.string(),
   admission_no: text(30),
+  emis_number: text(50),
   admission_date: z.string(),
   batch_year: batchYearText,
   left_on: z.string(),
@@ -110,6 +111,7 @@ function defaults(alumnus: AlumniDetail): FormValues {
     gender: alumnus.gender ?? '',
     dob: alumnus.dob ?? '',
     admission_no: alumnus.admission_no ?? '',
+    emis_number: alumnus.emis_number ?? '',
     admission_date: alumnus.admission_date ?? '',
     batch_year: String(alumnus.batch_year),
     left_on: alumnus.left_on ?? '',
@@ -137,6 +139,7 @@ function toInput(values: FormValues): AlumniProfileInput & {
     gender: values.gender || null,
     dob: values.dob || null,
     admission_no: orNull(values.admission_no),
+    emis_number: orNull(values.emis_number),
     admission_date: values.admission_date || null,
     left_on: values.left_on || null,
     exit_type: values.exit_type,
@@ -258,6 +261,10 @@ function AlumniForm({
         {textField('admission_no', 'Admission no', {
           placeholder: 'ADM-2014-0042',
           maxLength: 30,
+        })}
+        {textField('emis_number', 'EMIS number', {
+          placeholder: '3302040120100123',
+          maxLength: 50,
         })}
         {dateField('admission_date', 'Admitted on')}
       </FormSection>
