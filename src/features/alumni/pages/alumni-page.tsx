@@ -228,6 +228,7 @@ export function AlumniPage() {
             <span className='truncate font-bold'>{row.full_name}</span>
             <span className='truncate font-mono text-xs text-muted-foreground'>
               {row.alumni_no}
+              {row.emis_number ? ` · EMIS ${row.emis_number}` : ''}
             </span>
           </div>
         </div>
@@ -421,7 +422,7 @@ export function AlumniPage() {
             <SearchBox
               value={search.search ?? ''}
               onChange={(value) => setSearch({ search: value || undefined })}
-              placeholder='Search name, number, mobile, college or city'
+              placeholder='Search name, number, EMIS, mobile, college or city'
               label='Search alumni'
             />
             <FilterSelect
@@ -493,6 +494,7 @@ export function AlumniPage() {
                       <span className='truncate font-bold'>{row.full_name}</span>
                       <span className='truncate font-mono text-xs text-muted-foreground'>
                         {row.alumni_no} · Batch {row.batch_year}
+                        {row.emis_number ? ` · EMIS ${row.emis_number}` : ''}
                       </span>
                     </div>
                     <Badge tone={ALUMNI_STATUS[row.status].tone} dot className='shrink-0'>

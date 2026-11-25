@@ -47,6 +47,7 @@ export interface StudentListItem {
 export interface StudentDetail extends StudentListItem {
   left_on: string | null
   alumni_id: number | null
+  noc_status: 'open' | 'cleared' | null
   blood_group: BloodGroup | null
   address_line: string | null
   city: string | null

@@ -287,6 +287,7 @@ export function AlumniProfilePage() {
                 ['Gender', data.gender ? GENDER[data.gender] : '—'],
                 ['Date of birth', formatDate(data.dob)],
                 ['Admission no', data.admission_no ?? '—'],
+                ['EMIS number', data.emis_number ?? '—'],
                 ['Admitted on', formatDate(data.admission_date)],
               ]}
             />

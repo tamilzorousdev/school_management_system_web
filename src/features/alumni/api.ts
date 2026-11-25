@@ -42,6 +42,7 @@ export interface AlumniItem {
   photo_file_id: number | null
   photo_url: string | null
   admission_no: string | null
+  emis_number: string | null
   batch_year: number
   left_on: string | null
   exit_type: AlumniExitType
@@ -202,6 +203,7 @@ export interface AlumniDetailsInput extends AlumniContactInput {
   gender?: AlumniGender | null
   dob?: string | null
   admission_no?: string | null
+  emis_number?: string | null
   final_class_name?: string | null
 }
 
