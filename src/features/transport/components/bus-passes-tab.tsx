@@ -527,7 +527,22 @@ function PassCardModal({
   onActivate: () => void
 }) {
   const [until, setUntil] = useState(pass.valid_until)
+  const [printing, setPrinting] = useState(false)
   const school = useMe().data?.school ?? null
+  const print = async () => {
+    setPrinting(true)
+    let qrSvg: string | null = null
+    try {
+      qrSvg = (await transportApi.busPassQr(pass.student.id)).svg
+    } catch (error) {
+      alerts.error(toApiError(error).message, {
+        description: 'Printing the pass without the QR code.',
+      })
+    } finally {
+      setPrinting(false)
+    }
+    printBusPass(pass, school, qrSvg)
+  }
   const save = useTransportMutation((date: string) =>
     transportApi.setPassEnd(pass.student.id, date)
   )
@@ -605,7 +620,7 @@ function PassCardModal({
           )}
         </div>
         <div className='flex flex-wrap items-end gap-2'>
-          <Button variant='outline' onClick={() => printBusPass(pass, school)}>
+          <Button variant='outline' disabled={printing} onClick={() => void print()}>
             <Printer />
             Print
           </Button>

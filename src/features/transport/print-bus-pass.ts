@@ -14,7 +14,11 @@ const escape = (value: string | null | undefined) =>
 const stopText = (stop: BusPass['pickup']) =>
   stop ? `${escape(stop.name)}${stop.time ? ` · ${escape(stop.time)}` : ''}` : '—'
 
-function passHtml(pass: BusPass, school: { name: string; logo_url: string | null } | null) {
+function passHtml(
+  pass: BusPass,
+  school: { name: string; logo_url: string | null } | null,
+  qrSvg: string | null
+) {
   const state = STATE_TEXT[pass.state]
   const photo = pass.student.photo_url
     ? `<img class="photo" src="${escape(pass.student.photo_url)}" alt="">`
@@ -41,6 +45,10 @@ function passHtml(pass: BusPass, school: { name: string; logo_url: string | null
   dt { color: #6b7280; font-size: 7pt; text-transform: uppercase; letter-spacing: .3px; }
   dd { margin: .5mm 0 0; font-size: 8.5pt; font-weight: 600; }
   .wide { grid-column: span 2; }
+  .qr { display: flex; align-items: center; gap: 3mm; border: 1px solid #e5e7eb; border-radius: 2mm; padding: 2mm; }
+  .qr .code { width: 26mm; height: 26mm; flex: none; }
+  .qr .code svg { width: 100%; height: 100%; display: block; }
+  .qr .scan { font-weight: 700; font-size: 10pt; color: #15803d; }
   .foot { border-top: 1px dashed #d1d5db; padding-top: 2mm; font-size: 7pt; color: #6b7280; }
 </style></head><body>
 <div class="card">
@@ -65,6 +73,11 @@ function passHtml(pass: BusPass, school: { name: string; logo_url: string | null
       <div><dt>Bus</dt><dd>${pass.bus ? `${escape(pass.bus.name)} · ${escape(pass.bus.registration_no)}` : '—'}</dd></div>
       <div><dt>Valid</dt><dd>${escape(formatDate(pass.valid_from))} – ${escape(formatDate(pass.valid_until))}</dd></div>
     </dl>
+    ${
+      qrSvg
+        ? `<div class="qr"><div class="code">${qrSvg}</div><div><div class="scan">Scan at the bus</div><div class="muted">The driver scans this code when the student boards.</div></div></div>`
+        : ''
+    }
     <div class="foot">Show this pass when boarding the school bus. If found, please return it to the school office.</div>
   </div>
 </div>
@@ -73,7 +86,8 @@ function passHtml(pass: BusPass, school: { name: string; logo_url: string | null
 
 export function printBusPass(
   pass: BusPass,
-  school: { name: string; logo_url: string | null } | null
+  school: { name: string; logo_url: string | null } | null,
+  qrSvg: string | null = null
 ) {
   const frame = document.createElement('iframe')
   frame.setAttribute('aria-hidden', 'true')
@@ -91,7 +105,7 @@ export function printBusPass(
     return
   }
   doc.open()
-  doc.write(passHtml(pass, school))
+  doc.write(passHtml(pass, school, qrSvg))
   doc.close()
   const images = Array.from(doc.images)
   const ready = Promise.all(

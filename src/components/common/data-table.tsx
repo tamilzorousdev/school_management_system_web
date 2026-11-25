@@ -38,6 +38,7 @@ interface DataTableProps<T> {
   onRetry?: () => void
   empty: { icon: LucideIcon; title: string; description?: string; action?: React.ReactNode }
   onRowClick?: (row: T) => void
+  rowClassName?: (row: T) => string | undefined
   sort?: SortState
   onSortChange?: (sort: SortState) => void
   pagination?: {
@@ -94,6 +95,7 @@ export function DataTable<T>({
   onRetry,
   empty,
   onRowClick,
+  rowClassName,
   sort,
   onSortChange,
   pagination,
@@ -169,7 +171,8 @@ export function DataTable<T>({
                   }
                 }}
                 className={cn(
-                  onRowClick && 'cursor-pointer outline-none focus-visible:bg-accent/60'
+                  onRowClick && 'cursor-pointer outline-none focus-visible:bg-accent/60',
+                  rowClassName?.(row)
                 )}
               >
                 {columns.map((column) => (
@@ -192,7 +195,7 @@ export function DataTable<T>({
 
       <ul className='grid divide-y md:hidden'>
         {rows.map((row) => (
-          <li key={rowKey(row)}>
+          <li key={rowKey(row)} className={rowClassName?.(row)}>
             {onRowClick ? (
               <div
                 role='button'

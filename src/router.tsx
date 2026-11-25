@@ -67,6 +67,11 @@ import { activitiesSearchSchema } from '@/features/activities/search'
 import { substitutesSearchSchema } from '@/features/substitutes/search'
 import { timetableSearchSchema } from '@/features/timetable/search'
 import { transportSearchSchema } from '@/features/transport/search'
+import {
+  busAttendanceSearchSchema,
+  incidentsSearchSchema,
+  opsDaySearchSchema,
+} from '@/features/transport-ops/search'
 import { usersSearchSchema } from '@/features/users/search'
 import { alumniSearchSchema } from '@/features/alumni/search'
 import {
@@ -707,6 +712,46 @@ const routeBuilderRoute = createRoute({
   ),
 })
 
+const transportOpsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/operations',
+  validateSearch: opsDaySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/operations-page'),
+    'OperationsPage'
+  ),
+})
+
+const driverAttendanceRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/driver-attendance',
+  validateSearch: opsDaySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/driver-attendance-page'),
+    'DriverAttendancePage'
+  ),
+})
+
+const busAttendanceRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/bus-attendance',
+  validateSearch: busAttendanceSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/bus-attendance-page'),
+    'BusAttendancePage'
+  ),
+})
+
+const incidentsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/incidents',
+  validateSearch: incidentsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/incidents-page'),
+    'IncidentsPage'
+  ),
+})
+
 const setupRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/setup',
@@ -825,6 +870,10 @@ const routeTree = rootRoute.addChildren([
     transportRoute,
     routeBuilderRoute,
     routeRosterRoute,
+    transportOpsRoute,
+    driverAttendanceRoute,
+    busAttendanceRoute,
+    incidentsRoute,
     setupRoute,
     schoolsRoute,
     parentPreviewRoute,

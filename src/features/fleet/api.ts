@@ -98,6 +98,7 @@ export const harshTotal = (vehicle: Vehicle) =>
 
 export type TripKind = 'pickup' | 'drop'
 export type TripStatus = 'active' | 'ended'
+export type TripTracking = 'telematics' | 'phone'
 export type StopStatus = 'pending' | 'approaching' | 'arrived' | 'departed' | 'skipped'
 
 export interface TripRef {
@@ -131,6 +132,8 @@ export interface Trip {
   delay?: { minutes: number; reason: string | null; at: string } | null
   handover_of?: number | null
   replaced_by?: number | null
+  tracking?: TripTracking
+  swept_at?: string | null
 }
 
 export interface HandoverResult {
@@ -144,8 +147,9 @@ export interface HandoverResult {
 
 export type TripFlag = 'not_boarded' | 'not_alighted'
 export type TripFlagFilter = 'any' | TripFlag
-export type RiderStatus = 'away' | 'waiting' | 'on_bus' | 'off_bus'
+export type RiderStatus = 'away' | 'waiting' | 'not_at_stop' | 'on_bus' | 'off_bus'
 export type BoardingMethod = 'qr' | 'manual'
+export type BoardingAction = 'boarded' | 'alighted' | 'missed'
 
 export interface TripFlagCounts {
   not_boarded: number
@@ -158,6 +162,8 @@ export interface BoardingMark {
   method: BoardingMethod
   stop: TripRef | null
   recorded_by: TripRef | null
+  pass_on_hold: boolean
+  handed_to?: string | null
 }
 
 export interface ChecklistSummary {
@@ -168,6 +174,8 @@ export interface ChecklistSummary {
   off_bus: number
   not_boarded: number
   not_alighted: number
+  not_at_stop: number
+  boarded_on_hold?: number
 }
 
 export interface ChecklistParent {
@@ -186,6 +194,7 @@ export interface ChecklistStudent {
   flag: TripFlag | null
   boarded: BoardingMark | null
   alighted: BoardingMark | null
+  missed: BoardingMark | null
   away_note: string | null
   photo_url: string | null
   parents: ChecklistParent[]
@@ -208,6 +217,7 @@ export interface StudentTrip {
   flag: TripFlag | null
   boarded: BoardingMark | null
   alighted: BoardingMark | null
+  missed: BoardingMark | null
   away_note: string | null
 }
 
@@ -255,10 +265,12 @@ export interface TripBoarding {
   student_id: number
   full_name: string
   class_section: string | null
-  action: 'boarded' | 'alighted'
+  action: BoardingAction
   method: 'qr' | 'manual'
   stop: TripRef | null
   recorded_by: TripRef | null
+  handed_to?: string | null
+  pass_on_hold: boolean
   occurred_at: string
 }
 

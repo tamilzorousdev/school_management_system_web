@@ -1,9 +1,9 @@
-import { LogIn, LogOut, QrCode, ScanLine, Hand } from 'lucide-react'
+import { LogIn, LogOut, QrCode, ScanLine, Hand, MapPinOff } from 'lucide-react'
 import { EmptyState } from '@/components/common/display'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { TripBoarding, TripDetail } from '../api'
-import { clock } from '../labels'
+import { BOARDING_ACTION, clock } from '../labels'
 
 const place = (row: TripBoarding) => row.stop?.name || 'School gate'
 
@@ -11,6 +11,7 @@ export function BoardingLog({ trip }: { trip: TripDetail }) {
   const rows = trip.boardings ?? []
   const boarded = rows.filter((row) => row.action === 'boarded').length
   const alighted = rows.filter((row) => row.action === 'alighted').length
+  const missed = rows.filter((row) => row.action === 'missed').length
   const scanned = rows.filter((row) => row.method === 'qr').length
   return (
     <div className='grid'>
@@ -23,6 +24,12 @@ export function BoardingLog({ trip }: { trip: TripDetail }) {
           <LogOut className='size-3.5' />
           <span className='font-semibold text-foreground'>{alighted}</span> got off
         </span>
+        {missed > 0 && (
+          <span className='flex items-center gap-1'>
+            <MapPinOff className='size-3.5' />
+            <span className='font-semibold text-foreground'>{missed}</span> not at stop
+          </span>
+        )}
         {rows.length > 0 && (
           <span className='flex items-center gap-1'>
             <QrCode className='size-3.5' />
@@ -41,6 +48,7 @@ export function BoardingLog({ trip }: { trip: TripDetail }) {
         <ul aria-label='Boarding log' aria-live='polite' className='grid max-h-96 overflow-y-auto'>
           {rows.map((row) => {
             const on = row.action === 'boarded'
+            const off = row.action === 'alighted'
             return (
               <li
                 key={row.id}
@@ -49,18 +57,36 @@ export function BoardingLog({ trip }: { trip: TripDetail }) {
                 <span
                   className={cn(
                     'grid size-7 place-items-center rounded-lg',
-                    on ? 'bg-success/10 text-success' : 'bg-info/10 text-info'
+                    on
+                      ? 'bg-success/10 text-success'
+                      : off
+                        ? 'bg-info/10 text-info'
+                        : 'bg-warning/10 text-warning'
                   )}
                   aria-hidden
                 >
-                  {on ? <LogIn className='size-3.5' /> : <LogOut className='size-3.5' />}
+                  {on ? (
+                    <LogIn className='size-3.5' />
+                  ) : off ? (
+                    <LogOut className='size-3.5' />
+                  ) : (
+                    <MapPinOff className='size-3.5' />
+                  )}
                 </span>
                 <span className='grid min-w-0 gap-0.5'>
-                  <span className='font-semibold break-words'>{row.full_name}</span>
+                  <span className='flex flex-wrap items-center gap-1.5'>
+                    <span className='font-semibold break-words'>{row.full_name}</span>
+                    {row.pass_on_hold && (
+                      <Badge tone='warning' title='Got on with the bus pass on hold'>
+                        Pass on hold
+                      </Badge>
+                    )}
+                  </span>
                   <span className='text-xs break-words text-muted-foreground'>
-                    {on ? 'Got on' : 'Got off'} at {place(row)}
+                    {BOARDING_ACTION[row.action]} at {place(row)}
                     {row.class_section ? ` · ${row.class_section}` : ''}
                     {row.recorded_by ? ` · by ${row.recorded_by.name}` : ''}
+                    {off && row.handed_to ? ` · handed to ${row.handed_to}` : ''}
                   </span>
                 </span>
                 <span className='grid justify-items-end gap-1'>
