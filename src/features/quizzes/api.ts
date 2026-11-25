@@ -8,25 +8,25 @@ export interface QuizOption {
   text: string
 }
 
+export type QuizQuestionType = 'single_choice' | 'multiple_choice' | 'true_false'
+
 export interface QuizQuestion {
   id: number
   quiz_id: number
   question_text: string
-  question_type: string
+  question_type: QuizQuestionType
   options: QuizOption[]
   correct_option: string
   explanation: string | null
   marks: number
-  order_index: number
+  sequence: number
 }
 
 export interface OnlineQuiz {
   id: number
   school_id: number
-  class_id: number
   section_id: number
   subject_id: number
-  teacher_id: number
   title: string
   description: string | null
   instructions: string | null
@@ -34,47 +34,79 @@ export interface OnlineQuiz {
   start_at: string
   end_at: string
   total_marks: number
-  pass_percentage: number
+  pass_percentage: number | null
+  pass_marks: number | null
   expire_on_exit?: boolean
   require_camera?: boolean
   require_microphone?: boolean
   status: QuizStatus
   rejection_reason: string | null
   approved_at: string | null
-  approved_by: number | null
+  approved_by: { id: number; name: string } | null
   created_at: string
   updated_at: string
-  class?: { id: number; name: string }
-  section?: { id: number; name: string }
-  subject?: { id: number; name: string; code: string }
-  teacher?: { id: number; first_name: string; last_name: string }
+  class?: { id: number; name: string } | null
+  section?: { id: number; name: string } | null
+  subject?: { id: number; name: string; code: string } | null
+  teacher?: { id: number; name: string } | null
   questions?: QuizQuestion[]
   questions_count?: number
+  attempts_count?: number
 }
 
 export interface QuizQuestionStat {
   question_id: number
+  sequence: number
   question_text: string
-  marks: number
+  correct_option: string
+  total_answers: number
   correct_count: number
-  total_attempts: number
-  success_rate: number
+  accuracy_percent: number
+}
+
+export type QuizAttendance = 'attended' | 'in_progress' | 'not_attended'
+
+export interface QuizStudentResult {
+  student_id: number
+  full_name: string
+  roll_number: number | null
+  status: string
+  attendance: QuizAttendance
+  score: number
+  percentage: number
+  passed: boolean | null
+  submitted_at: string | null
+  auto_submitted: boolean
 }
 
 export interface QuizAnalytics {
-  quiz_id: number
-  title: string
-  total_students: number
-  total_submissions: number
-  completed_count: number
-  expired_count: number
-  average_score: number
-  highest_score: number
-  lowest_score: number
-  pass_count: number
-  fail_count: number
-  pass_percentage: number
-  question_stats: QuizQuestionStat[]
+  quiz: {
+    id: number
+    title: string
+    status: QuizStatus
+    subject?: string
+    class_section: string
+    class_name: string
+    section_name: string
+    total_marks: number
+    pass_marks: number | null
+    duration_minutes: number
+    start_at: string
+    end_at: string
+  }
+  summary: {
+    total_enrolled: number
+    attended_count: number
+    not_attended_count: number
+    in_progress_count: number
+    completed_count: number
+    expired_count: number
+    average_score: number
+    highest_score: number
+    pass_percent: number | null
+  }
+  students: QuizStudentResult[]
+  questions: QuizQuestionStat[]
 }
 
 export interface CreateQuizQuestionInput {
@@ -144,12 +176,12 @@ export const quizzesApi = {
   list: (params: QuizQuery) => api.get<Paginated<OnlineQuiz>>('/admin/quizzes', params),
   get: (id: number) => api.get<OnlineQuiz>(`/admin/quizzes/${id}`),
   create: (data: CreateQuizInput) => api.post<OnlineQuiz>('/admin/quizzes', data),
-  remove: (id: number) => api.delete<{ message: string }>(`/admin/quizzes/${id}`),
   update: (id: number, data: Partial<OnlineQuiz> & { questions?: unknown[] }) =>
-    api.put<OnlineQuiz>(`/admin/quizzes/${id}`, data),
+    api.patch<OnlineQuiz>(`/admin/quizzes/${id}`, data),
+  remove: (id: number) => api.delete<{ deleted: true; attempts: number }>(`/admin/quizzes/${id}`),
   approve: (id: number) => api.post<OnlineQuiz>(`/admin/quizzes/${id}/approve`),
   reject: (id: number, rejection_reason: string) =>
-    api.post<OnlineQuiz>(`/admin/quizzes/${id}/reject`, { rejection_reason }),
+    api.post<OnlineQuiz>(`/admin/quizzes/${id}/reject`, { reason: rejection_reason }),
   analytics: (id: number) => api.get<QuizAnalytics>(`/admin/quizzes/${id}/analytics`),
   getPermissions: () => api.get<QuizPermissionsResponse>('/admin/quizzes/permissions'),
   updatePermissions: (data: UpdateQuizPermissionsInput) =>
@@ -198,4 +230,3 @@ export function useQuizActionMutation<TVariables>(
     },
   })
 }
-
