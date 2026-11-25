@@ -54,6 +54,7 @@ export const STUDENT_TABS = [
   'report-card',
   'fees',
   'library',
+  'hostel',
 ] as const
 export type StudentTab = (typeof STUDENT_TABS)[number]
 

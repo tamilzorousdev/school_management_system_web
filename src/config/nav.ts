@@ -1,5 +1,16 @@
 import {
   Award,
+  BedDouble,
+  BookOpen,
+  CalendarClock,
+  HeartPulse,
+  Lock,
+  Shirt,
+  UtensilsCrossed,
+  DoorClosed,
+  Gavel,
+  ListChecks,
+  LogOut,
   BookUser,
   BellRing,
   GalleryHorizontal,
@@ -111,6 +122,26 @@ export type NavPath =
   | '/fleet/history'
   | '/fleet/maintenance'
   | '/inventory'
+  | '/hostel'
+  | '/hostel/residents'
+  | '/hostel/rooms'
+  | '/hostel/roll-call'
+  | '/hostel/leaves'
+  | '/hostel/visitors'
+  | '/hostel/fees'
+  | '/hostel/discipline'
+  | '/hostel/complaints'
+  | '/hostel/setup'
+  | '/hostel/audit'
+  | '/hostel/reports'
+  | '/hostel/safety'
+  | '/hostel/mess'
+  | '/hostel/health'
+  | '/hostel/laundry'
+  | '/hostel/duty'
+  | '/hostel/study'
+  | '/hostel/lockers'
+  | '/hostel/inspections'
   | '/setup'
   | '/schools'
   | '/users'
@@ -526,6 +557,178 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Settings2,
         shortcut: 'nav.gallerySettings',
         permission: 'gallery.view',
+      },
+    ],
+  },
+  {
+    label: 'Hostel',
+    items: [
+      {
+        to: '/hostel',
+        label: 'Hostel dashboard',
+        description: 'Beds, residents, roll call, leave, complaints and fees at a glance',
+        icon: BedDouble,
+        shortcut: 'nav.hostel',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/residents',
+        label: 'Residents',
+        description: 'Applications, admission, bed allocation, transfers and checkout',
+        icon: UsersRound,
+        shortcut: 'nav.hostelResidents',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/rooms',
+        label: 'Rooms & beds',
+        description: 'Every room and bed, who sleeps where and what is vacant',
+        icon: DoorClosed,
+        shortcut: 'nav.hostelRooms',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/roll-call',
+        label: 'Hostel roll call',
+        description: 'Morning, evening and night roll call with absent alerts to parents',
+        icon: ListChecks,
+        shortcut: 'nav.hostelRollCall',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/leaves',
+        label: 'Leave & passes',
+        description: 'Home leave and outings, parent consent, hostel gate out and in, late returns',
+        icon: LogOut,
+        shortcut: 'nav.hostelLeaves',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/visitors',
+        label: 'Hostel visitors',
+        description: 'Visitor log, who is inside now and the blocked list',
+        icon: DoorOpen,
+        shortcut: 'nav.hostelVisitors',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/fees',
+        label: 'Hostel fees',
+        description: 'Fee instalments, billing, dues and caution deposits',
+        icon: IndianRupee,
+        shortcut: 'nav.hostelFees',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/discipline',
+        label: 'Hostel discipline',
+        description: 'Conduct cases, actions, fines and strikes',
+        icon: Gavel,
+        shortcut: 'nav.hostelDiscipline',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/complaints',
+        label: 'Complaints & repairs',
+        description: 'Resident complaints with parent rating and maintenance tickets',
+        icon: Wrench,
+        shortcut: 'nav.hostelComplaints',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/safety',
+        label: 'Hostel safety',
+        description:
+          'Emergency alerts and drills with live headcount, and parents who agreed to the rules',
+        icon: Siren,
+        shortcut: 'nav.hostelSafety',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/reports',
+        label: 'Hostel reports',
+        description:
+          'Occupancy, attendance, leave, fees, discipline, complaints, mess and health reports',
+        icon: BarChart3,
+        shortcut: 'nav.hostelReports',
+        permission: 'hostel.reports',
+      },
+      {
+        to: '/hostel/setup',
+        label: 'Hostel setup',
+        description: 'Hostels, blocks, floors, room types, timings and optional modules',
+        icon: Settings2,
+        shortcut: 'nav.hostelSetup',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/audit',
+        label: 'Hostel audit log',
+        description: 'Who admitted, moved, billed or checked out whom',
+        icon: ScrollText,
+        shortcut: 'nav.hostelAudit',
+        permission: 'hostel.view',
+      },
+    ],
+  },
+  {
+    label: 'Hostel life',
+    items: [
+      {
+        to: '/hostel/mess',
+        label: 'Mess',
+        description: 'Weekly menu, meal headcount by diet, meal attendance, skips and feedback',
+        icon: UtensilsCrossed,
+        shortcut: 'nav.hostelMess',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/health',
+        label: 'Health & sick bay',
+        description: 'Health log, students in the sick bay and medication rounds',
+        icon: HeartPulse,
+        shortcut: 'nav.hostelHealth',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/study',
+        label: 'Study hours',
+        description: 'Study schedules, study attendance, study halls and seats',
+        icon: BookOpen,
+        shortcut: 'nav.hostelStudy',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/duty',
+        label: 'Staff duty',
+        description: 'Hostel staff shifts, duty roster, check-in, swaps and night rounds',
+        icon: CalendarClock,
+        shortcut: 'nav.hostelDuty',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/lockers',
+        label: 'Lockers',
+        description: 'Student lockers, keys and returns',
+        icon: Lock,
+        shortcut: 'nav.hostelLockers',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/inspections',
+        label: 'Inspections & assets',
+        description: 'Room inspections, rooms due for a check and room furniture',
+        icon: ClipboardCheck,
+        shortcut: 'nav.hostelInspections',
+        permission: 'hostel.view',
+      },
+      {
+        to: '/hostel/laundry',
+        label: 'Laundry',
+        description: 'Laundry batches, returns and missing clothes',
+        icon: Shirt,
+        shortcut: 'nav.hostelLaundry',
+        permission: 'hostel.view',
       },
     ],
   },
