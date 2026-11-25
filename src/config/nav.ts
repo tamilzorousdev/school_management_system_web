@@ -4,6 +4,7 @@ import {
   BellRing,
   GalleryHorizontal,
   Building2,
+  BusFront,
   Gauge,
   Network,
   Shapes,
@@ -12,6 +13,7 @@ import {
   ChartColumnBig,
   ClipboardCheck,
   ClipboardList,
+  ClipboardClock,
   FileQuestion,
   DoorOpen,
   Repeat,
@@ -27,6 +29,7 @@ import {
   History,
   LayoutDashboard,
   School,
+  ShieldAlert,
   ShieldCheck,
   // Smartphone,
   // TabletSmartphone,
@@ -34,6 +37,7 @@ import {
   Star,
   Trophy,
   Truck,
+  UserRoundCheck,
   UsersRound,
   Video,
   BookOpenCheck,
@@ -84,6 +88,10 @@ export type NavPath =
   | '/office/wings'
   | '/activities'
   | '/transport'
+  | '/transport/operations'
+  | '/transport/driver-attendance'
+  | '/transport/bus-attendance'
+  | '/transport/incidents'
   | '/notifications'
   | '/meetings'
   | '/diary'
@@ -562,6 +570,38 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Buses, drivers, routes, stops and students on each bus',
         icon: Route,
         shortcut: 'nav.transport',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/operations',
+        label: 'Transport operations',
+        description: 'Today’s board: every pickup and drop, delays, boarding and exceptions',
+        icon: BusFront,
+        shortcut: 'nav.transportOps',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/driver-attendance',
+        label: 'Driver attendance',
+        description: 'Driver check-in with selfie, late minutes, attendant and check-out',
+        icon: UserRoundCheck,
+        shortcut: 'nav.driverAttendance',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/bus-attendance',
+        label: 'Bus attendance',
+        description: 'Morning and evening boarding per student, hand-over and class mismatches',
+        icon: ClipboardClock,
+        shortcut: 'nav.busAttendance',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/incidents',
+        label: 'Incidents',
+        description: 'Breakdowns, accidents and injuries reported by drivers',
+        icon: ShieldAlert,
+        shortcut: 'nav.incidents',
         permission: 'fleet.view',
       },
     ],

@@ -493,6 +493,11 @@ export interface BusPass {
   }
 }
 
+export interface BusPassQr {
+  token: string
+  svg: string
+}
+
 export interface BusPassInsights {
   total: number
   active: number
@@ -562,6 +567,7 @@ export const transportApi = {
     }),
   setPassEnd: (studentId: number, validUntil: string) =>
     api.patch<BusPass>(`${base}/bus-passes/${studentId}`, { valid_until: validUntil }),
+  busPassQr: (studentId: number) => api.get<BusPassQr>(`${base}/bus-passes/${studentId}/qr`),
   driverRatings: (params: DriverRatingParams) =>
     api.get<Paginated<DriverRating>>(`${base}/driver-ratings`, { ...params }),
   driverRatingSummary: () => api.get<DriverRatingSummary[]>(`${base}/driver-ratings/summary`),

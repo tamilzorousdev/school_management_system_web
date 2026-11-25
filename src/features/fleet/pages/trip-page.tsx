@@ -37,7 +37,7 @@ import { BoardingLog } from '../components/boarding-log'
 import { HandoverModal } from '../components/handover-modal'
 import { TripChecklistModal } from '../components/trip-checklist-modal'
 import { EventLog, NotBoarded, StopTimeline } from '../components/trip-timeline'
-import { TripStatusBadge } from '../components/trips-panel'
+import { TrackingBadge, TripStatusBadge } from '../components/trips-panel'
 import {
   END_REASON,
   TRIP_KIND,
@@ -193,6 +193,8 @@ export function TripPage() {
                 {TRIP_KIND[trip.kind]}
               </span>
               <TripStatusBadge trip={trip} />
+              <TrackingBadge trip={trip} />
+              {trip.swept_at && <Badge tone='success'>Swept {clock(trip.swept_at)}</Badge>}
               {trip.handover_of && (
                 <Badge tone='info'>
                   <Link to='/fleet/trips/$tripId' params={{ tripId: trip.handover_of }}>

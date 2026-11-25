@@ -28,6 +28,18 @@ export const SHORTCUTS = {
   'nav.surveys': { combo: 'g shift+s', label: 'Go to surveys and forms', group: 'Navigation' },
   'nav.activities': { combo: 'g k', label: 'Go to sports and activities', group: 'Navigation' },
   'nav.transport': { combo: 'g m', label: 'Go to buses and routes', group: 'Navigation' },
+  'nav.transportOps': {
+    combo: 'g shift+b',
+    label: 'Go to transport operations',
+    group: 'Navigation',
+  },
+  'nav.driverAttendance': {
+    combo: 'g shift+p',
+    label: 'Go to driver attendance',
+    group: 'Navigation',
+  },
+  'nav.busAttendance': { combo: 'g shift+u', label: 'Go to bus attendance', group: 'Navigation' },
+  'nav.incidents': { combo: 'g shift+i', label: 'Go to transport incidents', group: 'Navigation' },
   'nav.admissions': { combo: 'g a', label: 'Go to admissions', group: 'Navigation' },
   'nav.alumni': { combo: 'g shift+l', label: 'Go to alumni', group: 'Navigation' },
   'nav.guardians': { combo: 'g p', label: 'Go to parents', group: 'Navigation' },

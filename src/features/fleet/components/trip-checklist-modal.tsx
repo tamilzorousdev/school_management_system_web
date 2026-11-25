@@ -19,6 +19,8 @@ const SUMMARY: { key: keyof ChecklistSummary; label: string; alert?: boolean }[]
   { key: 'off_bus', label: 'Got off' },
   { key: 'waiting', label: 'Waiting' },
   { key: 'away', label: 'Away today' },
+  { key: 'not_at_stop', label: 'Not at stop', alert: true },
+  { key: 'boarded_on_hold', label: 'Boarded on hold', alert: true },
   { key: 'not_boarded', label: 'Never got on', alert: true },
   { key: 'not_alighted', label: 'Not marked off', alert: true },
 ]
@@ -52,18 +54,18 @@ export function TripChecklistModal({
         <EmptyState icon={UsersRound} title='No students on this trip' className='py-6' />
       ) : (
         <div className='grid max-h-[70vh] gap-4 overflow-y-auto'>
-          <div className='grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7'>
+          <div className='grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5'>
             {SUMMARY.map((item) => (
               <div
                 key={item.key}
                 className={cn(
                   'grid rounded-xl border p-2.5',
                   item.alert &&
-                    data.summary[item.key] > 0 &&
+                    (data.summary[item.key] ?? 0) > 0 &&
                     'border-destructive/30 bg-destructive/5'
                 )}
               >
-                <span className='tabular text-lg font-bold'>{data.summary[item.key]}</span>
+                <span className='tabular text-lg font-bold'>{data.summary[item.key] ?? 0}</span>
                 <span className='text-xs text-muted-foreground'>{item.label}</span>
               </div>
             ))}
@@ -83,18 +85,29 @@ function markText(label: string, mark: BoardingMark | null) {
   if (!mark) return null
   const where = mark.stop ? ` at ${mark.stop.name}` : ''
   const who = mark.recorded_by ? ` by ${mark.recorded_by.name}` : ''
-  return `${label} ${clock(mark.at)}${where} · ${BOARDING_METHOD[mark.method]}${who}`
+  const handed = mark.handed_to ? ` · handed to ${mark.handed_to}` : ''
+  const hold = mark.pass_on_hold ? ' · pass on hold' : ''
+  return `${label} ${clock(mark.at)}${where} · ${BOARDING_METHOD[mark.method]}${who}${handed}${hold}`
 }
 
 function ChecklistRow({ student }: { student: ChecklistStudent }) {
   const parent = student.parents[0]
-  const marks = [markText('On', student.boarded), markText('Off', student.alighted)].filter(Boolean)
+  const marks = [
+    markText('On', student.boarded),
+    markText('Off', student.alighted),
+    markText('Not at stop', student.missed),
+  ].filter(Boolean)
   return (
     <li className='flex flex-wrap items-start gap-x-3 gap-y-1 p-3'>
       <span className='grid min-w-0 flex-1 gap-0.5'>
         <span className='flex flex-wrap items-center gap-1.5'>
           <span className='truncate font-semibold'>{student.full_name}</span>
           {student.pass_status === 'on_hold' && <Badge tone='warning'>Pass on hold</Badge>}
+          {student.boarded?.pass_on_hold && (
+            <Badge tone='warning' title='Got on with the bus pass on hold'>
+              Boarded on hold
+            </Badge>
+          )}
         </span>
         <span className='truncate text-xs text-muted-foreground'>
           {[student.class_section, student.stop?.name].filter(Boolean).join(' · ')}
