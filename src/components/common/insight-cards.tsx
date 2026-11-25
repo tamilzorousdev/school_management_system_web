@@ -49,7 +49,8 @@ export function InsightCards({ items, loading }: { items: Insight[]; loading?: b
       ref={ref}
       className={cn(
         'grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3',
-        items.length === 5 && 'lg:grid-cols-3 min-[1400px]:grid-cols-5'
+        items.length === 5 && 'min-[1400px]:grid-cols-5 lg:grid-cols-3',
+        items.length === 6 && 'min-[1400px]:grid-cols-6 lg:grid-cols-3'
       )}
     >
       {items.map((item) => {

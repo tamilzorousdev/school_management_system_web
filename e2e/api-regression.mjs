@@ -8517,6 +8517,301 @@ if (feedbackBefore)
     student_feedback_enabled: feedbackBefore.student_feedback_enabled,
   })
 
+const OF = (id, method, endpoint, scenario, expected, fn) =>
+  check({ id, module: 'AO wings', method, endpoint, scenario, expected, day: 'AO wings' }, fn)
+const meena = client(await sessionFor('.auth-ao-primary.json', '9000000013'))
+const ravi = client(await sessionFor('.auth-ao-secondary.json', '9000000014'))
+const officeStudentIn = async (wingId) => {
+  const classes =
+    (await admin('GET', `/admin/office/wings/${wingId}/classes`)).body?.data?.classes ?? []
+  for (const item of classes.filter((row) => row.student_count > 0)) {
+    const sections =
+      (await admin('GET', `/admin/office/classes/${item.id}/sections`)).body?.data?.sections ?? []
+    for (const section of sections.filter((row) => row.student_count > 0)) {
+      const students = (await admin('GET', `/admin/office/sections/${section.id}/students?limit=1`))
+        .body?.data?.items
+      if (students?.length) return { student: students[0], section, classId: item.id }
+    }
+  }
+  return null
+}
+await OF(
+  'API-OFC-01',
+  'GET',
+  '/admin/office/me',
+  'Primary AO (Meena) is limited to her two wings',
+  '200; is_limited true; Pre-primary and Primary',
+  async () => {
+    const result = await meena('GET', '/admin/office/me')
+    expectStatus(result, 200)
+    const data = result.body.data
+    const names = data.wings.map((wing) => wing.name).sort()
+    if (!data.is_limited || data.is_head_ao || data.can_monitor)
+      throw new Error(
+        `limited ${data.is_limited}, head ${data.is_head_ao}, monitor ${data.can_monitor}`
+      )
+    if (names.join(',') !== 'Pre-primary,Primary') throw new Error(`Wings ${names.join(', ')}`)
+    return `200; is_limited, wings ${names.join(' + ')}`
+  }
+)
+await OF(
+  'API-OFC-02',
+  'GET',
+  '/admin/office/wings/{id}/classes',
+  'Primary AO opens the Secondary wing',
+  '404 WING_NOT_FOUND',
+  async () =>
+    expectStatus(await meena('GET', '/admin/office/wings/3/classes'), 404, 'WING_NOT_FOUND')
+)
+await OF(
+  'API-OFC-03',
+  'GET',
+  '/admin/office/students/{id}',
+  'Primary AO opens a class 6 student',
+  '404 STUDENT_NOT_FOUND',
+  async () => {
+    const found = await officeStudentIn(3)
+    if (!found) return 'Skipped: no student in the Secondary wing'
+    return expectStatus(
+      await meena('GET', `/admin/office/students/${found.student.id}`),
+      404,
+      'STUDENT_NOT_FOUND'
+    )
+  }
+)
+await OF(
+  'API-OFC-04',
+  'GET',
+  '/admin/office/students/{id}',
+  'Primary AO opens Nila (class 3)',
+  '200; current.wing Primary',
+  async () => {
+    const result = await meena('GET', '/admin/office/students/2')
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (data.current?.wing?.name !== 'Primary') throw new Error(`Wing ${data.current?.wing?.name}`)
+    if (!Array.isArray(data.guardians) || typeof data.attendance?.days !== 'number')
+      throw new Error('Student 360 blocks missing')
+    return `200; ${data.student.name}, ${data.current.class_section}, wing ${data.current.wing.name}`
+  }
+)
+await OF(
+  'API-OFC-05',
+  'GET',
+  '/admin/office/monitor',
+  'Secondary AO (Ravi) opens the AO monitor',
+  '403 HEAD_AO_ONLY',
+  async () => expectStatus(await ravi('GET', '/admin/office/monitor'), 403, 'HEAD_AO_ONLY')
+)
+await OF(
+  'API-OFC-06',
+  'GET',
+  '/admin/office/monitor',
+  'Head AO (Karthik) opens the AO monitor',
+  '200; 7 AO cards, one head AO',
+  async () => {
+    const result = await ao('GET', '/admin/office/monitor')
+    expectStatus(result, 200)
+    const cards = result.body.data.aos
+    if (cards.length !== 7) throw new Error(`${cards.length} AO cards`)
+    if (cards.filter((card) => card.is_head).length !== 1) throw new Error('Head AO not marked')
+    return `200; ${cards.map((card) => card.user.name).join(', ')}`
+  }
+)
+await OF(
+  'API-OFC-07',
+  'POST',
+  '/admin/office/wing-setup/wings',
+  'Admin adds a wing that overlaps Primary',
+  '409 WING_OVERLAP; nothing created',
+  async () => {
+    const before = (await admin('GET', '/admin/office/wing-setup')).body.data.wings.length
+    const result = await admin('POST', '/admin/office/wing-setup/wings', {
+      name: `Overlap ${RUN}`,
+      from_grade: 3,
+      to_grade: 4,
+    })
+    if (result.status === 201) {
+      const made = result.body.data.wings.find((wing) => wing.name === `Overlap ${RUN}`)
+      if (made) await admin('DELETE', `/admin/office/wing-setup/wings/${made.id}`)
+    }
+    const status = expectStatus(result, 409, 'WING_OVERLAP')
+    const after = (await admin('GET', '/admin/office/wing-setup')).body.data.wings.length
+    if (after !== before) throw new Error(`${before} wings became ${after}`)
+    return status
+  }
+)
+await OF(
+  'API-OFC-08',
+  'POST',
+  '/admin/office/wing-setup/wings',
+  'Wing with no name or grades',
+  '400 VALIDATION_FAILED on name, from_grade, to_grade',
+  async () =>
+    expectFields(await admin('POST', '/admin/office/wing-setup/wings', {}), [
+      'name',
+      'from_grade',
+      'to_grade',
+    ])
+)
+await OF(
+  'API-OFC-09',
+  'GET',
+  '/admin/office/sections/{id}/students',
+  'Section students sorted by an unknown column',
+  '400 INVALID_SORT',
+  async () =>
+    expectStatus(
+      await admin('GET', '/admin/office/sections/5/students?sort=height'),
+      400,
+      'INVALID_SORT'
+    )
+)
+await OF(
+  'API-OFC-10',
+  'GET',
+  '/admin/office/students/{id}/timeline',
+  'Student timeline pages with no repeats',
+  '200; page 1 and page 2 differ; has_next set',
+  async () => {
+    const first = await admin('GET', '/admin/office/students/2/timeline?limit=3&page=1')
+    expectStatus(first, 200)
+    const one = first.body.data
+    if (one.items.length > 3 || one.limit !== 3) throw new Error('Limit ignored')
+    if (one.total <= 3) return `200; only ${one.total} entries, has_next ${one.has_next}`
+    if (!one.has_next) throw new Error('has_next false with more entries')
+    const two = (await admin('GET', '/admin/office/students/2/timeline?limit=3&page=2')).body.data
+    const key = (item) => `${item.type}-${item.ref_id}-${item.at}`
+    const seen = one.items.map(key)
+    if (two.items.some((item) => seen.includes(key(item)))) throw new Error('Page 2 repeats page 1')
+    return `200; ${one.total} entries over ${one.total_pages} pages`
+  }
+)
+await OF(
+  'API-OFC-11',
+  'GET',
+  '/admin/office/sections/{id}/students',
+  'Primary AO filters a class 3 section by fee due',
+  '200; every row has a fee balance',
+  async () => {
+    const result = await meena('GET', '/admin/office/sections/5/students?filter=fee_due')
+    expectStatus(result, 200)
+    const rows = result.body.data.items
+    if (rows.some((row) => row.fee_due <= 0)) throw new Error('Row with nothing due')
+    return `200; ${rows.length} with fee due in ${result.body.data.section.class_section}`
+  }
+)
+await OF(
+  'API-OFC-12',
+  'POST',
+  '/admin/office/monitor/aos/{userId}/remind',
+  'Head AO reminds an AO with nothing pending',
+  '409 NOTHING_PENDING',
+  async () => {
+    const cards = (await ao('GET', '/admin/office/monitor')).body.data.aos
+    const idle = cards.find((card) => card.pending.total === 0)
+    if (!idle) return 'Skipped: every AO has something pending'
+    return expectStatus(
+      await ao('POST', `/admin/office/monitor/aos/${idle.user.id}/remind`),
+      409,
+      'NOTHING_PENDING'
+    )
+  }
+)
+
+const gopal = client(await sessionFor('.auth-ao-gopal.json', '9000000022'))
+const hema = client(await sessionFor('.auth-ao-hema.json', '9000000023'))
+await OF(
+  'API-OFC-13',
+  'GET',
+  '/admin/office/dashboard',
+  'Head AO (Karthik) opens the office dashboard',
+  '200; aos is an array of 7 AO cards',
+  async () => {
+    const result = await ao('GET', '/admin/office/dashboard')
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (!Array.isArray(data.aos)) throw new Error(`aos ${JSON.stringify(data.aos)}`)
+    if (data.aos.length !== 7) throw new Error(`${data.aos.length} AO cards`)
+    if (data.pending_items.length > 5) throw new Error(`${data.pending_items.length} pending items`)
+    if (data.fees.top_defaulters.length > 5) throw new Error('More than 5 top defaulters')
+    return `200; ${data.aos.length} AO cards, ${data.students} students, ${data.pending.total} waiting`
+  }
+)
+await OF(
+  'API-OFC-14',
+  'GET',
+  '/admin/office/dashboard',
+  'Gopal (Primary + Secondary AO) opens the office dashboard',
+  '200; aos null; students = Primary + Secondary wing students',
+  async () => {
+    const result = await gopal('GET', '/admin/office/dashboard')
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (data.aos !== null) throw new Error('aos is not null for a wing AO')
+    const wings = (await gopal('GET', '/admin/office/wings')).body.data.wings
+    const names = wings.map((wing) => wing.name).sort()
+    if (names.join(',') !== 'Primary,Secondary') throw new Error(`Wings ${names.join(', ')}`)
+    const sum = wings.reduce((total, wing) => total + wing.student_count, 0)
+    if (data.students !== sum) throw new Error(`students ${data.students}, wings add to ${sum}`)
+    return `200; aos null; ${data.students} students = ${wings.map((wing) => `${wing.name} ${wing.student_count}`).join(' + ')}`
+  }
+)
+await OF(
+  'API-OFC-15',
+  'GET',
+  '/admin/office/dashboard',
+  'Hema (Higher Secondary AO only) opens the office dashboard',
+  '200; students 0; aos null',
+  async () => {
+    const result = await hema('GET', '/admin/office/dashboard')
+    expectStatus(result, 200)
+    const data = result.body.data
+    if (data.students !== 0) throw new Error(`students ${data.students}`)
+    if (data.aos !== null) throw new Error('aos is not null for a wing AO')
+    return `200; students 0, wings ${data.me.wings.map((wing) => wing.name).join(', ')}`
+  }
+)
+await OF(
+  'API-OFC-16',
+  'GET',
+  '/admin/office/students/{id}/documents',
+  'Primary AO (Meena) lists Nila’s documents',
+  '200; every document has a signed url',
+  async () => {
+    const result = await meena('GET', '/admin/office/students/2/documents')
+    expectStatus(result, 200)
+    const docs = result.body.data
+    if (!Array.isArray(docs) || !docs.length) throw new Error('No documents')
+    const missing = docs.filter((doc) => !doc.url)
+    if (missing.length) throw new Error(`${missing.length} documents without url`)
+    return `200; ${docs.length} documents, each with url`
+  }
+)
+await OF(
+  'API-OFC-17',
+  'GET',
+  '/admin/office/students/{id}/documents',
+  'Primary AO (Meena) lists a class 6 student’s documents',
+  '404 STUDENT_NOT_FOUND',
+  async () => {
+    const classes = (await admin('GET', '/admin/office/wings/3/classes')).body?.data?.classes ?? []
+    const six = classes.find((item) => item.name === '6' && item.student_count > 0)
+    if (!six) return 'Skipped: no class 6 with students'
+    const sections =
+      (await admin('GET', `/admin/office/classes/${six.id}/sections`)).body?.data?.sections ?? []
+    const section = sections.find((row) => row.student_count > 0)
+    const student = (await admin('GET', `/admin/office/sections/${section.id}/students?limit=1`))
+      .body?.data?.items?.[0]
+    if (!student) return 'Skipped: no class 6 student'
+    return expectStatus(
+      await meena('GET', `/admin/office/students/${student.id}/documents`),
+      404,
+      'STUDENT_NOT_FOUND'
+    )
+  }
+)
+
 await admin('DELETE', `/admin/students/${studentId}`)
 if (userId) await admin('DELETE', `/admin/users/${userId}`)
 

@@ -1,5 +1,4 @@
 import type { BadgeTone } from '@/components/ui/badge'
-import type { AppraisalStatus, OverallRating } from './search'
 import type {
   AttentionReason,
   StaffDocumentType,
@@ -83,26 +82,3 @@ export const yearsLabel = (years: number) =>
 
 export const loadTone = (load: number, max: number): 'success' | 'warning' | 'danger' =>
   load > max ? 'danger' : load >= max ? 'warning' : 'success'
-
-export const APPRAISAL_RATING_LABELS: Record<OverallRating, { label: string; tone: BadgeTone }> = {
-  outstanding: { label: 'Outstanding (4.6+)', tone: 'success' },
-  exceeds_expectations: { label: 'Exceeds Expectations (3.8 - 4.5)', tone: 'info' },
-  meets_expectations: { label: 'Meets Expectations (3.0 - 3.7)', tone: 'neutral' },
-  needs_improvement: { label: 'Needs Improvement (2.0 - 2.9)', tone: 'warning' },
-  unsatisfactory: { label: 'Unsatisfactory (< 2.0)', tone: 'danger' },
-}
-
-export const APPRAISAL_STATUS_LABELS: Record<AppraisalStatus, { label: string; tone: BadgeTone }> = {
-  draft: { label: 'Draft', tone: 'neutral' },
-  submitted: { label: 'Submitted (Pending Approval)', tone: 'warning' },
-  reviewed: { label: 'Reviewed', tone: 'info' },
-  appealed: { label: 'Appealed (Dispute)', tone: 'danger' },
-  finalized: { label: 'Approved & Finalized', tone: 'success' },
-}
-
-export const RECOMMENDATION_LABELS: Record<string, string> = {
-  increment: 'Salary Increment',
-  promotion: 'Promotion',
-  retention: 'Retention',
-  pip: 'Performance Improvement Plan (PIP)',
-}

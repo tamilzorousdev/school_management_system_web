@@ -3248,6 +3248,138 @@ await test(
     if (questions < 3) throw new Error(`Only ${questions} questions`)
   }
 )
+await test(
+  {
+    id: 'OF-01',
+    module: 'Office',
+    type: 'View',
+    title: 'Classes & students drills from a wing down to a student’s 360 view',
+    steps: 'Office, Classes & students: open Primary, Class 3, 3 - A, then Nila Narayanan.',
+    expected: 'Breadcrumbs follow each level; Student 360 opens with the Primary wing',
+  },
+  async () => {
+    await go('/office')
+    await see('Higher Secondary')
+    await page.getByRole('button', { name: 'Open Primary' }).click()
+    await page.getByRole('button', { name: 'Open Class 3' }).click()
+    await page.getByRole('button', { name: 'Open 3 - A' }).click()
+    await see('Nila Narayanan')
+    await page.getByText('Nila Narayanan').locator('visible=true').first().click()
+    await page.waitForURL(/\/office\/students\/2/, { timeout: 8000 })
+    await see('Exams & rank card')
+    const crumbs = await page.getByRole('navigation', { name: 'Breadcrumb' }).innerText()
+    if (!/Wings[\s\S]*Primary[\s\S]*Class 3[\s\S]*3 - A[\s\S]*Nila/.test(crumbs))
+      throw new Error(`Breadcrumbs: ${crumbs.replace(/\s+/g, ' ')}`)
+  }
+)
+await test(
+  {
+    id: 'OF-02',
+    module: 'Office',
+    type: 'View',
+    title: 'AO monitor shows one card per AO and opens the AO detail',
+    steps: 'Office, AO monitor: open Meena Rajan.',
+    expected: 'Summary cards and AO cards show; the drawer lists pending items and activity',
+  },
+  async () => {
+    await go('/office/monitor')
+    await see('Pending approvals')
+    await see('Head AO · whole school')
+    await page.getByRole('button', { name: 'Open Meena Rajan' }).click()
+    await see('Activity', dialog())
+  }
+)
+await test(
+  {
+    id: 'OF-03',
+    module: 'Office',
+    type: 'View',
+    title:
+      'Office dashboard shows the hero, today strip, teachers, buses, pending approvals, defaulters, exams and AO cards',
+    steps: 'Office, Office dashboard as the school admin.',
+    expected:
+      'Hero with "Admin · whole school", 4 today tiles, Teachers today, Buses today, Pending approvals, Fee defaulters, Latest exams, OD, alerts and the AO strip',
+  },
+  async () => {
+    await go('/office/dashboard')
+    await see('Admin · whole school', page.getByTestId('office-scope'))
+    for (const text of [
+      'Collected today',
+      'This month',
+      'Staff on leave',
+      'Teachers today',
+      'Pending approvals',
+      'Fee defaulters',
+      'Latest exams',
+      'On sports OD today',
+    ])
+      await see(text)
+    const overdue = await page
+      .getByTestId('office-pending')
+      .getByText(/Overdue|Waiting/)
+      .count()
+    if (overdue) throw new Error('Old Overdue/Waiting wording is still shown')
+    await page.getByTestId('office-exams').waitFor({ timeout: 8000 })
+    await page.getByTestId('office-alerts').getByText('Health alerts').waitFor({ timeout: 8000 })
+    const cards = await page
+      .getByTestId('office-aos')
+      .getByRole('button', { name: /^Open / })
+      .count()
+    if (cards < 2) throw new Error(`${cards} AO cards`)
+    await page
+      .getByTestId('office-defaulters')
+      .getByRole('listitem')
+      .first()
+      .getByRole('link')
+      .click()
+    await page.waitForURL(/\/office\/students\/\d+/, { timeout: 8000 })
+  }
+)
+await test(
+  {
+    id: 'OF-04',
+    module: 'Office',
+    type: 'View',
+    title: 'An AO who signs in lands on the Office dashboard',
+    steps: 'Sign in as Suresh (9000000024, Secondary AO) with OTP 123456.',
+    expected:
+      'After sign-in the app opens /office/dashboard with the hero role line "Wing AO · Secondary"',
+  },
+  async () => {
+    const file = '.auth-ao-suresh-ui.json'
+    fs.rmSync(path.join(ROOT, file), { force: true })
+    const suresh = await signedInContext('9000000024', file)
+    const previous = page
+    page = suresh.page
+    try {
+      await page.waitForURL(/\/office\/dashboard/, { timeout: 10000 })
+      await see('Wing AO · Secondary', page.getByTestId('office-scope'))
+    } finally {
+      page = previous
+      await suresh.context.close()
+    }
+  }
+)
+await test(
+  {
+    id: 'OF-05',
+    module: 'Office',
+    type: 'View',
+    title: 'Student 360 Documents tab lists the student’s documents with status',
+    steps: 'Open Nila Narayanan’s 360 view, Documents tab.',
+    expected:
+      'Each document shows its title and a Verified / Pending / Rejected badge and opens the file',
+  },
+  async () => {
+    await go('/office/students/2?tab=documents')
+    const list = page.getByTestId('office-documents')
+    await list.waitFor({ timeout: 8000 })
+    const links = await list.getByRole('link').count()
+    if (!links) throw new Error('No document links')
+    const href = await list.getByRole('link').first().getAttribute('href')
+    if (!href?.includes('signature=')) throw new Error(`Link ${href}`)
+  }
+)
 {
   const phone = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -3284,6 +3416,13 @@ await test(
     ['RS-26', '/fleet/maintenance?tab=settings', 'Month lock'],
     ['RS-27', '/surveys', 'Average response rate'],
     ['RS-28', '/surveys/new', 'Phone preview'],
+    ['RS-29', '/office', 'Higher Secondary'],
+    ['RS-30', '/office?wing=2&class=5&section=5', 'Nila Narayanan'],
+    ['RS-31', '/office/students/2', 'Exams & rank card'],
+    ['RS-32', '/office/monitor', 'Karthik Raman'],
+    ['RS-33', '/office/wings', 'Head AO · whole school'],
+    ['RS-34', '/office/dashboard', 'Fee defaulters'],
+    ['RS-35', '/office/students/2?tab=documents', 'Municipal Birth Certificate'],
   ]) {
     await test(
       {

@@ -56,6 +56,7 @@ export function PassBadges({ pass }: { pass: GatePass }) {
         <MethodBadge method={pass.release_method} />
       )}
       {pass.escalated && pass.status === 'pending' && <Badge tone='danger'>Call the office</Badge>}
+      {pass.escalated_to_head_ao && <Badge tone='warning'>Escalated to head AO</Badge>}
       {pass.needs_consent && pass.consent_status === 'waiting' && (
         <Badge tone='warning'>Parent must agree first</Badge>
       )}

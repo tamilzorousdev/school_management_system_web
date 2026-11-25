@@ -1,12 +1,19 @@
 import {
+  Award,
+  BookUser,
   BellRing,
   GalleryHorizontal,
   Building2,
+  BusFront,
+  Gauge,
+  Network,
+  Shapes,
   CalendarCheck,
   CalendarRange,
   ChartColumnBig,
   ClipboardCheck,
   ClipboardList,
+  ClipboardClock,
   FileQuestion,
   DoorOpen,
   Repeat,
@@ -22,6 +29,7 @@ import {
   History,
   LayoutDashboard,
   School,
+  ShieldAlert,
   ShieldCheck,
   // Smartphone,
   // TabletSmartphone,
@@ -29,9 +37,16 @@ import {
   Star,
   Trophy,
   Truck,
+  UserRoundCheck,
   UsersRound,
   Video,
   BookOpenCheck,
+  BarChart3,
+  Images,
+  ScrollText,
+  Settings2,
+  Sparkles,
+  Trash2,
   Boxes,
   Megaphone,
   MessagesSquare,
@@ -47,6 +62,7 @@ export type NavPath =
   | '/teacher-preview'
   | '/students'
   | '/admissions'
+  | '/alumni'
   | '/guardians'
   | '/staff'
   | '/staff/assignments'
@@ -66,8 +82,16 @@ export type NavPath =
   | '/emergency'
   | '/surveys'
   | '/gate'
+  | '/office'
+  | '/office/dashboard'
+  | '/office/monitor'
+  | '/office/wings'
   | '/activities'
   | '/transport'
+  | '/transport/operations'
+  | '/transport/driver-attendance'
+  | '/transport/bus-attendance'
+  | '/transport/incidents'
   | '/notifications'
   | '/meetings'
   | '/diary'
@@ -76,6 +100,12 @@ export type NavPath =
   | '/grievances'
   | '/chat'
   | '/app-banners'
+  | '/gallery'
+  | '/gallery/trash'
+  | '/gallery/cleanup'
+  | '/gallery/reports'
+  | '/gallery/audit'
+  | '/gallery/settings'
   | '/fleet'
   | '/fleet/alerts'
   | '/fleet/history'
@@ -136,6 +166,43 @@ export const NAV_GROUPS: NavGroup[] = [
   //   ],
   // },
   {
+    label: 'Office',
+    items: [
+      {
+        to: '/office/dashboard',
+        label: 'Office dashboard',
+        description: 'Today in your wings: attendance, fees, approvals waiting, exams and alerts',
+        icon: LayoutDashboard,
+        shortcut: 'nav.officeDashboard',
+        permission: 'office.view',
+      },
+      {
+        to: '/office',
+        label: 'Classes & students',
+        description: 'Wing, class and section drill-down with every student’s full history',
+        icon: Shapes,
+        shortcut: 'nav.office',
+        permission: 'office.view',
+      },
+      {
+        to: '/office/monitor',
+        label: 'AO monitor',
+        description: 'Pending approvals, fees and attendance for every AO',
+        icon: Gauge,
+        shortcut: 'nav.aoMonitor',
+        permission: 'office.monitor',
+      },
+      {
+        to: '/office/wings',
+        label: 'Wings & AOs',
+        description: 'School wings and the AO who looks after each one',
+        icon: Network,
+        shortcut: 'nav.wings',
+        permission: 'office.view',
+      },
+    ],
+  },
+  {
     label: 'People',
     items: [
       {
@@ -153,6 +220,14 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: ClipboardList,
         shortcut: 'nav.admissions',
         permission: 'students.view',
+      },
+      {
+        to: '/alumni',
+        label: 'Alumni',
+        description: 'Former students, their batches, careers and contact details',
+        icon: BookUser,
+        shortcut: 'nav.alumni',
+        permission: 'alumni.view',
       },
       // {
       //   to: '/guardians',
@@ -177,6 +252,15 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Grid3x3,
         shortcut: 'nav.assignments',
         permission: 'staff.view',
+      },
+      {
+        to: '/staff/appraisals',
+        label: 'Performance & Appraisals',
+        description:
+          'Appraisal groups with their own KRAs, cycles with self, HOD and Principal review, and appeals',
+        icon: Award,
+        shortcut: 'nav.appraisals',
+        permission: 'appraisals.view',
       },
       {
         to: '/crew',
@@ -393,6 +477,59 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Gallery',
+    items: [
+      {
+        to: '/gallery',
+        label: 'Gallery',
+        description: 'Photo and video albums for the App Media Gallery and every class and section',
+        icon: Images,
+        shortcut: 'nav.gallery',
+        permission: 'gallery.view',
+      },
+      {
+        to: '/gallery/trash',
+        label: 'Gallery trash',
+        description: 'Deleted albums, photos and videos you can restore before they go for good',
+        icon: Trash2,
+        shortcut: 'nav.galleryTrash',
+        permission: 'gallery.manage',
+      },
+      {
+        to: '/gallery/cleanup',
+        label: 'Gallery cleanup',
+        description: 'Automatic media cleanup: last and next run, history and failures',
+        icon: Sparkles,
+        shortcut: 'nav.galleryCleanup',
+        permission: 'gallery.view',
+      },
+      {
+        to: '/gallery/reports',
+        label: 'Gallery reports',
+        description: 'Usage, uploads, storage, deletions and cleanup reports with export',
+        icon: BarChart3,
+        shortcut: 'nav.galleryReports',
+        permission: 'gallery.view',
+      },
+      {
+        to: '/gallery/audit',
+        label: 'Gallery audit log',
+        description: 'Every upload, edit, deletion, restore and setting change',
+        icon: ScrollText,
+        shortcut: 'nav.galleryAudit',
+        permission: 'gallery.audit',
+      },
+      {
+        to: '/gallery/settings',
+        label: 'Gallery settings',
+        description: 'Switches, upload limits, storage, retention, categories and holds',
+        icon: Settings2,
+        shortcut: 'nav.gallerySettings',
+        permission: 'gallery.view',
+      },
+    ],
+  },
+  {
     label: 'Fleet',
     items: [
       {
@@ -433,6 +570,38 @@ export const NAV_GROUPS: NavGroup[] = [
         description: 'Buses, drivers, routes, stops and students on each bus',
         icon: Route,
         shortcut: 'nav.transport',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/operations',
+        label: 'Transport operations',
+        description: 'Today’s board: every pickup and drop, delays, boarding and exceptions',
+        icon: BusFront,
+        shortcut: 'nav.transportOps',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/driver-attendance',
+        label: 'Driver attendance',
+        description: 'Driver check-in with selfie, late minutes, attendant and check-out',
+        icon: UserRoundCheck,
+        shortcut: 'nav.driverAttendance',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/bus-attendance',
+        label: 'Bus attendance',
+        description: 'Morning and evening boarding per student, hand-over and class mismatches',
+        icon: ClipboardClock,
+        shortcut: 'nav.busAttendance',
+        permission: 'fleet.view',
+      },
+      {
+        to: '/transport/incidents',
+        label: 'Incidents',
+        description: 'Breakdowns, accidents and injuries reported by drivers',
+        icon: ShieldAlert,
+        shortcut: 'nav.incidents',
         permission: 'fleet.view',
       },
     ],

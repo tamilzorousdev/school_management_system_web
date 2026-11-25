@@ -3,6 +3,7 @@ import { config } from '@/config/env'
 import { alerts } from '@/lib/alerts'
 import type { TripEventMessage, TripPositionMessage } from '@/lib/live/socket'
 import type {
+  BoardingAction,
   BoardingMethod,
   HealthStatus,
   RiderStatus,
@@ -13,11 +14,13 @@ import type {
   TripKind,
   TripStatus,
   TripFlag,
+  TripTracking,
   TripStop,
 } from './api'
 
 export const RIDER_STATUS: Record<RiderStatus, { label: string; tone: BadgeTone }> = {
   waiting: { label: 'Waiting', tone: 'warning' },
+  not_at_stop: { label: 'Not at stop', tone: 'warning' },
   on_bus: { label: 'On the bus', tone: 'info' },
   off_bus: { label: 'Got off', tone: 'success' },
   away: { label: 'Away today', tone: 'neutral' },
@@ -39,6 +42,12 @@ export const BOARDING_METHOD: Record<BoardingMethod, string> = {
   manual: 'Tapped',
 }
 
+export const BOARDING_ACTION: Record<BoardingAction, string> = {
+  boarded: 'Got on',
+  alighted: 'Got off',
+  missed: 'Not at stop',
+}
+
 export const TRIP_KIND: Record<TripKind, string> = {
   pickup: 'Morning pickup',
   drop: 'Evening drop',
@@ -54,6 +63,12 @@ export const TRIP_STATUS: Record<TripStatus, { label: string; tone: BadgeTone }>
   active: { label: 'On the road', tone: 'success' },
   ended: { label: 'Ended', tone: 'neutral' },
 }
+
+export const TRIP_TRACKING: Record<TripTracking, { label: string; tone: BadgeTone; hint: string }> =
+  {
+    telematics: { label: 'GPS', tone: 'info', hint: 'The GPS tracker moves the stops by itself' },
+    phone: { label: 'Phone', tone: 'neutral', hint: 'No tracker: the driver taps each stop' },
+  }
 
 export const STOP_STATUS: Record<StopStatus, { label: string; tone: BadgeTone; pin: string }> = {
   pending: { label: 'Not reached', tone: 'neutral', pin: 'bg-muted-foreground' },

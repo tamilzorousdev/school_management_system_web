@@ -108,10 +108,53 @@ export interface TransferCertificate {
   fee_balance: number
 }
 
-export interface ExitInput {
+export type NocStatus = 'open' | 'cleared' | 'cancelled' | 'issued'
+export type NocDepartment = 'fees' | 'library' | 'transport' | 'inventory' | 'class_teacher'
+export type NocItemStatus = 'pending' | 'cleared'
+
+export interface NocItem {
+  department: NocDepartment
+  status: NocItemStatus
+  blocker: string | null
+  blocking: boolean
+  amount: number
+  can_clear: boolean
+  cleared_by_name: string | null
+  cleared_at: string | null
+  remarks: string | null
+  blocker_snapshot: string | null
+}
+
+export interface Noc {
+  id: number
+  student_id: number
+  status: NocStatus
   exit_type: ExitType
   leaving_date: string
   reason: string
+  requested_by_name: string | null
+  requested_at: string
+  cleared_at: string | null
+  cleared_count: number
+  items: NocItem[]
+}
+
+export interface StartNocInput {
+  exit_type: ExitType
+  leaving_date: string
+  reason: string
+}
+
+export interface ClearNocItemInput {
+  department: NocDepartment
+  remarks?: string | null
+  acknowledge_dues?: boolean
+}
+
+export interface ExitInput {
+  exit_type?: ExitType
+  leaving_date?: string
+  reason?: string
   conduct?: string
   promotion_eligible?: boolean
   remarks?: string | null
@@ -237,6 +280,7 @@ export const recordKeys = {
   behaviour: (id: number) => [...recordKeys.all(id), 'behaviour'] as const,
   achievements: (id: number) => [...recordKeys.all(id), 'achievements'] as const,
   tc: (id: number) => [...recordKeys.all(id), 'tc'] as const,
+  noc: (id: number) => [...recordKeys.all(id), 'noc'] as const,
   promotion: (classId: number) => [...studentKeys.all, 'promotion', classId] as const,
 }
 
@@ -284,6 +328,13 @@ export const recordsApi = {
   reissueCard: (id: number) => api.post<DigitalId>(`${base(id)}/id-card/reissue`),
   exit: (id: number, input: ExitInput) => api.post<TransferCertificate>(`${base(id)}/exit`, input),
   tc: (id: number) => api.get<TransferCertificate>(`${base(id)}/tc`),
+  noc: (id: number) => api.get<Noc>(`${base(id)}/noc`),
+  startNoc: (id: number, input: StartNocInput) => api.post<Noc>(`${base(id)}/noc`, input),
+  clearNocItem: (id: number, { department, ...input }: ClearNocItemInput) =>
+    api.post<Noc>(`${base(id)}/noc/items/${department}/clear`, input),
+  reopenNocItem: (id: number, department: NocDepartment) =>
+    api.post<Noc>(`${base(id)}/noc/items/${department}/reopen`),
+  cancelNoc: (id: number, note: string) => api.post<null>(`${base(id)}/noc/cancel`, { note }),
   importStudents: (file: File, mode: 'validate' | 'import', sendInvites: boolean) => {
     const form = new FormData()
     form.append('file', file)
@@ -305,6 +356,7 @@ export const studentFiles = {
     `${base(id)}/id-card${design ? `?design=${design}` : ''}`,
   idCards: '/admin/id-cards',
   tc: (id: number) => `${base(id)}/tc/pdf`,
+  noc: (id: number) => `${base(id)}/noc/pdf`,
   template: '/admin/student-import/template',
 }
 
@@ -335,6 +387,16 @@ export function useTransferCertificate(id: number, enabled: boolean) {
   return useQuery({
     queryKey: recordKeys.tc(id),
     queryFn: () => recordsApi.tc(id),
+    enabled,
+    retry: false,
+    meta: { silent: true },
+  })
+}
+
+export function useStudentNoc(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: recordKeys.noc(id),
+    queryFn: () => recordsApi.noc(id),
     enabled,
     retry: false,
     meta: { silent: true },

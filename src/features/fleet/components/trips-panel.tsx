@@ -6,7 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Trip } from '../api'
-import { END_REASON, TRIP_KIND, TRIP_STATUS, clock, destinationLabel, etaText } from '../labels'
+import {
+  END_REASON,
+  TRIP_KIND,
+  TRIP_STATUS,
+  TRIP_TRACKING,
+  clock,
+  destinationLabel,
+  etaText,
+} from '../labels'
 
 interface TripsPanelProps {
   trips: Trip[] | undefined
@@ -27,6 +35,16 @@ export function TripStatusBadge({ trip }: { trip: Pick<Trip, 'status'> }) {
   )
 }
 
+export function TrackingBadge({ trip }: { trip: Pick<Trip, 'tracking'> }) {
+  if (!trip.tracking) return null
+  const tracking = TRIP_TRACKING[trip.tracking]
+  return (
+    <Badge tone={tracking.tone} title={tracking.hint}>
+      {tracking.label}
+    </Badge>
+  )
+}
+
 function TripRow({ trip }: { trip: Trip }) {
   const label = `${trip.route.name}, ${TRIP_KIND[trip.kind]}`
   return (
@@ -38,7 +56,10 @@ function TripRow({ trip }: { trip: Trip }) {
             {trip.vehicle.name} · {TRIP_KIND[trip.kind]} · Started {clock(trip.started_at)}
           </span>
         </div>
-        <TripStatusBadge trip={trip} />
+        <span className='flex shrink-0 items-center gap-1'>
+          <TrackingBadge trip={trip} />
+          <TripStatusBadge trip={trip} />
+        </span>
       </div>
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <span className='tabular text-xs text-muted-foreground'>
@@ -61,6 +82,7 @@ function TripRow({ trip }: { trip: Trip }) {
               {trip.end_reason && END_REASON[trip.end_reason]
                 ? ` · ${END_REASON[trip.end_reason]}`
                 : ''}
+              {trip.swept_at ? ` · Swept ${clock(trip.swept_at)}` : ''}
             </>
           )}
         </span>

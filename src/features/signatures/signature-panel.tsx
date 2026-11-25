@@ -30,6 +30,8 @@ const ACTION_TONES: Record<SignatureAction, BadgeTone> = {
   removed: 'danger',
 }
 
+const HISTORY_SHOWN = 5
+
 export function SignaturePanel({
   owner,
   ownerId,
@@ -44,6 +46,7 @@ export function SignaturePanel({
   const [signing, setSigning] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [reusing, setReusing] = useState<SignatureChange | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const again = useSignatureAgain(owner, ownerId)
   const label = owner === 'staff' ? 'teacher' : 'parent'
   const data = signature.data
@@ -105,7 +108,7 @@ export function SignaturePanel({
           <p className='text-sm text-muted-foreground'>No changes yet.</p>
         ) : (
           <ul className='grid gap-2'>
-            {data.history.map((change) => (
+            {(showAll ? data.history : data.history.slice(0, HISTORY_SHOWN)).map((change) => (
               <HistoryRow
                 key={change.id}
                 change={change}
@@ -115,6 +118,16 @@ export function SignaturePanel({
               />
             ))}
           </ul>
+        )}
+        {data.history.length > HISTORY_SHOWN && (
+          <Button
+            variant='ghost'
+            size='sm'
+            className='justify-self-start'
+            onClick={() => setShowAll((value) => !value)}
+          >
+            {showAll ? 'Show latest 5 only' : `Show all (${data.history.length})`}
+          </Button>
         )}
       </div>
 

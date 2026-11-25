@@ -14,7 +14,7 @@ import { useBusOptions, useBusRoutes } from '@/features/transport/api'
 import { formatDate } from '@/lib/format'
 import { useTrips, type Trip } from '../api'
 import { TripChecklistModal } from '../components/trip-checklist-modal'
-import { TripStatusBadge } from '../components/trips-panel'
+import { TrackingBadge, TripStatusBadge } from '../components/trips-panel'
 import {
   END_REASON,
   TRIP_FLAG_OPTIONS,
@@ -123,9 +123,15 @@ export function TripHistoryPage() {
       header: 'Status',
       cell: (trip) => (
         <div className='grid justify-items-start gap-1'>
-          <TripStatusBadge trip={trip} />
+          <span className='flex flex-wrap gap-1'>
+            <TripStatusBadge trip={trip} />
+            <TrackingBadge trip={trip} />
+          </span>
           {trip.end_reason && END_REASON[trip.end_reason] && (
             <span className='text-xs text-muted-foreground'>{END_REASON[trip.end_reason]}</span>
+          )}
+          {trip.swept_at && (
+            <span className='text-xs text-muted-foreground'>Swept {clock(trip.swept_at)}</span>
           )}
         </div>
       ),

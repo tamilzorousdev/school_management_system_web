@@ -1,22 +1,19 @@
 import { useState } from 'react'
 import { AppModal } from '@/components/common/app-modal'
 import { FormField } from '@/components/common/form-field'
-import { SegmentedControl } from '@/components/common/segmented-control'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { openFile } from '@/lib/files'
+import { formatDate } from '@/lib/format'
 import { useStudentMutation, type StudentDetail } from '../api'
-import { recordsApi, studentFiles, type ExitInput, type ExitType } from '../records-api'
-
-const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+import { EXIT_TYPE_LABELS } from '../labels'
+import { recordsApi, studentFiles, useStudentNoc, type ExitInput } from '../records-api'
 
 export function ExitModal({ student, onClose }: { student: StudentDetail; onClose: () => void }) {
+  const noc = useStudentNoc(student.id, true)
   const [draft, setDraft] = useState({
-    exit_type: 'transferred' as ExitType,
-    leaving_date: today(),
-    reason: '',
     conduct: 'Good',
     promotion_eligible: true,
     remarks: '',
@@ -29,8 +26,8 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
     <AppModal
       open
       onOpenChange={(open) => !open && onClose()}
-      title={`${student.full_name} is leaving`}
-      description='The student is marked as left, the roll number is freed and a transfer certificate is issued.'
+      title={`Issue TC for ${student.full_name}`}
+      description='Every department has cleared the NOC. The student is marked as left, the roll number is freed, the transfer certificate is issued and the student is added to alumni.'
       formId='exit-form'
       submitText={dues ? 'Issue TC with dues' : 'Issue TC'}
       loading={save.isPending}
@@ -42,16 +39,9 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
         className='grid gap-4 sm:grid-cols-2'
         onSubmit={async (event) => {
           event.preventDefault()
-          const next: Record<string, string> = {}
-          if (draft.reason.trim().length < 3) next.reason = 'Write the reason for leaving'
-          if (!draft.leaving_date) next.leaving_date = 'Choose the leaving date'
-          setErrors(next)
-          if (Object.keys(next).length) return
+          setErrors({})
           try {
             const tc = await save.mutateAsync({
-              exit_type: draft.exit_type,
-              leaving_date: draft.leaving_date,
-              reason: draft.reason.trim(),
               conduct: draft.conduct.trim() || 'Good',
               promotion_eligible: draft.promotion_eligible,
               remarks: draft.remarks.trim() || null,
@@ -76,6 +66,22 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
           }
         }}
       >
+        {noc.data && (
+          <dl className='grid gap-3 rounded-lg border bg-muted/40 p-3 text-sm sm:col-span-2 sm:grid-cols-3'>
+            <div className='grid gap-0.5'>
+              <dt className='text-xs text-muted-foreground'>Leaving because</dt>
+              <dd className='font-medium'>{EXIT_TYPE_LABELS[noc.data.exit_type]}</dd>
+            </div>
+            <div className='grid gap-0.5'>
+              <dt className='text-xs text-muted-foreground'>Leaving date</dt>
+              <dd className='font-medium'>{formatDate(noc.data.leaving_date)}</dd>
+            </div>
+            <div className='grid gap-0.5'>
+              <dt className='text-xs text-muted-foreground'>Reason</dt>
+              <dd className='font-medium break-words'>{noc.data.reason}</dd>
+            </div>
+          </dl>
+        )}
         {dues && (
           <p
             role='alert'
@@ -90,52 +96,15 @@ export function ExitModal({ student, onClose }: { student: StudentDetail; onClos
             {errors.root}
           </p>
         )}
-        <FormField id='exit-type' label='Leaving because' className='sm:col-span-2'>
-          <SegmentedControl
-            label='Leaving because'
-            value={draft.exit_type}
-            onChange={(value) => setDraft({ ...draft, exit_type: value })}
-            options={[
-              { value: 'transferred', label: 'Moving to another school' },
-              { value: 'withdrawn', label: 'Withdrawn' },
-            ]}
-          />
-        </FormField>
-        <FormField id='exit-date' label='Leaving date' required error={errors.leaving_date}>
-          <Input
-            id='exit-date'
-            type='date'
-            min={student.admission_date}
-            value={draft.leaving_date}
-            onChange={(event) => setDraft({ ...draft, leaving_date: event.target.value })}
-          />
-        </FormField>
         <FormField id='exit-conduct' label='Conduct' error={errors.conduct}>
           <Input
             id='exit-conduct'
+            autoFocus
             value={draft.conduct}
             onChange={(event) => setDraft({ ...draft, conduct: event.target.value })}
           />
         </FormField>
-        <FormField
-          id='exit-reason'
-          label='Reason'
-          required
-          error={errors.reason}
-          className='sm:col-span-2'
-        >
-          <Input
-            id='exit-reason'
-            autoFocus
-            placeholder='Family moved to Coimbatore'
-            value={draft.reason}
-            onChange={(event) => {
-              setDraft({ ...draft, reason: event.target.value })
-              setErrors({ ...errors, reason: '' })
-            }}
-          />
-        </FormField>
-        <FormField id='exit-remarks' label='Remarks on the TC' className='sm:col-span-2'>
+        <FormField id='exit-remarks' label='Remarks on the TC' error={errors.remarks}>
           <Input
             id='exit-remarks'
             value={draft.remarks}

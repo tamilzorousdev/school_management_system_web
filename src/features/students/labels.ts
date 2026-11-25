@@ -1,5 +1,6 @@
 import type { BadgeTone } from '@/components/ui/badge'
 import type { AdmissionStatus, BloodGroup, Gender, Relation, StudentStatus } from './api'
+import type { ExitType, NocDepartment } from './records-api'
 
 export const RELATION_LABELS: Record<Relation, string> = {
   father: 'Father',
@@ -24,6 +25,32 @@ export const ADMISSION_STATUS: Record<AdmissionStatus, { label: string; tone: Ba
   approved: { label: 'Approved', tone: 'warning' },
   rejected: { label: 'Rejected', tone: 'danger' },
   enrolled: { label: 'Enrolled', tone: 'success' },
+}
+
+export const NOC_DEPARTMENT_LABELS: Record<NocDepartment, string> = {
+  fees: 'Fees',
+  library: 'Library',
+  transport: 'Transport',
+  inventory: 'Inventory and lab',
+  class_teacher: 'Class teacher',
+}
+
+export const NOC_DEPARTMENT_HINTS: Record<NocDepartment, string> = {
+  fees: 'Fee dues settled or acknowledged by accounts',
+  library: 'Books returned and library fines paid',
+  transport: 'Bus pass handed back; the student is taken off the bus',
+  inventory: 'Lab, sports and other school items returned',
+  class_teacher: 'Textbooks, ID card and class items handed back',
+}
+
+export const NOC_STATUS: Record<'open' | 'cleared', { label: string; tone: BadgeTone }> = {
+  open: { label: 'Leaving: NOC pending', tone: 'warning' },
+  cleared: { label: 'NOC cleared', tone: 'success' },
+}
+
+export const EXIT_TYPE_LABELS: Record<ExitType, string> = {
+  transferred: 'Moving to another school',
+  withdrawn: 'Withdrawn',
 }
 
 export const DOCUMENT_TYPE_LABELS: Record<string, string> = {

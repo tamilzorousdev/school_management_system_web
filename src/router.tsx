@@ -17,6 +17,20 @@ import { feedbackSearchSchema } from '@/features/feedback/search'
 import { emergencySearchSchema } from '@/features/emergency/search'
 import { surveyResultsSearchSchema, surveysSearchSchema } from '@/features/surveys/search'
 import { gateSearchSchema } from '@/features/gate/search'
+import {
+  monitorSearchSchema,
+  officeSearchSchema,
+  student360SearchSchema,
+} from '@/features/office/search'
+import {
+  albumSearchSchema,
+  cleanupSearchSchema,
+  galleryAuditSearchSchema,
+  galleryReportsSearchSchema,
+  gallerySearchSchema,
+  gallerySettingsSearchSchema,
+  trashSearchSchema,
+} from '@/features/gallery/search'
 import { GeneralErrorPage, NotFoundPage } from '@/features/errors/error-pages'
 import { meetingsSearchSchema } from '@/features/meetings/search'
 import { diarySearchSchema } from '@/features/diary/search'
@@ -28,11 +42,11 @@ import { outboxSearchSchema } from '@/features/notifications/search'
 import { appBannersSearchSchema } from '@/features/app-banners/search'
 import { setupSearchSchema } from '@/features/setup/search'
 import {
-  appraisalsSearchSchema,
   assignmentsSearchSchema,
   staffProfileSearchSchema,
   staffSearchSchema,
 } from '@/features/staff/search'
+import { appraisalsSearchSchema } from '@/features/appraisals/search'
 import { crewProfileSearchSchema, crewSearchSchema } from '@/features/crew/search'
 import {
   admissionsSearchSchema,
@@ -53,7 +67,13 @@ import { activitiesSearchSchema } from '@/features/activities/search'
 import { substitutesSearchSchema } from '@/features/substitutes/search'
 import { timetableSearchSchema } from '@/features/timetable/search'
 import { transportSearchSchema } from '@/features/transport/search'
+import {
+  busAttendanceSearchSchema,
+  incidentsSearchSchema,
+  opsDaySearchSchema,
+} from '@/features/transport-ops/search'
 import { usersSearchSchema } from '@/features/users/search'
+import { alumniSearchSchema } from '@/features/alumni/search'
 import {
   assetPageSearchSchema,
   inventorySearchSchema,
@@ -76,6 +96,24 @@ const loginRoute = createRoute({
     if (session.get()) throw redirect({ to: '/' })
   },
   component: lazyRouteComponent(() => import('@/features/auth/pages/login-page'), 'LoginPage'),
+})
+
+const alumniRegisterRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/alumni-register/$schoolCode',
+  component: lazyRouteComponent(
+    () => import('@/features/alumni/pages/public-register-page'),
+    'PublicRegisterPage'
+  ),
+})
+
+const alumniUpdateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/alumni-update/$token',
+  component: lazyRouteComponent(
+    () => import('@/features/alumni/pages/public-update-page'),
+    'PublicUpdatePage'
+  ),
 })
 
 const appRoute = createRoute({
@@ -252,6 +290,22 @@ const studentRoute = createRoute({
   ),
 })
 
+const alumniRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/alumni',
+  validateSearch: alumniSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/alumni/pages/alumni-page'), 'AlumniPage'),
+})
+
+const alumnusRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/alumni/$id',
+  component: lazyRouteComponent(
+    () => import('@/features/alumni/pages/alumni-profile-page'),
+    'AlumniProfilePage'
+  ),
+})
+
 const admissionsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/admissions',
@@ -311,7 +365,7 @@ const staffAppraisalsRoute = createRoute({
   path: '/staff/appraisals',
   validateSearch: appraisalsSearchSchema,
   component: lazyRouteComponent(
-    () => import('@/features/staff/pages/appraisals-page'),
+    () => import('@/features/appraisals/pages/appraisals-page'),
     'AppraisalsPage'
   ),
 })
@@ -405,11 +459,123 @@ const surveyResultsRoute = createRoute({
   ),
 })
 
+const galleryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery',
+  validateSearch: gallerySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/gallery-page'),
+    'GalleryPage'
+  ),
+})
+
+const galleryAlbumRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/albums/$albumId',
+  validateSearch: albumSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/gallery/pages/album-page'), 'AlbumPage'),
+})
+
+const galleryTrashRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/trash',
+  validateSearch: trashSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/gallery/pages/trash-page'), 'TrashPage'),
+})
+
+const gallerySettingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/settings',
+  validateSearch: gallerySettingsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/settings-page'),
+    'GallerySettingsPage'
+  ),
+})
+
+const galleryCleanupRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/cleanup',
+  validateSearch: cleanupSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/cleanup-page'),
+    'CleanupPage'
+  ),
+})
+
+const galleryReportsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/reports',
+  validateSearch: galleryReportsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/reports-page'),
+    'GalleryReportsPage'
+  ),
+})
+
+const galleryAuditRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/gallery/audit',
+  validateSearch: galleryAuditSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/gallery/pages/audit-page'),
+    'GalleryAuditPage'
+  ),
+})
+
 const gateRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/gate',
   validateSearch: gateSearchSchema,
   component: lazyRouteComponent(() => import('@/features/gate/pages/gate-page'), 'GatePage'),
+})
+
+const officeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office',
+  validateSearch: officeSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/classes-page'),
+    'OfficeClassesPage'
+  ),
+})
+
+const officeDashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/dashboard',
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/dashboard-page'),
+    'OfficeDashboardPage'
+  ),
+})
+
+const officeStudentRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/students/$studentId',
+  validateSearch: student360SearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/student-360-page'),
+    'Student360Page'
+  ),
+})
+
+const officeMonitorRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/monitor',
+  validateSearch: monitorSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/monitor-page'),
+    'OfficeMonitorPage'
+  ),
+})
+
+const officeWingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/office/wings',
+  component: lazyRouteComponent(
+    () => import('@/features/office/pages/wings-page'),
+    'OfficeWingsPage'
+  ),
 })
 
 const timetableRoute = createRoute({
@@ -494,7 +660,10 @@ const quizzesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/quizzes',
   validateSearch: quizSearchSchema,
-  component: lazyRouteComponent(() => import('@/features/quizzes/pages/quizzes-page'), 'QuizzesPage'),
+  component: lazyRouteComponent(
+    () => import('@/features/quizzes/pages/quizzes-page'),
+    'QuizzesPage'
+  ),
 })
 
 const activitiesRoute = createRoute({
@@ -540,6 +709,46 @@ const routeBuilderRoute = createRoute({
   component: lazyRouteComponent(
     () => import('@/features/transport/pages/route-builder-page'),
     'RouteBuilderPage'
+  ),
+})
+
+const transportOpsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/operations',
+  validateSearch: opsDaySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/operations-page'),
+    'OperationsPage'
+  ),
+})
+
+const driverAttendanceRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/driver-attendance',
+  validateSearch: opsDaySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/driver-attendance-page'),
+    'DriverAttendancePage'
+  ),
+})
+
+const busAttendanceRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/bus-attendance',
+  validateSearch: busAttendanceSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/bus-attendance-page'),
+    'BusAttendancePage'
+  ),
+})
+
+const incidentsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/transport/incidents',
+  validateSearch: incidentsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/transport-ops/pages/incidents-page'),
+    'IncidentsPage'
   ),
 })
 
@@ -608,10 +817,14 @@ const schoolsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  alumniRegisterRoute,
+  alumniUpdateRoute,
   appRoute.addChildren([
     dashboardRoute,
     studentsRoute,
     studentRoute,
+    alumniRoute,
+    alumnusRoute,
     admissionsRoute,
     guardiansRoute,
     staffRoute,
@@ -628,7 +841,19 @@ const routeTree = rootRoute.addChildren([
     surveyNewRoute,
     surveyEditRoute,
     surveyResultsRoute,
+    galleryRoute,
+    galleryAlbumRoute,
+    galleryTrashRoute,
+    gallerySettingsRoute,
+    galleryCleanupRoute,
+    galleryReportsRoute,
+    galleryAuditRoute,
     gateRoute,
+    officeRoute,
+    officeDashboardRoute,
+    officeStudentRoute,
+    officeMonitorRoute,
+    officeWingsRoute,
     timetableRoute,
     substitutesRoute,
     payrollRoute,
@@ -645,6 +870,10 @@ const routeTree = rootRoute.addChildren([
     transportRoute,
     routeBuilderRoute,
     routeRosterRoute,
+    transportOpsRoute,
+    driverAttendanceRoute,
+    busAttendanceRoute,
+    incidentsRoute,
     setupRoute,
     schoolsRoute,
     parentPreviewRoute,
