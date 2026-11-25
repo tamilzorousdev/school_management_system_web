@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
+  BedDouble,
   Bus,
   Camera,
   ChevronDown,
@@ -51,6 +52,7 @@ import { can, useMe } from '@/features/auth/api'
 import { ReportCard } from '@/features/exams/components/report-card'
 import { StudentResults } from '@/features/exams/components/student-results'
 import { StudentFeesTab } from '@/features/fees/components/student-fees-tab'
+import { StudentHostelTab } from '@/features/hostel/components/student-hostel-tab'
 import { PersonLibraryTab } from '@/features/library/components/person-library-tab'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
@@ -107,6 +109,7 @@ export function StudentPage() {
   const canSeeResults = can(useMe().data, 'exams.view')
   const canSeeFees = can(useMe().data, 'fees.view')
   const canSeeLibrary = can(me, 'library.view')
+  const canSeeHostel = can(me, 'hostel.view')
   const student = useStudent(id)
   const counts = useRecordCounts(id)
   const data = student.data
@@ -394,6 +397,7 @@ export function StudentPage() {
           ...(canSeeLibrary
             ? [{ value: 'library' as const, label: 'Library', icon: Library }]
             : []),
+          ...(canSeeHostel ? [{ value: 'hostel' as const, label: 'Hostel', icon: BedDouble }] : []),
         ]}
       />
 
@@ -422,6 +426,7 @@ export function StudentPage() {
       {tab === 'report-card' && canSeeResults && <ReportCard studentId={id} />}
       {tab === 'fees' && canSeeFees && <StudentFeesTab studentId={id} />}
       {tab === 'library' && canSeeLibrary && <PersonLibraryTab kind='student' id={id} />}
+      {tab === 'hostel' && canSeeHostel && <StudentHostelTab studentId={id} />}
 
       {modal === 'edit' && <EditStudentModal student={data} onClose={() => setModal(null)} />}
       {modal === 'class' && (

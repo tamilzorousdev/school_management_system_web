@@ -75,6 +75,31 @@ import {
 import { usersSearchSchema } from '@/features/users/search'
 import { alumniSearchSchema } from '@/features/alumni/search'
 import {
+  complaintsSearchSchema,
+  disciplineSearchSchema,
+  hostelAuditSearchSchema,
+  hostelDashboardSearchSchema,
+  hostelFeesSearchSchema,
+  hostelReportsSearchSchema,
+  hostelSetupSearchSchema,
+  safetySearchSchema,
+  leavesSearchSchema,
+  residentSearchSchema,
+  residentsSearchSchema,
+  rollCallSearchSchema,
+  roomsSearchSchema,
+  visitorsSearchSchema,
+} from '@/features/hostel/search'
+import {
+  dutySearchSchema,
+  healthSearchSchema,
+  inspectionsSearchSchema,
+  laundrySearchSchema,
+  lockersSearchSchema,
+  messSearchSchema,
+  studySearchSchema,
+} from '@/features/hostel/search-life'
+import {
   assetPageSearchSchema,
   inventorySearchSchema,
   stockItemSearchSchema,
@@ -523,6 +548,195 @@ const galleryAuditRoute = createRoute({
   ),
 })
 
+const hostelDashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel',
+  validateSearch: hostelDashboardSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/dashboard-page'),
+    'HostelDashboardPage'
+  ),
+})
+
+const hostelResidentsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/residents',
+  validateSearch: residentsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/residents-page'),
+    'ResidentsPage'
+  ),
+})
+
+const hostelResidentRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/residents/$admissionId',
+  validateSearch: residentSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/resident-page'),
+    'ResidentPage'
+  ),
+})
+
+const hostelRoomsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/rooms',
+  validateSearch: roomsSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/hostel/pages/rooms-page'), 'RoomsPage'),
+})
+
+const hostelRollCallRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/roll-call',
+  validateSearch: rollCallSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/roll-call-page'),
+    'RollCallPage'
+  ),
+})
+
+const hostelLeavesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/leaves',
+  validateSearch: leavesSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/hostel/pages/leaves-page'), 'LeavesPage'),
+})
+
+const hostelVisitorsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/visitors',
+  validateSearch: visitorsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/visitors-page'),
+    'VisitorsPage'
+  ),
+})
+
+const hostelFeesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/fees',
+  validateSearch: hostelFeesSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/fees-page'),
+    'HostelFeesPage'
+  ),
+})
+
+const hostelDisciplineRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/discipline',
+  validateSearch: disciplineSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/discipline-page'),
+    'DisciplinePage'
+  ),
+})
+
+const hostelComplaintsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/complaints',
+  validateSearch: complaintsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/complaints-page'),
+    'ComplaintsPage'
+  ),
+})
+
+const hostelSetupRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/setup',
+  validateSearch: hostelSetupSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/setup-page'),
+    'HostelSetupPage'
+  ),
+})
+
+const hostelAuditRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/audit',
+  validateSearch: hostelAuditSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/audit-page'),
+    'HostelAuditPage'
+  ),
+})
+
+const hostelReportsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/reports',
+  validateSearch: hostelReportsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/reports-page'),
+    'HostelReportsPage'
+  ),
+})
+
+const hostelSafetyRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/safety',
+  validateSearch: safetySearchSchema,
+  component: lazyRouteComponent(() => import('@/features/hostel/pages/safety-page'), 'SafetyPage'),
+})
+
+const hostelMessRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/mess',
+  validateSearch: messSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/hostel/pages/mess-page'), 'MessPage'),
+})
+
+const hostelHealthRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/health',
+  validateSearch: healthSearchSchema,
+  component: lazyRouteComponent(() => import('@/features/hostel/pages/health-page'), 'HealthPage'),
+})
+
+const hostelLaundryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/laundry',
+  validateSearch: laundrySearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/laundry-page'),
+    'LaundryPage'
+  ),
+})
+
+const hostelDutyRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/duty',
+  validateSearch: dutySearchSchema,
+  component: lazyRouteComponent(() => import('@/features/hostel/pages/duty-page'), 'DutyPage'),
+})
+
+const hostelStudyRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/study',
+  validateSearch: studySearchSchema,
+  component: lazyRouteComponent(() => import('@/features/hostel/pages/study-page'), 'StudyPage'),
+})
+
+const hostelLockersRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/lockers',
+  validateSearch: lockersSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/lockers-page'),
+    'LockersPage'
+  ),
+})
+
+const hostelInspectionsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/hostel/inspections',
+  validateSearch: inspectionsSearchSchema,
+  component: lazyRouteComponent(
+    () => import('@/features/hostel/pages/inspections-page'),
+    'InspectionsPage'
+  ),
+})
+
 const gateRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/gate',
@@ -848,6 +1062,27 @@ const routeTree = rootRoute.addChildren([
     galleryCleanupRoute,
     galleryReportsRoute,
     galleryAuditRoute,
+    hostelDashboardRoute,
+    hostelResidentsRoute,
+    hostelResidentRoute,
+    hostelRoomsRoute,
+    hostelRollCallRoute,
+    hostelLeavesRoute,
+    hostelVisitorsRoute,
+    hostelFeesRoute,
+    hostelDisciplineRoute,
+    hostelComplaintsRoute,
+    hostelSetupRoute,
+    hostelAuditRoute,
+    hostelReportsRoute,
+    hostelSafetyRoute,
+    hostelMessRoute,
+    hostelHealthRoute,
+    hostelLaundryRoute,
+    hostelDutyRoute,
+    hostelStudyRoute,
+    hostelLockersRoute,
+    hostelInspectionsRoute,
     gateRoute,
     officeRoute,
     officeDashboardRoute,
