@@ -67,6 +67,7 @@ export function BulkStaffModal({
       formId='bulk-staff-form'
       submitText='Mark attendance'
       loading={save.isPending}
+      showSubmitShortcut={false}
     >
       <form
         id='bulk-staff-form'
@@ -196,6 +197,7 @@ export function BulkSectionsModal({
       formId='bulk-sections-form'
       submitText='Mark attendance'
       loading={save.isPending}
+      showSubmitShortcut={false}
     >
       <form
         id='bulk-sections-form'

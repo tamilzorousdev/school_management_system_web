@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, Pencil, Plus, Syringe, Trash2 } from 'lucide-react'
+import { CheckCircle2, PenLine, Plus, Syringe, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -50,8 +50,17 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
           title='Health record'
           action={
             canManage && (
-              <Button size='sm' variant='outline' onClick={() => setEditing(true)}>
-                <Pencil />
+              <Button
+                variant='secondary'
+                className={empty ? undefined : 'w-[85px]'}
+                size={empty ? 'sm' : undefined}
+                onClick={() => setEditing(true)}
+              >
+                {empty ? (
+                  <Plus className='size-4 stroke-[1.75]' />
+                ) : (
+                  <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                )}
                 {empty ? 'Add' : 'Edit'}
               </Button>
             )
@@ -97,8 +106,8 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
           title='Vaccinations'
           action={
             canManage && (
-              <Button size='sm' variant='outline' onClick={() => setVaccine('new')}>
-                <Plus />
+              <Button size='sm' variant='secondary' onClick={() => setVaccine('new')}>
+                <Plus className='size-4 stroke-[1.75]' />
                 Add
               </Button>
             )
@@ -154,7 +163,7 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                       {!item.given_on && (
                         <Button
                           size='sm'
-                          variant='outline'
+                          variant='secondary'
                           loading={markGiven.isPending && markGiven.variables?.id === item.id}
                           onClick={async () => {
                             try {
@@ -174,7 +183,7 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                         aria-label={`Edit ${item.vaccine}`}
                         onClick={() => setVaccine(item)}
                       >
-                        <Pencil />
+                        <PenLine className='size-4 stroke-[1.75]' />
                       </Button>
                       <Button
                         size='icon-sm'
@@ -183,7 +192,7 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                         className='text-destructive hover:bg-destructive/10'
                         onClick={() => setRemoving(item)}
                       >
-                        <Trash2 />
+                        <Trash className='size-4 stroke-[1.75]' />
                       </Button>
                     </span>
                   )}

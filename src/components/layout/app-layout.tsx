@@ -28,11 +28,15 @@ const readCollapsed = () => {
   }
 }
 
-function NavShortcut({ item }: { item: NavItem }) {
+function NavShortcut({ item }: { item: NavItem & { shortcut: NonNullable<NavItem['shortcut']> } }) {
   const navigate = useNavigate()
   useShortcut(item.shortcut, () => navigate({ to: item.to }), { scope: 'global' })
   return null
 }
+
+const hasShortcut = (
+  item: NavItem
+): item is NavItem & { shortcut: NonNullable<NavItem['shortcut']> } => item.shortcut !== undefined
 
 function LoadingShell() {
   return (
@@ -154,7 +158,7 @@ export function AppLayout() {
       >
         Skip to content
       </a>
-      {items.map((item) => (
+      {items.filter(hasShortcut).map((item) => (
         <NavShortcut key={item.to} item={item} />
       ))}
       <AppSidebar

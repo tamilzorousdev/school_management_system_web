@@ -2,12 +2,11 @@ import { useState, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ListChecks, Pencil, Plus } from 'lucide-react'
+import { ListChecks, PenLine, Plus } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FormField } from '@/components/common/form-field'
 import { ListToolbar } from '@/components/common/list-toolbar'
-import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -36,9 +35,6 @@ export function LeaveTypesTab({ canManage }: { canManage: boolean }) {
     attendanceApi.updateLeaveType(input.id, { is_active: input.is_active })
   )
 
-  useShortcut('app.refresh', () => void types.refetch())
-  useShortcut('leaveTypes.create', () => setEditing({ type: null }), { enabled: canManage })
-
   const setActive = async (type: LeaveType, isActive: boolean) => {
     setBusy(type.id)
     try {
@@ -64,16 +60,17 @@ export function LeaveTypesTab({ canManage }: { canManage: boolean }) {
   const editButton = (type: LeaveType) =>
     canManage ? (
       <Button
-        size='sm'
-        variant='outline'
+        variant='ghost'
+        size='icon-sm'
         aria-label={`Edit ${type.name}`}
+        title='Edit'
+        className='text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800'
         onClick={(event) => {
           event.stopPropagation()
           setEditing({ type })
         }}
       >
-        <Pencil />
-        Edit
+        <PenLine className='size-4' />
       </Button>
     ) : null
 
@@ -81,12 +78,7 @@ export function LeaveTypesTab({ canManage }: { canManage: boolean }) {
     {
       key: 'type',
       header: 'Leave type',
-      cell: (type) => (
-        <span className='flex items-center gap-2'>
-          <Badge tone='info'>{type.code}</Badge>
-          <span className='font-semibold'>{type.name}</span>
-        </span>
-      ),
+      cell: (type) => <span className='font-semibold'>{type.name}</span>,
     },
     {
       key: 'days',
@@ -97,14 +89,14 @@ export function LeaveTypesTab({ canManage }: { canManage: boolean }) {
       key: 'paid',
       header: 'Pay',
       cell: (type) => (
-        <Badge tone={type.is_paid ? 'success' : 'warning'}>
+        <Badge tone={type.is_paid ? 'success' : 'warning'} dot className='font-medium'>
           {type.is_paid ? 'Paid' : 'Unpaid'}
         </Badge>
       ),
     },
     { key: 'active', header: 'Active', cell: activeSwitch },
     ...(canManage
-      ? [{ key: 'actions', header: '', align: 'right' as const, cell: editButton }]
+      ? [{ key: 'actions', header: 'ACTION', align: 'right' as const, cell: editButton }]
       : []),
   ]
 
@@ -117,13 +109,16 @@ export function LeaveTypesTab({ canManage }: { canManage: boolean }) {
 
   return (
     <div className='grid gap-4'>
-      <p className='text-xs text-muted-foreground'>
-        Leave types staff can apply for in the Staff app, with the days allowed each academic year.
-        Turning one off hides it from new requests; past requests keep it.
-      </p>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <p className='min-w-0 flex-1 text-xs text-muted-foreground'>
+          Leave types staff can apply for in the Staff app, with the days allowed each academic
+          year. Turning one off hides it from new requests; past requests keep it.
+        </p>
+        {newButton}
+      </div>
       <Card className='overflow-hidden'>
         <ListToolbar summary={types.data ? `${types.data.length} leave types` : ''}>
-          <span className='ml-auto'>{newButton}</span>
+          {null}
         </ListToolbar>
         <DataTable
           rows={types.data ?? []}
@@ -148,13 +143,15 @@ export function LeaveTypesTab({ canManage }: { canManage: boolean }) {
                 </span>
                 {activeSwitch(type)}
               </div>
-              <span className='flex flex-wrap items-center gap-2 text-xs text-muted-foreground'>
-                {daysText(type.days_per_year)}
-                <Badge tone={type.is_paid ? 'success' : 'warning'}>
-                  {type.is_paid ? 'Paid' : 'Unpaid'}
-                </Badge>
-              </span>
-              {editButton(type)}
+              <div className='flex items-center justify-between'>
+                <span className='flex flex-wrap items-center gap-2 text-xs text-muted-foreground'>
+                  {daysText(type.days_per_year)}
+                  <Badge tone={type.is_paid ? 'success' : 'warning'} dot className='font-medium'>
+                    {type.is_paid ? 'Paid' : 'Unpaid'}
+                  </Badge>
+                </span>
+                {editButton(type)}
+              </div>
             </div>
           )}
         />
@@ -254,6 +251,7 @@ function LeaveTypeFormModal({
       title={type ? `Edit ${type.name}` : 'New leave type'}
       description='Staff see the code and name when they apply for leave in the Staff app.'
       formId={FORM_ID}
+      showSubmitShortcut={false}
       submitText={type ? 'Save changes' : 'Add leave type'}
       loading={save.isPending}
     >

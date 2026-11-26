@@ -203,9 +203,13 @@ function ReceiptStep({ payment, onClose }: { payment: FinePayment; onClose: () =
       description={`${payment.member.name} · receipt ${payment.receipt_no}`}
       footer={
         <DialogFooter>
-          <Button variant='outline' onClick={() => openFineReceipt(payment.id)}>
-            <Printer />
-            Print receipt
+          <Button
+            variant='primary'
+            onClick={() => openFineReceipt(payment.id)}
+            className='h-9 w-[112px] px-4 gap-2 font-medium'
+          >
+            <Printer className='size-4' />
+            Print
           </Button>
           <Button
             variant='outline'
@@ -215,11 +219,12 @@ function ReceiptStep({ payment, onClose }: { payment: FinePayment; onClose: () =
               await downloadFineReceipt(payment.id, payment.receipt_no)
               setDownloading(false)
             }}
+            className='h-9 w-[134px] px-4 gap-2 font-medium border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:bg-card dark:text-foreground dark:border-border'
           >
-            <Download />
+            <Download className='size-4' />
             Download PDF
           </Button>
-          <Button onClick={onClose}>Done</Button>
+          <Button variant='secondary' onClick={onClose}>Done</Button>
         </DialogFooter>
       }
     >

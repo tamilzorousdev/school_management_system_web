@@ -107,7 +107,7 @@ function TransportDetails({
           canManage &&
           rider && (
             <div className='flex flex-wrap gap-2'>
-              <Button size='sm' variant='outline' onClick={() => setEditing(true)}>
+              <Button size='sm' variant='secondary' onClick={() => setEditing(true)}>
                 <ArrowRightLeft />
                 Change
               </Button>
@@ -137,7 +137,7 @@ function TransportDetails({
             action={
               canManage && (
                 <Button onClick={() => setEditing(true)}>
-                  <Plus />
+                  <Plus className='size-4 stroke-[1.75]' />
                   Assign a bus stop
                 </Button>
               )
@@ -198,7 +198,7 @@ function TransportDetails({
                   : []),
               ]}
             />
-            <Button size='sm' variant='outline' asChild className='justify-self-start'>
+            <Button size='sm' variant='secondary' asChild className='justify-self-start'>
               <Link to='/transport/routes/$routeId/students' params={{ routeId: rider.route.id }}>
                 <ListOrdered />
                 Route student list
@@ -331,7 +331,7 @@ function BusBoarding({ studentId }: { studentId: number }) {
                 <span className='flex gap-2'>
                   <Button
                     size='sm'
-                    variant='outline'
+                    variant='secondary'
                     disabled={page <= 1}
                     onClick={() => setPage(page - 1)}
                   >
@@ -339,7 +339,7 @@ function BusBoarding({ studentId }: { studentId: number }) {
                   </Button>
                   <Button
                     size='sm'
-                    variant='outline'
+                    variant='secondary'
                     disabled={!data.has_next}
                     onClick={() => setPage(page + 1)}
                   >

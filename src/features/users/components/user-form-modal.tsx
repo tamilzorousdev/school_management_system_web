@@ -1,11 +1,12 @@
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, CheckCircle2, UserCheck, XCircle } from 'lucide-react'
+import { Check, CheckCircle2, Trash, UserCheck, XCircle } from 'lucide-react'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import type { AppSection } from '@/features/auth/api'
@@ -49,6 +50,8 @@ interface UserFormModalProps {
   onOpenChange: (open: boolean) => void
   user?: UserListItem | null
   canAssignSuperAdmin: boolean
+  onDelete?: (user: UserListItem) => void
+  currentUserId?: number
 }
 
 export function UserFormModal({
@@ -56,6 +59,8 @@ export function UserFormModal({
   onOpenChange,
   user,
   canAssignSuperAdmin,
+  onDelete,
+  currentUserId,
 }: UserFormModalProps) {
   const save = useSaveUser()
   const editing = Boolean(user)
@@ -64,16 +69,43 @@ export function UserFormModal({
     <AppModal
       open={open}
       onOpenChange={onOpenChange}
-      title={editing ? 'Edit user' : 'Add user'}
+      title={editing ? 'Edit user' : 'Create user'}
       description={
         editing
           ? 'Role and status changes apply the next time the app checks in.'
           : 'The user signs in with this mobile number and a one-time code.'
       }
       formId={FORM_ID}
-      submitText={editing ? 'Save changes' : 'Add user'}
-      loading={save.isPending}
       size='lg'
+      footer={
+        <div className='flex w-full items-center justify-between'>
+          {editing && user && user.id !== currentUserId && onDelete ? (
+            <Button
+              type='button'
+              variant='outline'
+              className='border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/50'
+              onClick={() => {
+                onOpenChange(false)
+                onDelete(user)
+              }}
+              disabled={save.isPending}
+            >
+              <Trash className='size-4 stroke-[1.75]' />
+              Delete user
+            </Button>
+          ) : (
+            <div />
+          )}
+          <div className='flex items-center gap-2'>
+            <Button variant='secondary' onClick={() => onOpenChange(false)} disabled={save.isPending}>
+              Cancel
+            </Button>
+            <Button type='submit' form={FORM_ID} variant='primary' loading={save.isPending}>
+              {editing ? 'Save changes' : 'Create user'}
+            </Button>
+          </div>
+        </div>
+      }
     >
       <UserForm
         key={user?.id ?? 'new'}
@@ -91,7 +123,7 @@ export function UserFormModal({
               status: values.active ? 'active' : 'inactive',
             },
           })
-          alerts.success(editing ? 'User updated' : 'User added', {
+          alerts.success(editing ? 'User updated' : 'User created', {
             description: editing
               ? undefined
               : `${values.name} can now sign in with +91 ${values.mobile}`,
@@ -329,7 +361,7 @@ function RoleOption({
         'group relative flex cursor-pointer flex-col justify-between rounded-xl border p-3.5 transition-all select-none has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30',
         checked
           ? 'border-primary/80 bg-primary/5 ring-1 ring-primary/30 shadow-xs'
-          : 'border-border/80 bg-card hover:border-primary/40 hover:bg-muted/40'
+          : 'border-[#EDF0EE] bg-white hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900'
       )}
     >
       <input

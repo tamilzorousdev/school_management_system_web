@@ -31,6 +31,7 @@ interface AppModalProps {
   loading?: boolean
   size?: keyof typeof sizes
   footer?: React.ReactNode
+  showSubmitShortcut?: boolean
 }
 
 export function AppModal({
@@ -45,6 +46,7 @@ export function AppModal({
   loading = false,
   size = 'md',
   footer,
+  showSubmitShortcut = false,
 }: AppModalProps) {
   const [lastOpenChildren, setLastOpenChildren] = React.useState(children)
   if (open && lastOpenChildren !== children) setLastOpenChildren(children)
@@ -56,7 +58,7 @@ export function AppModal({
       const form = document.getElementById(formId)
       if (form instanceof HTMLFormElement) form.requestSubmit()
     },
-    { enabled: open && Boolean(formId), scope: 'modal' }
+    { enabled: open && Boolean(formId) && showSubmitShortcut, scope: 'modal' }
   )
 
   return (
@@ -70,12 +72,12 @@ export function AppModal({
         {footer ??
           (formId && (
             <DialogFooter>
-              <Button variant='outline' onClick={() => onOpenChange(false)} disabled={loading}>
+              <Button variant='secondary' onClick={() => onOpenChange(false)} disabled={loading}>
                 {cancelText}
               </Button>
-              <Button type='submit' form={formId} loading={loading}>
+              <Button type='submit' form={formId} variant='primary' loading={loading}>
                 {submitText}
-                <Kbd id='modal.submit' inverted />
+                {showSubmitShortcut && <Kbd id='modal.submit' inverted />}
               </Button>
             </DialogFooter>
           ))}

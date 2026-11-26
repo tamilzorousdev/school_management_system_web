@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Pencil, Plus, Trash2 } from 'lucide-react'
+import { BookOpen, PenLine, Plus, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -34,8 +34,8 @@ export function SubjectsTab({ canManage }: { canManage: boolean }) {
       description='Choose which subjects each class takes from the book icon in Classes.'
       action={
         canManage && (
-          <Button size='sm' onClick={() => setEditing('new')}>
-            <Plus />
+          <Button size='sm' variant='primary' onClick={() => setEditing('new')}>
+            <Plus className='size-4 stroke-[1.75]' />
             Add subject
           </Button>
         )
@@ -62,36 +62,44 @@ export function SubjectsTab({ canManage }: { canManage: boolean }) {
       ) : (
         <ul className='grid gap-2 sm:grid-cols-2 xl:grid-cols-3'>
           {subjects.data.items.map((subject) => (
-            <li key={subject.id} className='flex items-center gap-3 rounded-lg border p-3'>
-              <span className='grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 font-mono text-[11px] font-bold text-primary'>
+            <li
+              key={subject.id}
+              className='flex items-center gap-3 rounded-xl border border-[#EDF0EE] bg-white p-3 dark:border-slate-800 dark:bg-slate-900'
+            >
+              <span className='grid size-10 shrink-0 place-items-center rounded-lg bg-[#EAF7F0] font-mono text-[11.5px] font-bold text-[#127D48] dark:bg-emerald-950/50 dark:text-emerald-300'>
                 {subject.code.slice(0, 4)}
               </span>
               <span className='grid min-w-0 flex-1'>
-                <span className='truncate font-semibold'>{subject.name}</span>
-                <span className='text-xs text-muted-foreground'>
+                <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                  {subject.name}
+                </span>
+                <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                   {subject.class_count} {subject.class_count === 1 ? 'class' : 'classes'}
                 </span>
               </span>
               <Badge tone={TYPES[subject.type].tone}>{TYPES[subject.type].label}</Badge>
               {canManage && (
-                <span className='flex'>
+                <span className='flex items-center gap-1.5'>
                   <Button
                     size='icon-sm'
-                    variant='ghost'
+                    variant='outline'
                     aria-label={`Edit ${subject.name}`}
+                    title='Edit'
+                    className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                     onClick={() => setEditing(subject)}
                   >
-                    <Pencil />
+                    <PenLine className='size-4 stroke-[1.75]' />
                   </Button>
                   {subject.class_count === 0 && (
                     <Button
                       size='icon-sm'
-                      variant='ghost'
+                      variant='outline'
                       aria-label={`Delete ${subject.name}`}
-                      className='text-destructive hover:bg-destructive/10'
+                      title='Delete'
+                      className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
                       onClick={() => setRemoving(subject)}
                     >
-                      <Trash2 />
+                      <Trash className='size-4 stroke-[1.75]' />
                     </Button>
                   )}
                 </span>

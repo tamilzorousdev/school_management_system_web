@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import {
+  AlertTriangle,
   ArrowLeft,
-  BellRing,
+  Bell,
   Bus,
   CalendarDays,
   Camera,
   ChevronDown,
   Eye,
   FileText,
-  Pencil,
+  PenLine,
   Phone,
   SearchX,
-  ShieldAlert,
   ShieldCheck,
   Smartphone,
   Trash2,
@@ -44,7 +44,7 @@ import { ROLE_BADGE } from '@/features/transport/labels'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
-import { formatDate, formatDateTime, timeAgo } from '@/lib/format'
+import { formatDate, formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { crewApi, useCrewMember, useCrewMutation, type CrewDetail } from '../api'
 import { CrewFormModal } from '../components/crew-form-modal'
@@ -135,7 +135,7 @@ export function CrewProfilePage() {
         search={{ page: 1 }}
         className='inline-flex items-center gap-1.5 self-start text-sm font-semibold text-muted-foreground hover:text-foreground'
       >
-        <ArrowLeft className='size-4' />
+        <ArrowLeft className='size-4 stroke-[1.75]' />
         All drivers and attendants
       </Link>
 
@@ -151,7 +151,7 @@ export function CrewProfilePage() {
 
       {data.allowed_today && (
         <div className='flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm'>
-          <ShieldAlert className='mt-0.5 size-4 shrink-0 text-warning' />
+          <AlertTriangle className='mt-0.5 size-4 shrink-0 text-warning' />
           <span className='grid gap-0.5'>
             <span className='font-semibold'>Allowed on duty today only</span>
             <span className='text-muted-foreground'>
@@ -283,88 +283,125 @@ function ProfileHeader({
   const action = nextStatus ? STATUS_ACTIONS[nextStatus] : null
 
   return (
-    <Card className='gap-4 p-4 sm:p-5'>
-      <div className='flex flex-wrap items-start gap-4'>
-        <div className='relative'>
-          <Avatar
-            name={member.name}
-            src={member.photo_url}
-            size='lg'
-            previewable
-            subtitle={`Employee No: ${member.employee_no}`}
-            onChangePhoto={canManage ? uploadPhoto : undefined}
-            onRemovePhoto={canManage ? removePhoto : undefined}
-            isUploading={photoUploading}
-            className='size-16 text-lg'
-          />
-          {canManage && (
-            <label
-              htmlFor='crew-avatar-upload'
-              className='absolute -right-1 -bottom-1 z-10 grid size-6 cursor-pointer place-items-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition hover:bg-primary/90'
-              title={member.photo_url ? 'Change photo' : 'Upload photo'}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <Camera className='size-3' />
-              <input
-                id='crew-avatar-upload'
-                type='file'
-                accept='image/jpeg,image/png,image/webp'
-                className='sr-only'
-                disabled={photoUploading}
-                onChange={(event) => {
-                  void uploadPhoto(event.target.files?.[0])
-                  event.target.value = ''
-                }}
-              />
-            </label>
-          )}
-        </div>
-        <div className='grid min-w-0 flex-1 gap-1.5'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <h1 className='text-2xl font-extrabold tracking-tight'>{member.name}</h1>
-            <Badge tone={duty.tone} dot>
-              {duty.label}
-            </Badge>
-            {member.status !== 'active' && (
-              <Badge tone={STAFF_STATUS[member.status].tone}>
-                {STAFF_STATUS[member.status].label}
-              </Badge>
+    <Card className='gap-5 p-5 border border-[#EDF0EE] dark:border-slate-800 shadow-xs'>
+      <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex items-center gap-4'>
+          <div className='relative shrink-0'>
+            <Avatar
+              name={member.name}
+              src={member.photo_url}
+              size='lg'
+              previewable
+              subtitle={`Employee No: ${member.employee_no}`}
+              onChangePhoto={canManage ? uploadPhoto : undefined}
+              onRemovePhoto={canManage ? removePhoto : undefined}
+              isUploading={photoUploading}
+              className='size-18 text-xl ring-2 ring-[#EDF0EE] dark:ring-slate-800'
+            />
+            {canManage && (
+              <label
+                htmlFor='crew-avatar-upload'
+                className='absolute -right-1 -bottom-1 z-10 grid size-6.5 cursor-pointer place-items-center rounded-full border-2 border-white bg-[#127D48] text-white shadow-sm transition hover:bg-[#0E6339] dark:border-slate-900'
+                title={member.photo_url ? 'Change photo' : 'Upload photo'}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <Camera className='size-3.5' />
+                <input
+                  id='crew-avatar-upload'
+                  type='file'
+                  accept='image/jpeg,image/png,image/webp'
+                  className='sr-only'
+                  disabled={photoUploading}
+                  onChange={(event) => {
+                    void uploadPhoto(event.target.files?.[0])
+                    event.target.value = ''
+                  }}
+                />
+              </label>
             )}
           </div>
-          <p className='flex flex-wrap items-center gap-2 text-sm text-muted-foreground'>
-            <Badge tone={ROLE_BADGE[member.role].tone}>{ROLE_BADGE[member.role].label}</Badge>
-            {member.designation} · <span className='font-mono'>{member.employee_no}</span>
-          </p>
+          <div className='grid min-w-0 gap-1'>
+            <div className='flex flex-wrap items-center gap-2'>
+              <h1 className='text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100'>
+                {member.name}
+              </h1>
+              <Badge tone={duty.tone} dot className='font-medium text-xs'>
+                {duty.label}
+              </Badge>
+              {member.status !== 'active' && (
+                <Badge tone={STAFF_STATUS[member.status].tone} className='font-medium text-xs'>
+                  {STAFF_STATUS[member.status].label}
+                </Badge>
+              )}
+            </div>
+            <div className='flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400'>
+              <Badge tone={ROLE_BADGE[member.role].tone} className='font-medium text-xs'>
+                {ROLE_BADGE[member.role].label}
+              </Badge>
+              <span className='font-medium text-slate-700 dark:text-slate-300'>
+                {member.designation}
+              </span>
+              <span>·</span>
+              <span className='font-mono text-xs font-semibold text-slate-600 dark:text-slate-400'>
+                {member.employee_no}
+              </span>
+            </div>
+          </div>
         </div>
         {canManage && (
-          <div className='flex flex-wrap gap-2'>
+          <div className='flex flex-wrap items-center gap-2'>
             {member.duty_status !== 'approved' && (
-              <Button onClick={onApprove} disabled={!member.clear}>
-                <ShieldCheck />
+              <Button
+                variant='primary'
+                size='md'
+                className='h-9 px-4 font-semibold'
+                onClick={onApprove}
+                disabled={!member.clear}
+              >
+                <ShieldCheck className='size-4 stroke-[1.75]' />
                 Approve for duty
               </Button>
             )}
             {member.duty_status !== 'approved' && !member.allowed_today && (
-              <Button variant='outline' onClick={onAllow}>
-                <ShieldAlert />
+              <Button
+                variant='secondary'
+                size='md'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={onAllow}
+              >
+                <AlertTriangle className='size-4 stroke-[1.75]' />
                 Allow today
               </Button>
             )}
             {hasDue && (
-              <Button variant='outline' onClick={onRemind}>
-                <BellRing />
+              <Button
+                variant='secondary'
+                size='md'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={onRemind}
+              >
+                <Bell className='size-4 stroke-[1.75]' />
                 Send reminder
               </Button>
             )}
-            <Button variant='outline' onClick={onEdit}>
-              <Pencil />
+            <Button
+              variant='secondary'
+              size='md'
+              className='w-[85px] border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+              onClick={onEdit}
+            >
+              <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
               Edit
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant='outline'>
+                <Button
+                  variant='secondary'
+                  size='md'
+                  className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                >
                   More
-                  <ChevronDown />
+                  <ChevronDown className='size-4 stroke-[1.75]' />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -406,41 +443,103 @@ function ProfileHeader({
         )}
       </div>
 
-      <dl className='grid grid-cols-2 gap-x-6 gap-y-3 border-t pt-4 text-sm sm:flex sm:flex-wrap'>
-        <Fact icon={Phone} label='Mobile' value={`+91 ${member.mobile}`} />
-        <Fact
-          icon={Bus}
-          label='Bus'
-          value={
-            member.vehicle
-              ? `${member.vehicle.name}${member.route ? ` · ${member.route.name}` : ''}`
-              : 'Not on a bus'
-          }
-        />
-        <Fact icon={CalendarDays} label='Joined' value={formatDate(member.joining_date)} />
-        <Fact
-          icon={Smartphone}
-          label='Driver app'
-          value={member.on_app ? 'Signed in' : 'Not yet'}
-          tone={member.on_app ? 'text-success' : undefined}
-        />
-        <Fact
-          icon={ShieldCheck}
-          label='Approved'
-          value={
-            member.approved_at
-              ? `${formatDate(member.approved_at)}${member.approved_by ? ` · ${member.approved_by.name}` : ''}`
-              : 'Not yet'
-          }
-        />
-        {member.last_reminded_at && (
-          <Fact icon={BellRing} label='Reminded' value={timeAgo(member.last_reminded_at)} />
-        )}
-      </dl>
+      {/* Structured Details Cards */}
+      <div className='grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-4'>
+        {/* Card 1: Contact & App */}
+        <div className='flex items-start gap-3 rounded-xl border border-[#EDF0EE] bg-[#F8FAF9] p-3.5 transition-all dark:border-slate-800 dark:bg-slate-900/50'>
+          <div className='grid size-8 shrink-0 place-items-center rounded-lg border border-[#EDF0EE] bg-white text-[#127D48] shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400'>
+            <Phone className='size-4 stroke-[1.75]' />
+          </div>
+          <div className='grid min-w-0 flex-1 gap-0.5'>
+            <span className='text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400'>
+              Contact & App
+            </span>
+            <span className='tabular text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
+              +91 {member.mobile}
+            </span>
+            <span className='flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400'>
+              <Smartphone
+                className={cn(
+                  'size-3.5',
+                  member.on_app ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                )}
+              />
+              <span>{member.on_app ? 'Driver app active' : 'Not on driver app'}</span>
+            </span>
+          </div>
+        </div>
 
-      <div className='flex flex-wrap items-center gap-2'>
-        <span className='text-xs font-semibold text-muted-foreground'>Documents</span>
-        <ExpiryBadges items={member.expiries} />
+        {/* Card 2: Assigned Bus */}
+        <div className='flex items-start gap-3 rounded-xl border border-[#EDF0EE] bg-[#F8FAF9] p-3.5 transition-all dark:border-slate-800 dark:bg-slate-900/50'>
+          <div className='grid size-8 shrink-0 place-items-center rounded-lg border border-[#EDF0EE] bg-white text-[#127D48] shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400'>
+            <Bus className='size-4 stroke-[1.75]' />
+          </div>
+          <div className='grid min-w-0 flex-1 gap-0.5'>
+            <span className='text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400'>
+              Assigned Bus
+            </span>
+            {member.vehicle ? (
+              <>
+                <span className='truncate font-mono text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
+                  {member.vehicle.name}
+                </span>
+                <span
+                  className='truncate text-[12px] text-slate-500 dark:text-slate-400'
+                  title={member.route?.name ?? undefined}
+                >
+                  {member.route?.name ?? 'No route assigned'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className='text-[13px] font-medium text-slate-400 dark:text-slate-500'>
+                  Not assigned
+                </span>
+                <span className='text-[12px] text-slate-400 dark:text-slate-500'>
+                  No vehicle placed
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Card 3: Duty Clearance */}
+        <div className='flex items-start gap-3 rounded-xl border border-[#EDF0EE] bg-[#F8FAF9] p-3.5 transition-all dark:border-slate-800 dark:bg-slate-900/50'>
+          <div className='grid size-8 shrink-0 place-items-center rounded-lg border border-[#EDF0EE] bg-white text-[#127D48] shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400'>
+            <ShieldCheck className='size-4 stroke-[1.75]' />
+          </div>
+          <div className='grid min-w-0 flex-1 gap-0.5'>
+            <span className='text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400'>
+              Duty Clearance
+            </span>
+            <span className='truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
+              {member.approved_at ? (
+                <span className='text-emerald-700 dark:text-emerald-400'>Approved</span>
+              ) : (
+                <span className='text-amber-700 dark:text-amber-400'>Pending approval</span>
+              )}
+            </span>
+            <span className='flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400'>
+              <CalendarDays className='size-3.5 text-slate-400' />
+              <span>Joined {formatDate(member.joining_date)}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Document Compliance */}
+        <div className='flex items-start gap-3 rounded-xl border border-[#EDF0EE] bg-[#F8FAF9] p-3.5 transition-all dark:border-slate-800 dark:bg-slate-900/50'>
+          <div className='grid size-8 shrink-0 place-items-center rounded-lg border border-[#EDF0EE] bg-white text-[#127D48] shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400'>
+            <FileText className='size-4 stroke-[1.75]' />
+          </div>
+          <div className='grid min-w-0 flex-1 gap-1.5'>
+            <span className='text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400'>
+              Documents
+            </span>
+            <div className='flex flex-wrap gap-1'>
+              <ExpiryBadges items={member.expiries} />
+            </div>
+          </div>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -557,30 +656,6 @@ function RemindDialog({
         onOpenChange(false)
       }}
     />
-  )
-}
-
-function Fact({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: typeof Phone
-  label: string
-  value: string
-  tone?: string
-}) {
-  return (
-    <div className='flex items-center gap-2'>
-      <Icon className='size-4 shrink-0 text-muted-foreground' />
-      <div className='grid'>
-        <dt className='text-[11px] font-bold tracking-wider text-muted-foreground uppercase'>
-          {label}
-        </dt>
-        <dd className={cn('font-semibold', tone)}>{value}</dd>
-      </div>
-    </div>
   )
 }
 

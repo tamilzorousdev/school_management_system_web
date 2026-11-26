@@ -33,20 +33,24 @@ export function ReceiptModal({ payment, onClose }: { payment: FeePayment; onClos
 
   const footer = (
     <div className='flex w-full flex-wrap items-center justify-between gap-2 sm:justify-end'>
-      <Button variant='outline' onClick={handlePrint} className='gap-1.5'>
-        <Printer className='h-4 w-4' />
+      <Button
+        variant='primary'
+        onClick={handlePrint}
+        className='h-9 w-[112px] px-4 gap-2 font-medium'
+      >
+        <Printer className='size-4' />
         Print
       </Button>
       <Button
         variant='outline'
         loading={downloading}
         onClick={() => void handleDownload()}
-        className='gap-1.5'
+        className='h-9 w-[134px] px-4 gap-2 font-medium border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:bg-card dark:text-foreground dark:border-border'
       >
-        <Download className='h-4 w-4' />
+        <Download className='size-4' />
         Download PDF
       </Button>
-      <Button onClick={onClose}>Done</Button>
+      <Button variant='secondary' onClick={onClose}>Done</Button>
     </div>
   )
 

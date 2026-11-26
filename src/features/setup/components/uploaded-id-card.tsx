@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react'
-import { Check, FileUp, Loader2, Move, RefreshCw, Trash2, Upload } from 'lucide-react'
+import { Check, FileUp, Loader2, Move, RefreshCw, Trash, Upload } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -261,14 +261,14 @@ function DesignSlot({
               <RefreshCw /> Replace
             </Button>
             <Button
-              variant='ghost'
+              variant='outline'
               size='icon-sm'
               aria-label={`Remove ${label}`}
               onClick={onRemove}
               disabled={disabled}
-              className='text-destructive hover:text-destructive'
+              className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
             >
-              <Trash2 />
+              <Trash className='size-4 stroke-[1.75]' />
             </Button>
           </div>
         )}

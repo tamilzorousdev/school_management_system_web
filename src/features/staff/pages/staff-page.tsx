@@ -3,6 +3,7 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   AlertTriangle,
   CircleOff,
+  Eye,
   Gauge,
   Grid3x3,
   Plus,
@@ -120,7 +121,7 @@ export function StaffPage() {
   const columns: Column<StaffListItem>[] = [
     {
       key: 'name',
-      header: 'Staff',
+      header: 'STAFF',
       sortKey: 'name',
       cell: (member) => (
         <div className='flex items-center gap-3'>
@@ -133,7 +134,7 @@ export function StaffPage() {
             }
           />
           <div className='grid min-w-0'>
-            <span className='flex items-center gap-1.5 truncate font-bold'>
+            <span className='flex items-center gap-1.5 truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
               {member.name}
               {member.status !== 'active' && (
                 <Badge tone={STAFF_STATUS[member.status].tone}>
@@ -141,7 +142,7 @@ export function StaffPage() {
                 </Badge>
               )}
             </span>
-            <span className='truncate font-mono text-xs text-muted-foreground'>
+            <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {member.employee_no}
             </span>
           </div>
@@ -150,14 +151,14 @@ export function StaffPage() {
     },
     {
       key: 'designation',
-      header: 'Role',
+      header: 'ROLE',
       sortKey: 'designation',
       cell: (member) => (
-        <div className='grid gap-1'>
-          <span className='font-semibold'>
+        <div className='grid gap-0.5'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
             {member.designation}
             {member.department && (
-              <span className='font-normal text-muted-foreground'> · {member.department}</span>
+              <span className='font-normal text-slate-500 dark:text-slate-400'> · {member.department}</span>
             )}
           </span>
           <StaffRoleBadges roles={member.roles} />
@@ -166,7 +167,7 @@ export function StaffPage() {
     },
     {
       key: 'load',
-      header: 'Load',
+      header: 'LOAD',
       cell: (member) =>
         member.staff_type === 'teaching' ? (
           <LoadBar
@@ -175,12 +176,12 @@ export function StaffPage() {
             className='max-w-36'
           />
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
       key: 'class-teacher',
-      header: 'Class teacher of',
+      header: 'CLASS TEACHER OF',
       hideBelow: 'xl',
       cell: (member) =>
         member.class_teacher_of.length ? (
@@ -192,14 +193,34 @@ export function StaffPage() {
             ))}
           </span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
       key: 'attention',
-      header: 'Attention',
+      header: 'ATTENTION',
       hideBelow: 'lg',
       cell: (member) => <AttentionBadges reasons={member.attention} />,
+    },
+    {
+      key: 'action',
+      header: 'ACTION',
+      align: 'right' as const,
+      cell: (member: StaffListItem) => (
+        <Button
+          variant='outline'
+          size='icon-sm'
+          aria-label={`View ${member.name}`}
+          title='View profile'
+          className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+          onClick={(event) => {
+            event.stopPropagation()
+            openStaff(member.id)
+          }}
+        >
+          <Eye className='size-4 stroke-[1.75]' />
+        </Button>
+      ),
     },
   ]
 
@@ -222,13 +243,18 @@ export function StaffPage() {
         description='Teachers and support staff with their roles, teaching load and anything that needs follow-up. Click a person for the full profile.'
         actions={
           <>
-            <Button variant='outline' onClick={() => navigate({ to: '/staff/assignments' })}>
-              <Grid3x3 />
+            <Button
+              variant='secondary'
+              size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
+              onClick={() => navigate({ to: '/staff/assignments' })}
+            >
+              <Grid3x3 className='size-4 stroke-[1.75]' />
               Assignments
             </Button>
             {canManage && (
-              <Button onClick={() => setAdding(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
+                <Plus className='size-4 stroke-[1.75]' />
                 Add staff
               </Button>
             )}
@@ -292,14 +318,14 @@ export function StaffPage() {
               ? 'Try another name or mobile, or clear the filters.'
               : 'Add teachers and support staff so they can use the Staff app.',
             action: !filtered && canManage && (
-              <Button onClick={() => setAdding(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
+                <Plus className='size-4 stroke-[1.75]' />
                 Add staff
               </Button>
             ),
           }}
           card={(member) => (
-            <div className='flex items-start gap-3'>
+            <div className='flex items-start gap-3 p-2.5'>
               <Avatar
                 name={member.name}
                 src={member.photo_url}
@@ -308,11 +334,13 @@ export function StaffPage() {
                   member.employee_no ? `Employee No: ${member.employee_no}` : member.designation
                 }
               />
-              <div className='grid min-w-0 flex-1 gap-1.5'>
+              <div className='grid min-w-0 flex-1 gap-1'>
                 <div className='flex items-start justify-between gap-2'>
                   <span className='grid min-w-0'>
-                    <span className='truncate font-bold'>{member.name}</span>
-                    <span className='truncate text-xs text-muted-foreground'>
+                    <span className='truncate text-[13px] leading-[18px] font-bold text-slate-900 dark:text-slate-100'>
+                      {member.name}
+                    </span>
+                    <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                       {member.designation}
                       {member.department ? ` · ${member.department}` : ''}
                     </span>
@@ -321,7 +349,7 @@ export function StaffPage() {
                     {STAFF_STATUS[member.status].label}
                   </Badge>
                 </div>
-                <span className='flex items-center gap-1.5 font-mono text-xs text-muted-foreground'>
+                <span className='flex items-center gap-1.5 font-mono text-[12px] text-slate-500 dark:text-slate-400'>
                   {member.employee_no}
                   {member.on_app && <Smartphone className='size-3 text-success' />}
                 </span>
@@ -329,15 +357,28 @@ export function StaffPage() {
                   <LoadBar load={member.load_periods} max={member.max_periods_per_week} />
                 )}
                 {member.class_teacher_of.length > 0 && (
-                  <span className='text-xs text-muted-foreground'>
+                  <span className='text-[12px] text-slate-500 dark:text-slate-400'>
                     Class teacher of{' '}
-                    <span className='font-semibold text-foreground'>
+                    <span className='font-semibold text-slate-900 dark:text-slate-100'>
                       {member.class_teacher_of.map((section) => section.name).join(', ')}
                     </span>
                   </span>
                 )}
                 {member.attention.length > 0 && <AttentionBadges reasons={member.attention} />}
               </div>
+              <Button
+                variant='outline'
+                size='icon-sm'
+                aria-label={`View ${member.name}`}
+                title='View profile'
+                className='shrink-0 border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openStaff(member.id)
+                }}
+              >
+                <Eye className='size-4 stroke-[1.75]' />
+              </Button>
             </div>
           )}
           pagination={{

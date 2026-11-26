@@ -1,4 +1,4 @@
-import { GraduationCap, Plus, Trash2 } from 'lucide-react'
+import { GraduationCap, Plus, Trash } from 'lucide-react'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,7 +48,7 @@ export function QualificationsEditor({
                 className='text-destructive hover:bg-destructive/10'
                 onClick={() => onChange(value.filter((_item, position) => position !== index))}
               >
-                <Trash2 />
+                <Trash className='size-4 stroke-[1.75]' />
               </Button>
             </div>
             <div className='grid gap-3 sm:grid-cols-2'>
@@ -120,7 +120,7 @@ export function QualificationsEditor({
           className='justify-self-start'
           onClick={() => onChange([...value, emptyQualification()])}
         >
-          <Plus />
+          <Plus className='size-4 stroke-[1.75]' />
           Add qualification
         </Button>
       )}

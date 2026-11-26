@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Check, LayoutGrid, Pencil, Plus, Trash2, UserRound, Wand2 } from 'lucide-react'
+import { BookOpen, Check, LayoutGrid, PenLine, Plus, Trash, UserRound, Wand2 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -54,17 +54,18 @@ export function ClassesTab({ canManage }: { canManage: boolean }) {
       action={
         canManage && (
           <>
-            <Button size='sm' variant='outline' onClick={() => setClassForm(true)}>
-              <Plus />
+            <Button size='sm' variant='primary' onClick={() => setClassForm(true)}>
+              <Plus className='size-4 stroke-[1.75]' />
               Add class
             </Button>
             <Button
               size='sm'
-              variant='outline'
+              variant='secondary'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
               loading={standard.isPending}
               onClick={() => run(() => standard.mutateAsync(undefined), 'LKG to 12 are ready')}
             >
-              <Wand2 />
+              <Wand2 className='size-4 stroke-[1.75]' />
               Add LKG to 12
             </Button>
           </>
@@ -79,10 +80,11 @@ export function ClassesTab({ canManage }: { canManage: boolean }) {
           action={
             canManage && (
               <Button
+                variant='primary'
                 loading={standard.isPending}
                 onClick={() => run(() => standard.mutateAsync(undefined), 'LKG to 12 are ready')}
               >
-                <Wand2 />
+                <Wand2 className='size-4 stroke-[1.75]' />
                 Add LKG to 12
               </Button>
             )
@@ -93,34 +95,36 @@ export function ClassesTab({ canManage }: { canManage: boolean }) {
           {classes.data.map((schoolClass) => (
             <article
               key={schoolClass.id}
-              className='grid content-start gap-3 rounded-xl border p-4'
+              className='grid content-start gap-3 rounded-xl border border-[#EDF0EE] bg-white p-4 dark:border-slate-800 dark:bg-slate-900'
             >
               <div className='flex items-start justify-between gap-2'>
                 <div className='grid'>
-                  <h3 className='text-base font-extrabold tracking-tight'>
+                  <h3 className='text-[14px] leading-[20px] font-bold text-slate-900 dark:text-slate-100'>
                     Class {schoolClass.name}
                   </h3>
-                  <span className='text-xs text-muted-foreground'>
+                  <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {schoolClass.student_count} students · {schoolClass.sections.length}{' '}
                     {schoolClass.sections.length === 1 ? 'section' : 'sections'}
                   </span>
                 </div>
-                <div className='flex gap-1'>
+                <div className='flex items-center gap-1.5'>
                   <Button
                     size='icon-sm'
-                    variant='ghost'
+                    variant='outline'
                     aria-label={`Subjects of class ${schoolClass.name}`}
                     title='Subjects'
+                    className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                     onClick={() => setSubjectsFor(schoolClass)}
                   >
-                    <BookOpen />
+                    <BookOpen className='size-4 stroke-[1.75]' />
                   </Button>
                   {canManage && schoolClass.sections.length === 0 && (
                     <Button
                       size='icon-sm'
-                      variant='ghost'
+                      variant='outline'
                       aria-label={`Delete class ${schoolClass.name}`}
-                      className='text-destructive hover:bg-destructive/10'
+                      title='Delete class'
+                      className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
                       onClick={() =>
                         setRemoving({
                           kind: 'class',
@@ -129,7 +133,7 @@ export function ClassesTab({ canManage }: { canManage: boolean }) {
                         })
                       }
                     >
-                      <Trash2 />
+                      <Trash className='size-4 stroke-[1.75]' />
                     </Button>
                   )}
                 </div>
@@ -138,46 +142,49 @@ export function ClassesTab({ canManage }: { canManage: boolean }) {
                 {schoolClass.sections.map((section) => {
                   const full = section.student_count / section.capacity
                   return (
-                    <li key={section.id} className='grid gap-1.5 rounded-lg bg-muted/60 px-3 py-2'>
+                    <li key={section.id} className='grid gap-1.5 rounded-lg border border-[#EDF0EE] bg-[#F9FAFB] px-3 py-2 dark:border-slate-800 dark:bg-slate-900/50'>
                       <div className='flex items-center justify-between gap-2'>
                         <span className='flex items-center gap-2'>
-                          <span className='grid size-7 place-items-center rounded-md bg-card text-sm font-extrabold shadow-xs'>
+                          <span className='grid size-7 place-items-center rounded-md border border-[#EDF0EE] bg-white text-[13px] font-bold text-slate-900 shadow-xs dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100'>
                             {section.name}
                           </span>
                           <span className='grid'>
-                            <span className='flex items-center gap-1 text-xs font-semibold'>
-                              <UserRound className='size-3 text-muted-foreground' />
+                            <span className='flex items-center gap-1 text-[12px] font-semibold text-slate-900 dark:text-slate-100'>
+                              <UserRound className='size-3 text-slate-400 stroke-[1.75]' />
                               {section.class_teacher?.name ?? (
-                                <span className='text-warning'>No class teacher</span>
+                                <span className='text-amber-600 dark:text-amber-400'>No class teacher</span>
                               )}
                             </span>
                             {section.room && (
-                              <span className='text-[11px] text-muted-foreground'>
+                              <span className='text-[11.5px] text-slate-500 dark:text-slate-400'>
                                 {section.room}
                               </span>
                             )}
                           </span>
                         </span>
-                        <span className='flex items-center gap-1'>
-                          <span className='tabular text-xs font-semibold'>
+                        <span className='flex items-center gap-1.5'>
+                          <span className='tabular text-[12px] font-semibold text-slate-600 dark:text-slate-400'>
                             {section.student_count}/{section.capacity}
                           </span>
                           {canManage && (
                             <>
                               <Button
                                 size='icon-sm'
-                                variant='ghost'
+                                variant='outline'
                                 aria-label={`Edit section ${section.name}`}
+                                title='Edit section'
+                                className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                                 onClick={() => setSectionForm({ schoolClass, section })}
                               >
-                                <Pencil />
+                                <PenLine className='size-4 stroke-[1.75]' />
                               </Button>
                               {section.student_count === 0 && (
                                 <Button
                                   size='icon-sm'
-                                  variant='ghost'
+                                  variant='outline'
                                   aria-label={`Delete section ${section.name}`}
-                                  className='text-destructive hover:bg-destructive/10'
+                                  title='Delete section'
+                                  className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
                                   onClick={() =>
                                     setRemoving({
                                       kind: 'section',
@@ -186,7 +193,7 @@ export function ClassesTab({ canManage }: { canManage: boolean }) {
                                     })
                                   }
                                 >
-                                  <Trash2 />
+                                  <Trash className='size-4 stroke-[1.75]' />
                                 </Button>
                               )}
                             </>
@@ -214,10 +221,10 @@ export function ClassesTab({ canManage }: { canManage: boolean }) {
                 <Button
                   size='sm'
                   variant='ghost'
-                  className='justify-self-start'
+                  className='justify-self-start text-[12px] font-semibold text-primary hover:bg-primary/10'
                   onClick={() => setSectionForm({ schoolClass })}
                 >
-                  <Plus />
+                  <Plus className='size-3.5 stroke-[1.75]' />
                   Add section
                 </Button>
               )}

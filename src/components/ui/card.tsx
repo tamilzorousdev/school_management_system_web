@@ -1,12 +1,20 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-export function Card({ className, ...props }: React.ComponentProps<'div'>) {
+export interface CardProps extends React.ComponentProps<'div'> {
+  elevation?: 1 | 2 | 4 | 'modal'
+}
+
+export function Card({ className, elevation, ...props }: CardProps) {
   return (
     <div
       data-slot='card'
       className={cn(
-        'flex flex-col rounded-xl border bg-card text-card-foreground shadow-xs',
+        'flex flex-col rounded-xl border bg-card text-card-foreground shadow-xs transition-[box-shadow,border-color]',
+        (elevation === 4 || elevation === 'modal') &&
+          'border-[#DFE4E1] shadow-[0_24px_48px_-12px_rgba(16,23,20,0.18)]',
+        elevation === 2 && 'shadow-md',
+        elevation === 1 && 'shadow-xs',
         className
       )}
       {...props}

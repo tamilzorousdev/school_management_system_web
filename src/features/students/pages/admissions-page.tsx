@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
+  AlertCircle,
   Check,
-  CircleCheckBig,
+  CheckCircle2,
   CircleOff,
   ClipboardList,
-  Clock3,
+  Clock,
+  Eye,
   GraduationCap,
   Plus,
   X,
-  XCircle,
 } from 'lucide-react'
 import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
@@ -17,7 +18,6 @@ import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
-import { Kbd } from '@/components/shortcuts/kbd'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -76,7 +76,7 @@ export function AdmissionsPage() {
       label: 'Waiting for a decision',
       value: data?.applied ?? 0,
       hint: 'Approve or reject',
-      icon: Clock3,
+      icon: Clock,
       tone: 'info',
       active: search.status === 'applied',
       onClick: () => pick('applied'),
@@ -86,7 +86,7 @@ export function AdmissionsPage() {
       label: 'Approved, not enrolled',
       value: data?.approved ?? 0,
       hint: 'Enrol to create the student',
-      icon: CircleCheckBig,
+      icon: CheckCircle2,
       tone: 'warning',
       active: search.status === 'approved',
       onClick: () => pick('approved'),
@@ -106,7 +106,7 @@ export function AdmissionsPage() {
       label: 'Rejected',
       value: data?.rejected ?? 0,
       hint: 'With the reason kept',
-      icon: XCircle,
+      icon: AlertCircle,
       tone: 'danger',
       active: search.status === 'rejected',
       onClick: () => pick('rejected'),
@@ -117,10 +117,10 @@ export function AdmissionsPage() {
     if (!canManage) return null
     if (admission.status === 'applied') {
       return (
-        <div className='inline-flex gap-1'>
+        <div className='flex items-center justify-end gap-1.5'>
           <Button
             size='sm'
-            variant='outline'
+            variant='primary'
             loading={approve.isPending && approve.variables === admission.id}
             onClick={async (event) => {
               event.stopPropagation()
@@ -132,85 +132,96 @@ export function AdmissionsPage() {
               }
             }}
           >
-            <Check />
+            <Check className='size-3.5 stroke-[1.75]' />
             Approve
           </Button>
           <Button
             size='icon-sm'
-            variant='ghost'
+            variant='outline'
             aria-label={`Reject ${admission.full_name}`}
-            className='text-destructive hover:bg-destructive/10'
+            title='Reject application'
+            className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
             onClick={(event) => {
               event.stopPropagation()
               setRejecting(admission)
             }}
           >
-            <X />
+            <X className='size-4 stroke-[1.75]' />
           </Button>
         </div>
       )
     }
     if (admission.status === 'approved') {
       return (
-        <div className='inline-flex gap-1'>
+        <div className='flex items-center justify-end gap-1.5'>
           <Button
             size='sm'
+            variant='primary'
             onClick={(event) => {
               event.stopPropagation()
               setEnrolling(admission)
             }}
           >
-            <GraduationCap />
+            <Check className='size-3.5 stroke-[1.75]' />
             Enrol
           </Button>
           <Button
             size='icon-sm'
-            variant='ghost'
+            variant='outline'
             aria-label={`Reject ${admission.full_name}`}
-            className='text-destructive hover:bg-destructive/10'
+            title='Reject application'
+            className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
             onClick={(event) => {
               event.stopPropagation()
               setRejecting(admission)
             }}
           >
-            <X />
+            <X className='size-4 stroke-[1.75]' />
           </Button>
         </div>
       )
     }
     if (admission.status === 'enrolled' && admission.student_id) {
       return (
-        <Button
-          size='sm'
-          variant='ghost'
-          onClick={(event) => {
-            event.stopPropagation()
-            void navigate({
-              to: '/students/$studentId',
-              params: { studentId: String(admission.student_id!) },
-              search: { tab: 'profile' },
-            })
-          }}
-        >
-          Open student
-        </Button>
+        <div className='flex items-center justify-end'>
+          <Button
+            size='icon-sm'
+            variant='outline'
+            aria-label={`View ${admission.full_name}`}
+            title='View student'
+            className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+            onClick={(event) => {
+              event.stopPropagation()
+              void navigate({
+                to: '/students/$studentId',
+                params: { studentId: String(admission.student_id!) },
+                search: { tab: 'profile' },
+              })
+            }}
+          >
+            <Eye className='size-4 stroke-[1.75]' />
+          </Button>
+        </div>
       )
     }
-    return null
+    return <span className='text-slate-400'>—</span>
   }
 
   const columns: Column<Admission>[] = [
     {
       key: 'name',
-      header: 'Applicant',
+      header: 'APPLICANT',
       sortKey: 'first_name',
       cell: (admission) => (
         <div className='flex items-center gap-3'>
           <Avatar name={admission.full_name} />
           <div className='grid min-w-0'>
-            <span className='truncate font-bold'>{admission.full_name}</span>
-            <span className='truncate font-mono text-xs text-muted-foreground'>
+            <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {admission.full_name}
+            </span>
+            <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {admission.admission_no ?? admission.application_no}
+              {admission.emis_number ? ` · EMIS ${admission.emis_number}` : ''}
             </span>
           </div>
         </div>
@@ -218,12 +229,14 @@ export function AdmissionsPage() {
     },
     {
       key: 'class',
-      header: 'Class',
+      header: 'CLASS',
       sortKey: 'class',
       cell: (admission) => (
         <div className='grid'>
-          <span className='font-semibold'>Class {admission.class.name}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            Class {admission.class.name}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {GENDER_LABELS[admission.gender]} · born {formatDate(admission.dob)}
           </span>
         </div>
@@ -231,17 +244,17 @@ export function AdmissionsPage() {
     },
     {
       key: 'parent',
-      header: 'Parent',
+      header: 'PARENT',
       hideBelow: 'lg',
       cell: (admission) => (
         <div className='grid'>
-          <span className='font-medium'>
+          <span className='text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
             {admission.guardian_name}{' '}
-            <span className='text-xs text-muted-foreground'>
+            <span className='text-[11.5px] text-slate-400 dark:text-slate-500'>
               ({RELATION_LABELS[admission.guardian_relation]})
             </span>
           </span>
-          <span className='tabular text-xs text-muted-foreground'>
+          <span className='tabular text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             +91 {admission.guardian_mobile}
           </span>
         </div>
@@ -249,16 +262,16 @@ export function AdmissionsPage() {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       sortKey: 'status',
       cell: (admission) => (
         <div className='grid justify-items-start gap-1'>
-          <Badge tone={ADMISSION_STATUS[admission.status].tone} dot>
+          <Badge tone={ADMISSION_STATUS[admission.status].tone} dot className='font-medium text-[11.5px]'>
             {ADMISSION_STATUS[admission.status].label}
           </Badge>
           {admission.decision_note && (
             <span
-              className='max-w-56 truncate text-[11px] text-muted-foreground'
+              className='max-w-56 truncate text-[11px] leading-[14px] text-slate-400 dark:text-slate-500'
               title={admission.decision_note}
             >
               {admission.decision_note}
@@ -269,17 +282,19 @@ export function AdmissionsPage() {
     },
     {
       key: 'created',
-      header: 'Applied',
+      header: 'APPLIED',
       sortKey: 'created_at',
       hideBelow: 'xl',
       cell: (admission) => (
-        <span className='text-muted-foreground'>{timeAgo(admission.created_at, now)}</span>
+        <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          {timeAgo(admission.created_at, now)}
+        </span>
       ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
-      align: 'right',
+      header: 'ACTION',
+      align: 'right' as const,
       cell: actions,
     },
   ]
@@ -294,10 +309,9 @@ export function AdmissionsPage() {
         description='Applications move from waiting to approved to enrolled. Enrolling creates the student and invites the parent to the app.'
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <Plus />
+            <Button variant='primary' size='sm' onClick={() => setCreating(true)}>
+              <Plus className='size-4 stroke-[1.75]' />
               New application
-              <Kbd id='students.create' inverted />
             </Button>
           )
         }
@@ -305,7 +319,7 @@ export function AdmissionsPage() {
 
       <InsightCards items={cards} loading={insights.isPending} />
 
-      <Card className='overflow-hidden'>
+      <Card className='overflow-hidden border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900'>
         <ListToolbar
           summary={admissions.data ? `${admissions.data.total} applications` : ''}
           onClear={filtered ? () => navigate({ search: { page: 1 }, replace: true }) : undefined}
@@ -356,30 +370,44 @@ export function AdmissionsPage() {
               ? 'Try another search or clear the filters.'
               : 'Take the first application for this year.',
             action: !filtered && canManage && (
-              <Button onClick={() => setCreating(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => setCreating(true)}>
+                <Plus className='size-4 stroke-[1.75]' />
                 New application
               </Button>
             ),
           }}
           card={(admission) => (
-            <div className='grid gap-2'>
-              <div className='flex items-start justify-between gap-2'>
-                <div className='grid'>
-                  <span className='font-bold'>{admission.full_name}</span>
-                  <span className='font-mono text-xs text-muted-foreground'>
-                    {admission.application_no}
-                  </span>
+            <div className='flex items-start gap-3 p-3'>
+              <Avatar name={admission.full_name} />
+              <div className='grid min-w-0 flex-1 gap-1.5'>
+                <div className='flex items-start justify-between gap-2'>
+                  <div className='grid min-w-0'>
+                    <span className='truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
+                      {admission.full_name}
+                    </span>
+                    <span className='font-mono text-[12px] text-slate-500 dark:text-slate-400'>
+                      {admission.admission_no ?? admission.application_no}
+                      {admission.emis_number ? ` · EMIS ${admission.emis_number}` : ''}
+                    </span>
+                  </div>
+                  <Badge tone={ADMISSION_STATUS[admission.status].tone} dot className='shrink-0 text-[11.5px] font-medium'>
+                    {ADMISSION_STATUS[admission.status].label}
+                  </Badge>
                 </div>
-                <Badge tone={ADMISSION_STATUS[admission.status].tone} dot>
-                  {ADMISSION_STATUS[admission.status].label}
-                </Badge>
+                <div className='flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-slate-500 dark:text-slate-400'>
+                  <span>Class {admission.class.name}</span>
+                  <span>·</span>
+                  <span>{admission.guardian_name}</span>
+                  <span>·</span>
+                  <span className='tabular'>+91 {admission.guardian_mobile}</span>
+                </div>
+                <div className='flex items-center justify-between gap-2 pt-1'>
+                  <span className='text-[12px] text-slate-500 dark:text-slate-400'>
+                    Applied: {timeAgo(admission.created_at, now)}
+                  </span>
+                  <div>{actions(admission)}</div>
+                </div>
               </div>
-              <span className='text-xs text-muted-foreground'>
-                Class {admission.class.name} · {admission.guardian_name} · +91{' '}
-                {admission.guardian_mobile}
-              </span>
-              <div>{actions(admission)}</div>
             </div>
           )}
           pagination={{

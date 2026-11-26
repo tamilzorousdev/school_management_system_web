@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   CircleOff,
+  Eye,
   GraduationCap,
-  Pencil,
   Plus,
-  Trash2,
   UserRoundCheck,
   UserRoundX,
   UsersRound,
@@ -17,7 +16,6 @@ import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
-import { Kbd } from '@/components/shortcuts/kbd'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -142,17 +140,19 @@ export function UsersPage() {
   const columns: Column<UserListItem>[] = [
     {
       key: 'name',
-      header: 'User',
+      header: 'USER',
       sortKey: 'name',
       cell: (user) => (
         <div className='flex items-center gap-3'>
           <Avatar name={user.name} />
           <div className='grid min-w-0'>
             <span className='flex items-center gap-1.5'>
-              <span className='truncate font-bold'>{user.name}</span>
+              <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                {user.name}
+              </span>
               <LanguageTag language={user.language} />
             </span>
-            <span className='truncate text-xs text-muted-foreground'>
+            <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {user.email ?? 'No email'}
             </span>
           </div>
@@ -161,13 +161,17 @@ export function UsersPage() {
     },
     {
       key: 'mobile',
-      header: 'Mobile',
-      cell: (user) => <span className='tabular font-medium'>+91 {user.mobile}</span>,
+      header: 'MOBILE',
+      cell: (user) => (
+        <span className='tabular text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+          +91 {user.mobile}
+        </span>
+      ),
     },
-    { key: 'roles', header: 'Roles', cell: (user) => <RoleBadges roles={user.roles} /> },
+    { key: 'roles', header: 'ROLES', cell: (user) => <RoleBadges roles={user.roles} /> },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (user) =>
         user.status === 'active' ? (
           <Badge tone='success' dot>
@@ -181,48 +185,37 @@ export function UsersPage() {
     },
     {
       key: 'last_login_at',
-      header: 'Last sign-in',
+      header: 'LAST SIGN-IN',
       sortKey: 'last_login_at',
       hideBelow: 'lg',
       cell: (user) => (
-        <span className='text-muted-foreground' title={formatDateTime(user.last_login_at)}>
+        <span
+          className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'
+          title={formatDateTime(user.last_login_at)}
+        >
           {user.last_login_at ? timeAgo(user.last_login_at, now) : 'Never'}
         </span>
       ),
     },
     {
-      key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
-      align: 'right',
-      className: 'w-24',
+      key: 'action',
+      header: 'ACTION',
+      align: 'right' as const,
       cell: (user) =>
         canManage && (
-          <div className='inline-flex gap-1'>
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              aria-label={`Edit ${user.name}`}
-              onClick={(event) => {
-                event.stopPropagation()
-                openEdit(user)
-              }}
-            >
-              <Pencil />
-            </Button>
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              aria-label={`Delete ${user.name}`}
-              className='text-destructive hover:bg-destructive/10'
-              disabled={user.id === me?.id}
-              onClick={(event) => {
-                event.stopPropagation()
-                setDeleting(user)
-              }}
-            >
-              <Trash2 />
-            </Button>
-          </div>
+          <Button
+            size='icon-sm'
+            variant='outline'
+            aria-label={`View ${user.name}`}
+            title='View user'
+            className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+            onClick={(event) => {
+              event.stopPropagation()
+              openEdit(user)
+            }}
+          >
+            <Eye className='size-4 stroke-[1.75]' />
+          </Button>
         ),
     },
   ]
@@ -244,10 +237,9 @@ export function UsersPage() {
         description='Everyone who can sign in: office staff, teachers, parents, drivers and attendants. One mobile number per person; roles decide which app opens.'
         actions={
           canManage && (
-            <Button onClick={openCreate}>
-              <Plus />
-              Add user
-              <Kbd id='users.create' inverted />
+            <Button variant='primary' size='md' onClick={openCreate}>
+              <Plus className='size-4 stroke-[1.75]' />
+              Create user
             </Button>
           )
         }
@@ -255,7 +247,7 @@ export function UsersPage() {
 
       <InsightCards items={cards} loading={insights.isPending} />
 
-      <Card className='overflow-hidden'>
+      <Card className='overflow-hidden border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900'>
         <ListToolbar
           summary={
             users.data ? `${users.data.total} ${users.data.total === 1 ? 'user' : 'users'}` : ''
@@ -322,23 +314,27 @@ export function UsersPage() {
               ? 'Try another name or number, or clear the filters.'
               : 'Add the office team first, then teachers and parents.',
             action: !filtered && canManage && (
-              <Button onClick={openCreate}>
-                <Plus />
-                Add user
+              <Button variant='primary' size='md' onClick={openCreate}>
+                <Plus className='size-4 stroke-[1.75]' />
+                Create user
               </Button>
             ),
           }}
           card={(user) => (
-            <div className='flex items-start gap-3'>
+            <div className='flex items-start gap-3 p-3'>
               <Avatar name={user.name} />
               <div className='grid min-w-0 flex-1 gap-1.5'>
                 <div className='flex items-start justify-between gap-2'>
                   <div className='grid min-w-0'>
                     <span className='flex min-w-0 items-center gap-1.5'>
-                      <span className='truncate font-bold'>{user.name}</span>
+                      <span className='truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
+                        {user.name}
+                      </span>
                       <LanguageTag language={user.language} />
                     </span>
-                    <span className='tabular text-xs text-muted-foreground'>+91 {user.mobile}</span>
+                    <span className='tabular text-[12px] text-slate-500 dark:text-slate-400'>
+                      +91 {user.mobile}
+                    </span>
                   </div>
                   {user.status === 'active' ? (
                     <Badge tone='success' dot className='shrink-0'>
@@ -351,9 +347,26 @@ export function UsersPage() {
                   )}
                 </div>
                 <RoleBadges roles={user.roles} />
-                <span className='text-xs text-muted-foreground'>
-                  Last sign-in: {user.last_login_at ? timeAgo(user.last_login_at, now) : 'Never'}
-                </span>
+                <div className='flex items-center justify-between gap-2 pt-1'>
+                  <span className='text-[12px] text-slate-500 dark:text-slate-400'>
+                    Last sign-in: {user.last_login_at ? timeAgo(user.last_login_at, now) : 'Never'}
+                  </span>
+                  {canManage && (
+                    <Button
+                      size='icon-sm'
+                      variant='outline'
+                      aria-label={`View ${user.name}`}
+                      title='View user'
+                      className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        openEdit(user)
+                      }}
+                    >
+                      <Eye className='size-4 stroke-[1.75]' />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -372,6 +385,8 @@ export function UsersPage() {
         onOpenChange={setFormOpen}
         user={editing}
         canAssignSuperAdmin={Boolean(me?.roles.some((role) => role.code === 'SUPER_ADMIN'))}
+        onDelete={(user) => setDeleting(user)}
+        currentUserId={me?.id}
       />
       <ConfirmDialog
         open={Boolean(deleting)}

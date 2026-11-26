@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { AlignCenter, AlignLeft, AlignRight, Bold, Plus, Trash2, X } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Bold, Plus, Trash, X } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Button } from '@/components/ui/button'
 import { alerts } from '@/lib/alerts'
@@ -239,9 +239,9 @@ function LayoutForm({
             variant='ghost'
             size='sm'
             onClick={() => toggle(current.key)}
-            className='ml-auto text-destructive hover:text-destructive'
+            className='ml-auto text-destructive hover:bg-destructive/10'
           >
-            <Trash2 /> Remove
+            <Trash className='size-4 stroke-[1.75]' /> Remove
           </Button>
         </div>
       ) : (

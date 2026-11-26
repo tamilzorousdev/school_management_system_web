@@ -5,23 +5,35 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        outline: 'border bg-card shadow-xs hover:bg-muted',
-        ghost: 'hover:bg-muted',
-        destructive: 'bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90',
+        default:
+          'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 active:bg-[#0B4E2D] focus-visible:ring-primary/40',
+        primary:
+          'bg-[#127D48] text-white shadow-xs hover:bg-[#0E6339] active:bg-[#0B4E2D] focus-visible:ring-[#127D48]/40',
+        secondary:
+          'border border-[#C6CEC9] bg-white text-[#171B19] font-medium shadow-xs hover:bg-[#F9FAFB] active:bg-[#F2F4F7] dark:bg-card dark:text-foreground dark:border-[#2f4339] dark:hover:bg-muted',
+        tertiary:
+          'bg-[#EAF7F0] text-[#127D48] hover:bg-[#D5EFE1] active:bg-[#BEE5D0] dark:bg-[#14291f] dark:text-[#7fe0ad]',
+        destructive:
+          'bg-[#D92D20] text-white shadow-xs hover:bg-[#B42318] active:bg-[#912018] focus-visible:ring-[#D92D20]/40',
+        text: 'bg-transparent text-[#171B19] hover:bg-[#F2F4F7] active:bg-[#EAECF0] dark:text-foreground dark:hover:bg-muted',
+        outline:
+          'border border-[#C6CEC9] bg-white text-[#171B19] font-medium shadow-xs hover:bg-[#F9FAFB] active:bg-[#F2F4F7] dark:bg-card dark:text-foreground dark:border-border dark:hover:bg-muted',
+        ghost: 'hover:bg-muted text-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
-        sm: 'h-8 gap-1.5 px-3 text-xs',
-        default: 'h-9 px-4',
-        lg: 'h-10 px-6',
-        icon: 'size-9',
-        'icon-sm': 'size-8',
+        sm: 'h-8 gap-1.5 px-3 text-xs [&_svg:not([class*=\'size-\'])]:size-3.5',
+        default: 'h-9 px-4 [&_svg:not([class*=\'size-\'])]:size-4',
+        md: 'h-9 px-4 [&_svg:not([class*=\'size-\'])]:size-4',
+        lg: 'h-10 px-5 [&_svg:not([class*=\'size-\'])]:size-4',
+        'icon-sm': 'size-8 p-0 gap-0 [&_svg:not([class*=\'size-\'])]:size-4',
+        icon: 'size-9 p-0 gap-0 [&_svg:not([class*=\'size-\'])]:size-4.5',
+        'icon-md': 'size-9 p-0 gap-0 [&_svg:not([class*=\'size-\'])]:size-4.5',
+        'icon-lg': 'size-10 p-0 gap-0 [&_svg:not([class*=\'size-\'])]:size-5',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },
@@ -29,9 +41,13 @@ export const buttonVariants = cva(
 )
 
 export interface ButtonProps
-  extends React.ComponentProps<'button'>, VariantProps<typeof buttonVariants> {
+  extends React.ComponentProps<'button'>,
+    VariantProps<typeof buttonVariants> {
   asChild?: boolean
   loading?: boolean
+  loadingText?: React.ReactNode
+  leadingIcon?: React.ReactNode
+  trailingIcon?: React.ReactNode
 }
 
 export function Button({
@@ -40,6 +56,9 @@ export function Button({
   size,
   asChild = false,
   loading = false,
+  loadingText,
+  leadingIcon,
+  trailingIcon,
   disabled,
   children,
   type = 'button',
@@ -56,14 +75,24 @@ export function Button({
   return (
     <button
       type={type}
-      data-slot='button'
+      data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...props}
     >
-      {loading && <Loader2 className='animate-spin' />}
-      {children}
+      {loading ? (
+        <>
+          <Loader2 className="animate-spin" />
+          {loadingText ?? children}
+        </>
+      ) : (
+        <>
+          {leadingIcon}
+          {children}
+          {trailingIcon}
+        </>
+      )}
     </button>
   )
 }

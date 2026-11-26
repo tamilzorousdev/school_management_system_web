@@ -1,12 +1,13 @@
 import * as React from 'react'
-import { Clock } from 'lucide-react'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { Clock, X } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export interface TimePickerProps {
   id?: string
   name?: string
-  value?: string
+  value?: string // 'HH:mm' 24-hr format (e.g. '09:30', '14:15')
   onChange?: (value: string) => void
   placeholder?: string
   disabled?: boolean
@@ -15,13 +16,14 @@ export interface TimePickerProps {
   className?: string
   minuteStep?: number
   clearable?: boolean
+  timezone?: string
+  align?: 'start' | 'center' | 'end'
 }
-
-const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
-function parseTime(text: string): { hours: number; minutes: number } | null {
+function parseTime(text?: string | null): { hours: number; minutes: number } | null {
+  if (!text) return null
   const match = /^\s*(\d{1,2})(?::?(\d{2}))?\s*([ap]\.?m?\.?)?\s*$/i.exec(text)
   if (!match) return null
   let hours = Number(match[1])
@@ -41,12 +43,14 @@ function toValue(hours: number, minutes: number) {
   return `${pad(hours)}:${pad(minutes)}`
 }
 
-function formatTime12(value?: string | null) {
-  const parsed = value ? parseTime(value) : null
+function formatTime12(value?: string | null): string {
+  const parsed = parseTime(value)
   if (!parsed) return ''
   const hour12 = parsed.hours % 12 === 0 ? 12 : parsed.hours % 12
   return `${pad(hour12)}:${pad(parsed.minutes)} ${parsed.hours < 12 ? 'AM' : 'PM'}`
 }
+
+const HOURS_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 export function TimePicker({
   id,
@@ -58,192 +62,194 @@ export function TimePicker({
   invalid = false,
   required = false,
   className,
-  minuteStep = 5,
+  minuteStep = 15,
   clearable = true,
+  timezone = 'IST (UTC+5:30)',
+  align = 'start',
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false)
-  const [text, setText] = React.useState(formatTime12(value))
-  const [editing, setEditing] = React.useState(false)
+
   const parsed = parseTime(value)
-  const shown = editing ? text : formatTime12(value)
-  const minutes = Array.from(
-    { length: Math.ceil(60 / minuteStep) },
-    (_, index) => index * minuteStep
-  )
+  const initialHour = parsed ? (parsed.hours % 12 === 0 ? 12 : parsed.hours % 12) : 9
+  const initialMinute = parsed ? parsed.minutes : 30
+  const initialIsPm = parsed ? parsed.hours >= 12 : false
 
-  const emit = (next: string) => onChange?.(next)
-  const pick = (hours: number, mins: number) => emit(toValue(hours, mins))
-  const current = parsed ?? { hours: 9, minutes: 0 }
-  const isPm = current.hours >= 12
-  const hour12 = current.hours % 12 === 0 ? 12 : current.hours % 12
+  const [pendingHour, setPendingHour] = React.useState<number>(initialHour)
+  const [pendingMinute, setPendingMinute] = React.useState<number>(initialMinute)
+  const [pendingIsPm, setPendingIsPm] = React.useState<boolean>(initialIsPm)
 
-  const setHour = (hour: number) => pick((hour % 12) + (isPm ? 12 : 0), current.minutes)
-  const setMinute = (mins: number) => pick(current.hours, mins)
-  const setMeridiem = (pm: boolean) => pick((current.hours % 12) + (pm ? 12 : 0), current.minutes)
-  const setNow = () => {
-    const now = new Date()
-    pick(now.getHours(), now.getMinutes())
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (disabled) return
+    if (nextOpen && value) {
+      const p = parseTime(value)
+      if (p) {
+        setPendingHour(p.hours % 12 === 0 ? 12 : p.hours % 12)
+        setPendingMinute(p.minutes)
+        setPendingIsPm(p.hours >= 12)
+      }
+    }
+    setOpen(nextOpen)
   }
 
-  const cell = (active: boolean) =>
-    cn(
-      'h-8 rounded-md text-sm tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
-      active
-        ? 'bg-primary font-semibold text-primary-foreground shadow-sm'
-        : 'text-foreground hover:bg-muted'
-    )
+  // Available minutes based on step (defaults to 15: 00, 15, 30, 45)
+  const minutesList = React.useMemo(() => {
+    const step = minuteStep > 0 && minuteStep <= 30 ? minuteStep : 15
+    const list: number[] = []
+    for (let m = 0; m < 60; m += step) {
+      list.push(m)
+    }
+    return list
+  }, [minuteStep])
+
+  const handleSet = () => {
+    const final24Hours = (pendingHour % 12) + (pendingIsPm ? 12 : 0)
+    const timeVal = toValue(final24Hours, pendingMinute)
+    onChange?.(timeVal)
+    setOpen(false)
+  }
+
+  const handleClear = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    onChange?.('')
+    setOpen(false)
+  }
 
   return (
-    <Popover open={open && !disabled} onOpenChange={setOpen}>
-      <PopoverAnchor asChild>
-        <div
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          id={id}
+          name={name}
+          disabled={disabled}
+          data-slot="time-picker"
+          aria-required={required}
+          aria-invalid={invalid}
           className={cn(
-            'flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-card shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/30',
-            invalid && 'border-destructive ring-destructive/20',
+            'group relative flex h-9 w-full min-w-[140px] items-center justify-between rounded-md border border-[#D0D5DD] bg-white px-3 text-left text-sm shadow-xs transition-colors outline-none select-none',
+            'hover:bg-[#F9FAFB] hover:border-slate-300 focus-visible:border-[#127D48] focus-visible:ring-[3px] focus-visible:ring-[#127D48]/20',
+            invalid && 'border-destructive focus-visible:ring-destructive/20',
             disabled && 'cursor-not-allowed opacity-50',
             className
           )}
         >
-          <input
-            id={id}
-            name={name}
-            type='text'
-            inputMode='numeric'
-            autoComplete='off'
-            required={required}
-            disabled={disabled}
-            aria-invalid={invalid || undefined}
-            placeholder={placeholder}
-            value={shown}
-            className='h-full w-full min-w-0 flex-1 bg-transparent pr-1 pl-3 text-sm whitespace-nowrap tabular-nums outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed'
-            onFocus={() => {
-              setText(formatTime12(value))
-              setEditing(true)
-            }}
-            onChange={(event) => {
-              setText(event.target.value)
-              if (event.target.value.trim() === '') emit('')
-              const next = parseTime(event.target.value)
-              if (next) emit(toValue(next.hours, next.minutes))
-            }}
-            onBlur={() => setEditing(false)}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowDown' && !open) {
-                event.preventDefault()
-                setOpen(true)
-              }
-            }}
-          />
-          <button
-            type='button'
-            aria-label='Choose time'
-            disabled={disabled}
-            className='mr-1 grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none'
-            onClick={() => setOpen((current) => !current)}
-          >
-            <Clock className='size-4' />
-          </button>
-        </div>
-      </PopoverAnchor>
-      <PopoverContent
-        className='w-[19rem] p-0'
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        aria-label='Choose time'
-      >
-        <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
-          <div className='flex items-baseline gap-1.5'>
-            <span className='text-2xl font-bold tracking-tight tabular-nums'>
-              {parsed ? `${pad(hour12)}:${pad(current.minutes)}` : '--:--'}
-            </span>
-            <span className='text-sm font-semibold text-muted-foreground'>
-              {parsed ? (isPm ? 'PM' : 'AM') : ''}
-            </span>
-          </div>
-          <div className='flex rounded-lg bg-muted p-0.5' role='group' aria-label='AM or PM'>
-            {[false, true].map((pm) => (
-              <button
-                key={String(pm)}
-                type='button'
-                aria-pressed={Boolean(parsed) && isPm === pm}
-                className={cn(
-                  'rounded-md px-3 py-1 text-xs font-semibold transition-colors',
-                  parsed && isPm === pm
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                onClick={() => setMeridiem(pm)}
-              >
-                {pm ? 'PM' : 'AM'}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className='grid gap-3 p-3'>
-          <div className='grid gap-1.5'>
-            <span className='px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
-              Hour
-            </span>
-            <div className='grid grid-cols-6 gap-1'>
-              {HOURS.map((hour) => (
-                <button
-                  key={hour}
-                  type='button'
-                  aria-label={`${hour} o'clock`}
-                  aria-pressed={Boolean(parsed) && hour12 === hour}
-                  className={cell(Boolean(parsed) && hour12 === hour)}
-                  onClick={() => setHour(hour)}
-                >
-                  {hour}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className='grid gap-1.5'>
-            <span className='px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase'>
-              Minute
-            </span>
-            <div className='grid grid-cols-6 gap-1'>
-              {minutes.map((mins) => (
-                <button
-                  key={mins}
-                  type='button'
-                  aria-label={`${pad(mins)} minutes`}
-                  aria-pressed={Boolean(parsed) && current.minutes === mins}
-                  className={cell(Boolean(parsed) && current.minutes === mins)}
-                  onClick={() => setMinute(mins)}
-                >
-                  {pad(mins)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className='flex items-center justify-between gap-2 border-t px-3 py-2'>
-          <button
-            type='button'
-            className='rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10'
-            onClick={setNow}
-          >
-            Now
-          </button>
-          <div className='flex gap-1'>
-            {clearable && (
-              <button
-                type='button'
-                className='rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground'
-                onClick={() => emit('')}
-              >
-                Clear
-              </button>
+          <div className="flex items-center gap-2 truncate overflow-hidden">
+            <Clock className="size-4 shrink-0 text-[#127D48]" />
+            {value ? (
+              <span className="font-medium text-[#0F1A15]">{formatTime12(value)}</span>
+            ) : (
+              <span className="text-slate-400">{placeholder}</span>
             )}
-            <button
-              type='button'
-              className='rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90'
-              onClick={() => setOpen(false)}
-            >
-              Done
-            </button>
           </div>
+
+          <div className="ml-1 flex shrink-0 items-center gap-1">
+            {clearable && value && !disabled && (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Clear time"
+                onClick={handleClear}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleClear()
+                  }
+                }}
+                className="rounded-sm p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X className="h-3.5 w-3.5" />
+              </span>
+            )}
+          </div>
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align={align}
+        sideOffset={6}
+        className="z-50 w-[218px] rounded-xl border border-[#DFE4E1] bg-[#FFFFFF] p-0 shadow-[0px_4px_8px_-2px_#0F171414,0px_2px_4px_-2px_#0F17140A] outline-none select-none"
+      >
+        {/* 3 Columns: Hour, Minute, Period */}
+        <div className="flex h-[200px] p-2 text-sm">
+          {/* Hours Column */}
+          <div className="flex flex-1 flex-col items-center gap-1 overflow-y-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {HOURS_LIST.map((h) => {
+              const isSelected = pendingHour === h
+              return (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setPendingHour(h)}
+                  className={cn(
+                    'flex h-8 w-12 items-center justify-center rounded-md text-xs font-medium transition-colors',
+                    isSelected
+                      ? 'bg-[#127D48] font-semibold text-white shadow-xs'
+                      : 'text-[#344054] hover:bg-[#F2F4F7]'
+                  )}
+                >
+                  {pad(h)}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Minutes Column */}
+          <div className="flex flex-1 flex-col items-center gap-1 overflow-y-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {minutesList.map((m) => {
+              const isSelected = pendingMinute === m
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setPendingMinute(m)}
+                  className={cn(
+                    'flex h-8 w-12 items-center justify-center rounded-md text-xs font-medium transition-colors',
+                    isSelected
+                      ? 'bg-[#127D48] font-semibold text-white shadow-xs'
+                      : 'text-[#344054] hover:bg-[#F2F4F7]'
+                  )}
+                >
+                  {pad(m)}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Period Column (AM / PM) */}
+          <div className="flex flex-1 flex-col items-center gap-1 px-1 py-1">
+            {[false, true].map((pm) => {
+              const isSelected = pendingIsPm === pm
+              return (
+                <button
+                  key={String(pm)}
+                  type="button"
+                  onClick={() => setPendingIsPm(pm)}
+                  className={cn(
+                    'flex h-8 w-12 items-center justify-center rounded-md text-xs font-medium transition-colors',
+                    isSelected
+                      ? 'bg-[#127D48] font-semibold text-white shadow-xs'
+                      : 'text-[#344054] hover:bg-[#F2F4F7]'
+                  )}
+                >
+                  {pm ? 'PM' : 'AM'}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Footer: Timezone on left, Set button on right */}
+        <div className="flex items-center justify-between border-t border-[#DFE4E1] px-3 py-2">
+          <span className="text-[11px] font-medium text-[#5A6A62]">{timezone}</span>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={handleSet}
+            className="h-7 rounded-md px-3 text-xs font-semibold text-white"
+          >
+            Set
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

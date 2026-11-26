@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { Check, ChevronsUpDown, Search } from 'lucide-react'
+import { Check, ChevronDown, Search } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
@@ -113,8 +113,10 @@ export function Combobox({
           aria-controls={listId}
           aria-invalid={invalid || undefined}
           className={cn(
-            'flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-card px-3 text-left text-sm shadow-xs transition-[color,box-shadow,border-color] outline-none sm:w-48',
-            'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 aria-invalid:border-destructive',
+            'flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-[#D0D5DD] bg-white px-3 text-left text-sm text-slate-900 shadow-xs transition-[color,box-shadow,border-color] outline-none sm:w-48 dark:bg-card dark:border-border dark:text-foreground',
+            'focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20',
+            open && 'border-[#127D48] ring-2 ring-[#127D48]/20 dark:border-[#127D48]',
+            invalid && 'border-[#D92D20] focus-visible:border-[#D92D20] focus-visible:ring-[#D92D20]/20',
             highlightSelected && selected && 'border-primary/50 text-primary',
             className
           )}
@@ -122,7 +124,12 @@ export function Combobox({
           <span className={cn('truncate', !selected && !allLabel && 'text-muted-foreground')}>
             {selected?.label ?? allLabel ?? placeholder}
           </span>
-          <ChevronsUpDown className='size-4 shrink-0 opacity-60' />
+          <ChevronDown
+            className={cn(
+              'size-4 shrink-0 text-slate-500 transition-transform duration-200 dark:text-slate-400',
+              open && 'rotate-180 text-slate-900 dark:text-slate-100'
+            )}
+          />
         </button>
       </PopoverTrigger>
       <PopoverContent

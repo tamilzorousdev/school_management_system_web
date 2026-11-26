@@ -136,7 +136,7 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
       size='xl'
       footer={
         <div className='flex w-full flex-wrap justify-end gap-2'>
-          <Button variant='outline' onClick={onClose}>
+          <Button variant='secondary' onClick={onClose}>
             Cancel
           </Button>
           <Button

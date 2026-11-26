@@ -1,9 +1,10 @@
-import { Star, Trash2 } from 'lucide-react'
+import { Star, Trash } from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { alerts } from '@/lib/alerts'
 import type { GuardianInput } from '../api'
 import type { GuardianDraft } from '../guardian-draft'
 import { RELATION_LABELS, toOptions } from '../labels'
@@ -21,6 +22,7 @@ interface GuardianFieldsProps {
   onChange: (value: GuardianDraft) => void
   onMakePrimary?: () => void
   onRemove?: () => void
+  hasOtherAlertsActive?: boolean
 }
 
 export function GuardianFields({
@@ -31,6 +33,7 @@ export function GuardianFields({
   onChange,
   onMakePrimary,
   onRemove,
+  hasOtherAlertsActive = false,
 }: GuardianFieldsProps) {
   const id = (field: string) => `guardian-${index}-${field}`
   const set = <K extends keyof GuardianDraft>(field: K, next: GuardianDraft[K]) =>
@@ -60,8 +63,14 @@ export function GuardianFields({
         </legend>
         <div className='flex gap-1'>
           {!primary && onMakePrimary && (
-            <Button type='button' variant='ghost' size='sm' onClick={onMakePrimary}>
-              <Star />
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+              onClick={onMakePrimary}
+            >
+              <Star className='size-4 stroke-[1.75]' />
               Make main
             </Button>
           )}
@@ -74,7 +83,7 @@ export function GuardianFields({
               className='text-destructive hover:bg-destructive/10'
               onClick={onRemove}
             >
-              <Trash2 />
+              <Trash className='size-4 stroke-[1.75]' />
             </Button>
           )}
         </div>
@@ -156,18 +165,28 @@ export function GuardianFields({
           </span>
         </span>
         <Switch
-          checked={value.can_pickup ?? true}
+          checked={Boolean(value.can_pickup)}
           onCheckedChange={(checked) => set('can_pickup', checked)}
         />
       </label>
       <label className='flex items-center justify-between gap-3 text-sm'>
         <span className='grid'>
           <span className='font-semibold'>Parent app login and alerts</span>
-          <span className='text-xs text-muted-foreground'>Sends an invite to this mobile</span>
+          <span className='text-xs text-muted-foreground'>
+            {hasOtherAlertsActive && !value.receives_alerts
+              ? 'Only one contact allowed (turn off active login first)'
+              : 'Sends an invite to this mobile'}
+          </span>
         </span>
         <Switch
-          checked={value.receives_alerts ?? true}
-          onCheckedChange={(checked) => set('receives_alerts', checked)}
+          checked={Boolean(value.receives_alerts)}
+          onCheckedChange={(checked) => {
+            if (checked && hasOtherAlertsActive) {
+              alerts.error("Turn off the other contact's app login first before enabling this.")
+              return
+            }
+            set('receives_alerts', checked)
+          }}
         />
       </label>
     </fieldset>

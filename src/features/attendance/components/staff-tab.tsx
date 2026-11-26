@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import {
   CalendarCheck,
+  Check,
   CheckCheck,
   Clock,
   Palmtree,
-  PenLine,
   RotateCw,
   UserRoundX,
   UsersRound,
@@ -12,13 +12,13 @@ import {
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { ListToolbar, SearchBox } from '@/components/common/list-toolbar'
-import { useShortcut } from '@/components/shortcuts/shortcut-context'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useStaffBoard, type StaffBoardRow } from '../api'
 import { SOURCE_LABELS, STAFF_DAY_STATUS, clockTime } from '../labels'
 import type { AttendanceSearch } from '../search'
-import { TableCheckbox, StatusPill } from './students-tab'
+import { TableCheckbox } from './students-tab'
 import { BulkActionBar } from './bulk-action-bar'
 import { BulkStaffModal } from './bulk-mark-modal'
 import { CorrectModal } from './correct-modal'
@@ -59,6 +59,7 @@ export function StaffTab({
   const rows = data?.staff ?? []
   const pageIds = rows.map((row) => row.user_id)
   const allOnPage = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  const isIndeterminate = !allOnPage && pageIds.some((id) => selected.has(id))
   const toggle = (id: number) =>
     setSelected((current) => {
       const next = new Set(current)
@@ -77,8 +78,6 @@ export function StaffTab({
     })
   const filterBy = (value: StaffFilter) =>
     onSearchChange({ staff_status: status === value ? undefined : value, staff_page: 1 })
-
-  useShortcut('app.refresh', () => void board.refetch())
 
   const cards: Insight[] = [
     {
@@ -123,20 +122,20 @@ export function StaffTab({
     },
   ]
 
-  const correctButton = (row: StaffBoardRow) =>
+  const rowActions = (row: StaffBoardRow) =>
     canManage && (
       <Button
-        variant='outline'
-        size='sm'
-        aria-label={`Correct attendance for ${row.name}`}
+        variant='ghost'
+        size='icon-sm'
+        aria-label={`Mark or correct attendance for ${row.name}`}
+        title='Mark attendance'
+        className='text-slate-500 hover:text-[#127D48] hover:bg-[#EAF7F0] dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/50'
         onClick={(event) => {
           event.stopPropagation()
           setCorrecting(row)
         }}
-        className='h-7.5 px-2.5 text-[12px] font-medium'
       >
-        <PenLine className='size-3.5' />
-        Correct
+        <Check className='size-4 stroke-[2.25]' />
       </Button>
     )
 
@@ -149,6 +148,7 @@ export function StaffTab({
               <TableCheckbox
                 ariaLabel='Select everyone on this page'
                 checked={allOnPage}
+                indeterminate={isIndeterminate}
                 onChange={togglePage}
               />
             ),
@@ -168,7 +168,7 @@ export function StaffTab({
       header: 'STAFF ⇅',
       cell: (row) => (
         <div className='grid min-w-0'>
-          <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
             {row.name}
           </span>
           <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
@@ -183,21 +183,18 @@ export function StaffTab({
       header: 'STATUS',
       cell: (row) => {
         const info = STAFF_DAY_STATUS[row.status]
-        const toneMap: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'neutral'> = {
-          success: 'success',
-          warning: 'warning',
-          danger: 'danger',
-          info: 'info',
-          neutral: 'neutral',
-        }
-        return <StatusPill tone={toneMap[info.tone] ?? 'neutral'} label={info.label} />
+        return (
+          <Badge tone={info.tone} dot className='font-medium'>
+            {info.label}
+          </Badge>
+        )
       },
     },
     {
       key: 'in',
       header: 'CHECK-IN',
       cell: (row) => (
-        <span className='tabular-nums text-[13px] leading-[18px] font-normal text-slate-700 dark:text-slate-300'>
+        <span className='text-[13px] leading-[18px] font-normal text-slate-700 tabular-nums dark:text-slate-300'>
           {timeText(row.check_in_at)}
         </span>
       ),
@@ -206,7 +203,7 @@ export function StaffTab({
       key: 'out',
       header: 'CHECK-OUT',
       cell: (row) => (
-        <span className='tabular-nums text-[13px] leading-[18px] font-normal text-slate-700 dark:text-slate-300'>
+        <span className='text-[13px] leading-[18px] font-normal text-slate-700 tabular-nums dark:text-slate-300'>
           {timeText(row.check_out_at)}
         </span>
       ),
@@ -217,7 +214,7 @@ export function StaffTab({
       hideBelow: 'lg',
       cell: (row) =>
         row.check_in_distance_m !== null ? (
-          <span className='tabular-nums text-[13px] leading-[18px] font-normal text-slate-700 dark:text-slate-300'>
+          <span className='text-[13px] leading-[18px] font-normal text-slate-700 tabular-nums dark:text-slate-300'>
             {row.check_in_distance_m} m
           </span>
         ) : (
@@ -226,7 +223,7 @@ export function StaffTab({
     },
     {
       key: 'source',
-      header: 'Source',
+      header: 'SOURCE',
       hideBelow: 'lg',
       cell: (row) =>
         row.source ? (
@@ -244,9 +241,9 @@ export function StaffTab({
       ? [
           {
             key: 'actions',
-            header: '',
+            header: 'ACTION',
             align: 'right' as const,
-            cell: correctButton,
+            cell: rowActions,
           },
         ]
       : []),
@@ -297,6 +294,8 @@ export function StaffTab({
             }
             placeholder='Name, designation or department'
             label='Search staff'
+            compact
+            showShortcut={false}
           />
         </ListToolbar>
         {canManage && selected.size > 0 && (
@@ -351,7 +350,7 @@ export function StaffTab({
                 }
           }
           card={(row) => (
-            <div className='flex items-start gap-3 table-typography'>
+            <div className='table-typography flex items-start gap-3'>
               {canManage && (
                 <span className='pt-1'>
                   <TableCheckbox
@@ -364,34 +363,23 @@ export function StaffTab({
               <div className='grid min-w-0 flex-1 gap-1.5'>
                 <div className='flex items-start justify-between gap-2'>
                   <span className='grid min-w-0'>
-                    <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+                    <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
                       {row.name}
                     </span>
                     <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                       {row.designation}
                     </span>
                   </span>
-                  {(() => {
-                    const info = STAFF_DAY_STATUS[row.status]
-                    const toneMap: Record<
-                      string,
-                      'success' | 'warning' | 'danger' | 'info' | 'neutral'
-                    > = {
-                      success: 'success',
-                      warning: 'warning',
-                      danger: 'danger',
-                      info: 'info',
-                      neutral: 'neutral',
-                    }
-                    return <StatusPill tone={toneMap[info.tone] ?? 'neutral'} label={info.label} />
-                  })()}
+                  <Badge tone={STAFF_DAY_STATUS[row.status].tone} dot className='font-medium'>
+                    {STAFF_DAY_STATUS[row.status].label}
+                  </Badge>
                 </div>
-                <span className='tabular-nums text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
                   In {timeText(row.check_in_at)} · Out {timeText(row.check_out_at)}
                   {row.check_in_distance_m !== null && ` · ${row.check_in_distance_m} m`}
                   {row.source && ` · ${SOURCE_LABELS[row.source]}`}
                 </span>
-                {canManage && <div>{correctButton(row)}</div>}
+                {rowActions(row)}
               </div>
             </div>
           )}

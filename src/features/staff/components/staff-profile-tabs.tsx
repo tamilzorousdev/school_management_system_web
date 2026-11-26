@@ -8,11 +8,11 @@ import {
   GraduationCap,
   Grid3x3,
   Landmark,
-  Pencil,
+  PenLine,
   Plus,
   School,
   Star,
-  Trash2,
+  Trash,
 } from 'lucide-react'
 import { DetailList, EmptyState, ErrorState } from '@/components/common/display'
 import { DocumentList } from '@/components/common/document-list'
@@ -75,8 +75,13 @@ export function ProfileTab({ staff, canManage }: { staff: StaffDetail; canManage
           title='Qualifications'
           action={
             canManage && (
-              <Button size='sm' variant='outline' onClick={() => setEditing(true)}>
-                <Pencil />
+              <Button
+                size='sm'
+                variant='secondary'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
+                onClick={() => setEditing(true)}
+              >
+                <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Edit qualifications
               </Button>
             )
@@ -136,9 +141,14 @@ export function ClassesTab({ staff }: { staff: StaffDetail }) {
         title='Subjects this year'
         description='Each section and subject this person teaches, with periods a week.'
         action={
-          <Button size='sm' variant='outline' asChild>
+          <Button
+            size='sm'
+            variant='secondary'
+            className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
+            asChild
+          >
             <Link to='/staff/assignments'>
-              <Grid3x3 />
+              <Grid3x3 className='size-4 stroke-[1.75]' />
               Teacher assignments
             </Link>
           </Button>
@@ -261,23 +271,37 @@ export function BankTab({ staff, canBank }: { staff: StaffDetail; canBank: boole
         canBank && (
           <div className='flex items-center gap-2'>
             {hasAny && (
-              <Button size='sm' variant='outline' onClick={() => setRevealed((value) => !value)}>
-                {revealed ? <EyeOff className='size-4' /> : <Eye className='size-4' />}
+              <Button
+                size='sm'
+                variant='secondary'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
+                onClick={() => setRevealed((value) => !value)}
+              >
+                {revealed ? (
+                  <EyeOff className='size-4 stroke-[1.75]' />
+                ) : (
+                  <Eye className='size-4 stroke-[1.75]' />
+                )}
                 {revealed ? 'Hide numbers' : 'Show full details'}
               </Button>
             )}
             {hasAny && (
-              <Button size='sm' onClick={() => setAdding(true)}>
-                <Plus className='size-4' />
+              <Button size='sm' variant='primary' onClick={() => setAdding(true)}>
+                <Plus className='size-4 stroke-[1.75]' />
                 Add bank account
               </Button>
             )}
             <Button
               size='sm'
-              variant={hasAny ? 'outline' : 'default'}
+              variant={hasAny ? 'secondary' : 'primary'}
+              className={hasAny ? 'border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]' : undefined}
               onClick={() => setEditing(true)}
             >
-              {hasAny ? <Pencil className='size-4' /> : <Plus className='size-4' />}
+              {hasAny ? (
+                <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+              ) : (
+                <Plus className='size-4 stroke-[1.75]' />
+              )}
               {hasAny ? 'Manage bank accounts' : 'Add bank account'}
             </Button>
           </div>
@@ -326,7 +350,7 @@ export function BankTab({ staff, canBank }: { staff: StaffDetail; canBank: boole
                           onClick={() => setPrimary.mutate(item.id!)}
                           className='h-6 px-2 text-xs text-muted-foreground hover:text-foreground'
                         >
-                          <Star className='mr-1 size-3' />
+                          <Star className='mr-1 size-3.5 stroke-[1.75]' />
                           Set as primary
                         </Button>
                       )
@@ -345,7 +369,7 @@ export function BankTab({ staff, canBank }: { staff: StaffDetail; canBank: boole
                       onClick={() => removeBank.mutate(item.id!)}
                       className='text-muted-foreground hover:text-destructive'
                     >
-                      <Trash2 className='size-3.5' />
+                      <Trash className='size-3.5 stroke-[1.75]' />
                     </Button>
                   )}
                 </div>

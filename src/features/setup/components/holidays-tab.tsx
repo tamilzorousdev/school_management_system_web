@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react'
+import { CalendarDays, PenLine, Plus, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -38,8 +38,8 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
       description='Attendance skips holidays. Emergency closures, like rain holidays, are announced to parents.'
       action={
         canManage && (
-          <Button size='sm' onClick={() => setEditing('new')}>
-            <Plus />
+          <Button size='sm' variant='primary' onClick={() => setEditing('new')}>
+            <Plus className='size-4 stroke-[1.75]' />
             Add holiday
           </Button>
         )
@@ -64,21 +64,21 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
               <li
                 key={holiday.id}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg border p-3',
+                  'flex items-center gap-3 rounded-xl border border-[#EDF0EE] bg-white p-3 dark:border-slate-800 dark:bg-slate-900',
                   past && 'opacity-60'
                 )}
               >
-                <span className='grid w-12 shrink-0 place-items-center rounded-lg bg-muted py-1 text-center'>
+                <span className='grid w-12 shrink-0 place-items-center rounded-lg border border-[#EDF0EE] bg-slate-50 py-1 text-center dark:border-slate-700 dark:bg-slate-800'>
                   <span className='text-[10px] font-bold text-muted-foreground uppercase'>
                     {day.toLocaleDateString('en-IN', { month: 'short', timeZone: 'UTC' })}
                   </span>
-                  <span className='tabular text-lg leading-none font-extrabold'>
+                  <span className='tabular text-lg leading-none font-extrabold text-slate-900 dark:text-slate-100'>
                     {day.getUTCDate()}
                   </span>
                 </span>
                 <span className='grid min-w-0 flex-1'>
-                  <span className='truncate font-semibold'>{holiday.name}</span>
-                  <span className='text-xs text-muted-foreground'>
+                  <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>{holiday.name}</span>
+                  <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {holiday.end_date
                       ? `${formatDate(holiday.date)} to ${formatDate(holiday.end_date)} · `
                       : `${formatDate(holiday.date)} · `}
@@ -92,23 +92,26 @@ export function HolidaysTab({ canManage }: { canManage: boolean }) {
                 )}
                 <Badge tone={TYPES[holiday.type].tone}>{TYPES[holiday.type].label}</Badge>
                 {canManage && (
-                  <span className='flex'>
+                  <span className='flex items-center gap-1.5'>
                     <Button
                       size='icon-sm'
-                      variant='ghost'
+                      variant='outline'
                       aria-label={`Edit ${holiday.name}`}
+                      title='Edit'
+                      className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                       onClick={() => setEditing(holiday)}
                     >
-                      <Pencil />
+                      <PenLine className='size-4 stroke-[1.75]' />
                     </Button>
                     <Button
                       size='icon-sm'
-                      variant='ghost'
+                      variant='outline'
                       aria-label={`Delete ${holiday.name}`}
-                      className='text-destructive hover:bg-destructive/10'
+                      title='Delete'
+                      className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
                       onClick={() => setRemoving(holiday)}
                     >
-                      <Trash2 />
+                      <Trash className='size-4 stroke-[1.75]' />
                     </Button>
                   </span>
                 )}

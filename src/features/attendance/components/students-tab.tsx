@@ -9,6 +9,7 @@ import {
   Inbox,
   LayoutGrid,
   Medal,
+  Minus,
   RotateCw,
   UserRoundX,
   UsersRound,
@@ -16,7 +17,6 @@ import {
 import { DataTable, type Column } from '@/components/common/data-table'
 import { SegmentedControl } from '@/components/common/segmented-control'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
-import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { formatDate, formatDateTime } from '@/lib/format'
@@ -38,7 +38,7 @@ import { DateStepper } from './date-stepper'
 import { MissedReportSheet } from './missed-report-sheet'
 import { Notice } from './notice'
 import { OnDutyModal } from './on-duty-modal'
-import { SectionSheet } from './section-sheet'
+import { SectionSheet, type SectionSheetView } from './section-sheet'
 
 type BoardFilter = 'all' | 'not_marked' | 'missed'
 
@@ -89,6 +89,7 @@ export function StudentsTab({
   const [classReport, setClassReport] = useState(false)
   const [missedReport, setMissedReport] = useState(false)
   const [onDutyOpen, setOnDutyOpen] = useState(false)
+  const [sectionView, setSectionView] = useState<SectionSheetView>('mark')
   const [filter, setFilter] = useState<BoardFilter>('all')
   const data = board.data
   const summary = data?.summary
@@ -128,6 +129,8 @@ export function StudentsTab({
   const canBulk = canManage && Boolean(data?.working_day)
   const allSelected =
     pageMarkable.length > 0 && pageMarkable.every((row) => selected.has(row.section_id))
+  const isIndeterminate =
+    !allSelected && pageMarkable.some((row) => selected.has(row.section_id))
   const toggle = (id: number) =>
     setSelected((current) => {
       const next = new Set(current)
@@ -146,8 +149,10 @@ export function StudentsTab({
       return next
     })
   const markedSelected = rows.filter((row) => selected.has(row.section_id) && row.marked).length
-
-  useShortcut('app.refresh', () => void board.refetch())
+  const openSection = (id: number, view: SectionSheetView = 'mark') => {
+    setSectionView(view)
+    onOpenSection(id)
+  }
 
   const cards: Insight[] = [
     {
@@ -210,6 +215,7 @@ export function StudentsTab({
               <TableCheckbox
                 ariaLabel='Select every section'
                 checked={allSelected}
+                indeterminate={isIndeterminate}
                 onChange={toggleAll}
               />
             ),
@@ -230,7 +236,7 @@ export function StudentsTab({
       header: 'SECTION ⇅',
       cell: (row) => (
         <div className='grid min-w-0'>
-          <span className='font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
             Class {row.name}
           </span>
           <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
@@ -288,7 +294,7 @@ export function StudentsTab({
       header: 'PRESENT / ABSENT / LATE',
       cell: (row) =>
         row.marked ? (
-          <span className='tabular-nums text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
             <span className='font-semibold text-emerald-600 dark:text-emerald-400'>
               {row.present}
             </span>
@@ -298,16 +304,16 @@ export function StudentsTab({
             <span className='font-semibold text-amber-600 dark:text-amber-400'>{row.late}</span>
             <span className='text-xs text-slate-400'> of {row.total}</span>
             {Boolean(row.od) && (
-              <span className='ml-1.5 inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.2 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'>
+              <span className='py-0.2 ml-1.5 inline-flex items-center rounded-full bg-emerald-50 px-1.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'>
                 {row.od} OD
               </span>
             )}
           </span>
         ) : (
-          <span className='tabular-nums text-[13px] leading-[18px] text-slate-500'>
+          <span className='text-[13px] leading-[18px] text-slate-500 tabular-nums'>
             {studentsText(row.total)}
             {Boolean(row.od) && (
-              <span className='ml-1.5 inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.2 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'>
+              <span className='py-0.2 ml-1.5 inline-flex items-center rounded-full bg-emerald-50 px-1.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'>
                 {row.od} OD
               </span>
             )}
@@ -341,7 +347,7 @@ export function StudentsTab({
       cell: (row) =>
         row.taken_by ? (
           <div className='grid min-w-0'>
-            <span className='truncate font-medium text-[13px] leading-[18px] text-slate-800 dark:text-slate-200'>
+            <span className='truncate text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
               {row.taken_by}
             </span>
             <span className='truncate text-[11.5px] leading-[16px] text-slate-400 dark:text-slate-500'>
@@ -352,6 +358,30 @@ export function StudentsTab({
           <span className='text-slate-400'>—</span>
         ),
     },
+    ...(canManage
+      ? [
+          {
+            key: 'action',
+            header: 'ACTION',
+            align: 'right' as const,
+            cell: (row: BoardSection) => (
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label={`Mark attendance for Class ${row.name}`}
+                title='Mark attendance'
+                className='text-slate-500 hover:text-[#127D48] hover:bg-[#EAF7F0] dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/50'
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openSection(row.section_id)
+                }}
+              >
+                <Check className='size-4 stroke-[2.25]' />
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -390,7 +420,7 @@ export function StudentsTab({
         onClose={() => setOnDutyOpen(false)}
         onOpenSection={(id) => {
           setOnDutyOpen(false)
-          onOpenSection(id)
+          if (id !== undefined) openSection(id)
         }}
       />
       <Card className='overflow-hidden'>
@@ -448,7 +478,7 @@ export function StudentsTab({
           loading={board.isFetching}
           error={board.isError ? board.error.message : null}
           onRetry={() => board.refetch()}
-          onRowClick={(row) => onOpenSection(row.section_id)}
+          onRowClick={(row) => openSection(row.section_id)}
           pagination={{
             page: currentPage,
             limit: pageSize,
@@ -478,7 +508,7 @@ export function StudentsTab({
                 }
           }
           card={(row) => (
-            <div className='grid gap-2 table-typography'>
+            <div className='table-typography grid gap-2'>
               <div className='flex items-start justify-between gap-2.5'>
                 {canBulk && (
                   <span className='pt-0.5'>
@@ -491,7 +521,7 @@ export function StudentsTab({
                   </span>
                 )}
                 <span className='grid min-w-0 flex-1'>
-                  <span className='font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+                  <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
                     Class {row.name}
                   </span>
                   <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
@@ -530,24 +560,46 @@ export function StudentsTab({
                     ? `${row.present} present · ${row.absent} absent · ${row.late} late`
                     : studentsText(row.total)}
                 </span>
-                {row.percent !== null && (
-                  <span className='inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'>
-                    {percentLabel(row.percent)}
-                  </span>
-                )}
+                <div className='flex items-center gap-2'>
+                  {row.percent !== null && (
+                    <span className='inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'>
+                      {percentLabel(row.percent)}
+                    </span>
+                  )}
+                  {canManage && (
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      aria-label={`Mark attendance for Class ${row.name}`}
+                      title='Mark attendance'
+                      className='text-slate-500 hover:text-[#127D48] hover:bg-[#EAF7F0] dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/50'
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        openSection(row.section_id)
+                      }}
+                    >
+                      <Check className='size-4 stroke-[2.25]' />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}
         />
       </Card>
       <SectionSheet
+        key={`${sectionId}-${sectionView}`}
         sectionId={sectionId ?? null}
         sectionName={open?.name ?? ''}
         date={date}
         slot={activeSlot}
         slotLabel={slotText(board.data?.mode, activeSlot)}
         canManage={canManage}
-        onClose={() => onOpenSection(undefined)}
+        initialView={sectionView}
+        onClose={() => {
+          setSectionView('mark')
+          onOpenSection(undefined)
+        }}
       />
       {bulk && (
         <BulkSectionsModal
@@ -571,20 +623,24 @@ export function StudentsTab({
 
 export function TableCheckbox({
   checked,
+  indeterminate,
   onChange,
   disabled,
   ariaLabel,
+  className,
 }: {
   checked: boolean
+  indeterminate?: boolean
   onChange?: () => void
   disabled?: boolean
   ariaLabel?: string
+  className?: string
 }) {
   return (
     <button
       type='button'
       role='checkbox'
-      aria-checked={checked}
+      aria-checked={indeterminate ? 'mixed' : checked}
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={(e) => {
@@ -592,14 +648,20 @@ export function TableCheckbox({
         onChange?.()
       }}
       className={cn(
-        'inline-flex size-4.5 items-center justify-center rounded-[4px] border transition-all outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40',
-        checked
-          ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
-          : 'border-slate-300 bg-white hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600',
-        disabled && 'cursor-not-allowed opacity-40'
+        'inline-flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border transition-all outline-none cursor-pointer',
+        checked || indeterminate
+          ? 'border-[#127D48] bg-[#127D48] text-white shadow-2xs'
+          : 'border-[#D0D5DD] bg-white hover:border-[#127D48] hover:bg-[#EAF7F0]/30 dark:border-slate-700 dark:bg-slate-900',
+        'focus-visible:ring-2 focus-visible:ring-[#127D48]/30',
+        disabled && 'cursor-not-allowed opacity-40 hover:border-[#D0D5DD] hover:bg-white',
+        className
       )}
     >
-      {checked && <Check className='size-3 stroke-[3]' />}
+      {indeterminate ? (
+        <Minus className='size-3 stroke-[3]' />
+      ) : checked ? (
+        <Check className='size-3 stroke-[2.5]' />
+      ) : null}
     </button>
   )
 }
@@ -636,7 +698,7 @@ export function StatusPill({
     <span
       title={title}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium leading-[16px] transition-all select-none',
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] leading-[16px] font-medium transition-all select-none',
         styles[tone]
       )}
     >

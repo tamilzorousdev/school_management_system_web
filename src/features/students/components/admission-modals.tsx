@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
+import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { useClasses, useSections } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
@@ -363,8 +364,16 @@ export function RejectModal({
       title={`Reject ${admission?.full_name ?? ''}?`}
       description='The reason is kept with the application.'
       formId='reject-form'
-      submitText='Reject application'
-      loading={reject.isPending}
+      footer={
+        <div className='flex w-full items-center justify-end gap-2'>
+          <Button variant='secondary' onClick={() => onOpenChange(false)} disabled={reject.isPending}>
+            Cancel
+          </Button>
+          <Button type='submit' form='reject-form' variant='destructive' loading={reject.isPending}>
+            Reject application
+          </Button>
+        </div>
+      }
     >
       <form
         id='reject-form'

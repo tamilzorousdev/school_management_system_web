@@ -13,11 +13,11 @@ export function Section({
   children: ReactNode
 }) {
   return (
-    <Card className='overflow-hidden'>
-      <div className='flex flex-wrap items-start justify-between gap-3 border-b px-4 py-3 sm:px-5'>
+    <Card className='overflow-hidden border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900'>
+      <div className='flex flex-wrap items-start justify-between gap-3 border-b border-[#EDF0EE] px-4 py-3 sm:px-5 dark:border-slate-800'>
         <div className='grid gap-0.5'>
-          <h2 className='font-bold'>{title}</h2>
-          {description && <p className='text-xs text-muted-foreground'>{description}</p>}
+          <h2 className='text-[14px] leading-[20px] font-bold text-slate-900 dark:text-slate-100'>{title}</h2>
+          {description && <p className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>{description}</p>}
         </div>
         {action && <div className='flex flex-wrap gap-2'>{action}</div>}
       </div>

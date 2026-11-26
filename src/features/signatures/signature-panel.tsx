@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { History, PenLine, Trash2 } from 'lucide-react'
+import { History, PenLine, Trash } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { ErrorState } from '@/components/common/display'
 import { SignatureModal } from '@/components/common/signature-modal'
@@ -66,7 +66,7 @@ export function SignaturePanel({
               className='size-full object-contain'
             />
           ) : (
-            <PenLine className='size-6 text-muted-foreground' aria-hidden />
+            <PenLine className='size-5 stroke-[1.75] text-slate-400 dark:text-slate-500' aria-hidden />
           )}
         </div>
         <div className='grid min-w-0 flex-1 gap-1 text-sm'>
@@ -81,8 +81,13 @@ export function SignaturePanel({
         </div>
         {canManage && (
           <div className='flex flex-wrap gap-2'>
-            <Button variant='outline' size='sm' onClick={() => setSigning(true)}>
-              <PenLine />
+            <Button
+              variant='secondary'
+              size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
+              onClick={() => setSigning(true)}
+            >
+              <PenLine className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
               {data.signature_url ? 'Change signature' : 'Add signature'}
             </Button>
             {data.signature_url && (
@@ -92,7 +97,7 @@ export function SignaturePanel({
                 className='text-destructive hover:bg-destructive/10'
                 onClick={() => setRemoving(true)}
               >
-                <Trash2 />
+                <Trash className='size-3.5 stroke-[1.75]' />
                 Remove
               </Button>
             )}

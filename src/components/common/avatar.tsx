@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { Camera, ExternalLink, Loader2, Trash2, X } from 'lucide-react'
+import { Camera, ExternalLink, Loader2, Trash, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const TONES = [
@@ -98,7 +98,7 @@ export function ImagePreviewModal({
                   title='Remove photo'
                   className='inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 px-3 py-1.5 text-xs font-semibold text-rose-200 shadow-xs backdrop-blur-xs transition hover:bg-rose-500/35 hover:text-white active:scale-95'
                 >
-                  <Trash2 className='size-3.5' />
+                  <Trash className='size-3.5 stroke-[1.75]' />
                   <span className='hidden sm:inline'>Remove</span>
                 </button>
               )}
@@ -168,7 +168,7 @@ export function ImagePreviewModal({
                     onClick={() => void onRemovePhoto()}
                     className='inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:border-rose-400/50 hover:bg-rose-500/25 hover:text-white active:scale-95'
                   >
-                    <Trash2 className='size-3.5' />
+                    <Trash className='size-3.5 stroke-[1.75]' />
                     <span>Remove photo</span>
                   </button>
                 )}

@@ -43,7 +43,8 @@ import {
 } from '../labels'
 import { Notice } from './notice'
 
-type View = 'mark' | 'report'
+export type SectionSheetView = 'mark' | 'report'
+type View = SectionSheetView
 
 const ROW_TINT: Record<AttendanceStatus, string> = {
   present: '',
@@ -71,6 +72,7 @@ export function SectionSheet({
   slot,
   slotLabel,
   canManage,
+  initialView = 'mark',
   onClose,
 }: {
   sectionId: number | null
@@ -79,9 +81,10 @@ export function SectionSheet({
   slot: AttendanceSlot
   slotLabel: string
   canManage: boolean
+  initialView?: SectionSheetView
   onClose: () => void
 }) {
-  const [view, setView] = useState<View>('mark')
+  const [view, setView] = useState<View>(initialView)
   const roster = useRoster(sectionId, date, slot)
   const data =
     roster.data?.date === date &&
@@ -249,13 +252,13 @@ function RosterEditor({
                     key={student.student_id}
                     className={cn('grid gap-2 p-3', ROW_TINT[mark.status])}
                   >
-                    <div className='flex flex-wrap items-center justify-between gap-2 table-typography'>
+                    <div className='table-typography flex flex-wrap items-center justify-between gap-2'>
                       <div className='flex min-w-0 items-center gap-3'>
                         <span className='flex size-8 shrink-0 items-center justify-center rounded-full border border-[#A7F3D0]/70 bg-[#ECFDF5] text-xs font-bold text-[#059669] select-none dark:border-emerald-800/40 dark:bg-emerald-950/60 dark:text-emerald-300'>
                           {student.roll_no ?? '—'}
                         </span>
                         <span className='grid min-w-0'>
-                          <span className='flex items-center gap-1.5 truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+                          <span className='flex items-center gap-1.5 truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
                             {student.full_name}
                             {student.on_duty ? (
                               <Badge tone='success'>

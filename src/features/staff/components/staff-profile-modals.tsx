@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Check, Plus, Trash2 } from 'lucide-react'
+import { Check, Plus, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
@@ -349,7 +349,7 @@ function BankForm({
                   className='rounded p-1 text-muted-foreground transition-colors hover:text-destructive'
                   title='Remove account'
                 >
-                  <Trash2 className='size-4' />
+                  <Trash className='size-4 stroke-[1.75]' />
                 </button>
               )}
             </div>

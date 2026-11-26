@@ -4,7 +4,6 @@ import { AppModal } from '@/components/common/app-modal'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { FormField } from '@/components/common/form-field'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
-import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -87,7 +86,8 @@ export function LeaveTab({
     <div className='grid gap-4'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <p className='text-xs text-muted-foreground'>
-          Student leave from parents is approved by the class teacher in the Staff app. Staff leave requests are decided here by the HOD or Principal.
+          Student leave from parents is approved by the class teacher in the Staff app. Staff leave
+          requests are decided here by the HOD or Principal.
         </p>
       </div>
 
@@ -204,6 +204,8 @@ function Toolbar({
         onChange={(value) => onSearchChange({ search: value || undefined })}
         placeholder={placeholder}
         label='Search leave requests'
+        compact
+        showShortcut={false}
       />
       <FilterSelect
         id='leave-status-filter'
@@ -235,8 +237,6 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
   const approve = useApprove('staff')
   const [busy, setBusy] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
-
-  useShortcut('app.refresh', () => void leaves.refetch())
 
   const pending = (leave: StaffLeave) =>
     leave.status === 'pending_hod' || leave.status === 'pending_principal'
@@ -294,6 +294,7 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
   const items = leaves.data?.items ?? []
   const pageIds = items.map((l) => l.id)
   const allOnPage = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  const isIndeterminate = !allOnPage && pageIds.some((id) => selected.has(id))
   const toggle = (id: number) =>
     setSelected((prev) => {
       const next = new Set(prev)
@@ -318,6 +319,7 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
               <TableCheckbox
                 ariaLabel='Select all staff leave requests on this page'
                 checked={allOnPage}
+                indeterminate={isIndeterminate}
                 onChange={togglePage}
               />
             ),
@@ -337,7 +339,7 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
       header: 'Staff',
       cell: (leave) => (
         <div className='grid min-w-0'>
-          <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
             {leave.staff.name}
           </span>
           <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
@@ -350,13 +352,8 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
       key: 'type',
       header: 'Leave type',
       cell: (leave) => (
-        <span className='flex items-center gap-1.5'>
-          <span className='inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/60 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800'>
-            {leave.leave_type.code}
-          </span>
-          <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
-            {leave.leave_type.name}
-          </span>
+        <span className='text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+          {leave.leave_type.name}
         </span>
       ),
     },
@@ -385,7 +382,7 @@ function StaffLeaves({ search, filtered, canDecide, onSearchChange, onReject }: 
       ),
     },
     { key: 'stage', header: 'Stage', cell: stage },
-    ...(canDecide ? [{ key: 'actions', header: '', align: 'right' as const, cell: actions }] : []),
+    ...(canDecide ? [{ key: 'actions', header: 'Actions', align: 'right' as const, cell: actions }] : []),
   ]
 
   return (
@@ -484,8 +481,6 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
   const [busy, setBusy] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
-  useShortcut('app.refresh', () => void leaves.refetch())
-
   const pending = (leave: StudentLeave) => leave.status === 'pending'
 
   const approveLeave = async (leave: StudentLeave) => {
@@ -537,6 +532,7 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
   const items = leaves.data?.items ?? []
   const pageIds = items.map((l) => l.id)
   const allOnPage = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  const isIndeterminate = !allOnPage && pageIds.some((id) => selected.has(id))
   const toggle = (id: number) =>
     setSelected((prev) => {
       const next = new Set(prev)
@@ -561,6 +557,7 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
               <TableCheckbox
                 ariaLabel='Select all student leave requests on this page'
                 checked={allOnPage}
+                indeterminate={isIndeterminate}
                 onChange={togglePage}
               />
             ),
@@ -580,7 +577,7 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
       header: 'Student',
       cell: (leave) => (
         <div className='grid min-w-0'>
-          <span className='truncate font-semibold text-[13px] leading-[18px] text-slate-900 dark:text-slate-100'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
             {leave.student.name}
           </span>
           <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
@@ -614,7 +611,7 @@ function StudentLeaves({ search, filtered, canDecide, onSearchChange, onReject }
       ),
     },
     { key: 'stage', header: 'Stage', cell: stage },
-    ...(canDecide ? [{ key: 'actions', header: '', align: 'right' as const, cell: actions }] : []),
+    ...(canDecide ? [{ key: 'actions', header: 'Actions', align: 'right' as const, cell: actions }] : []),
   ]
 
   return (
@@ -710,6 +707,7 @@ function RejectModal({ target, onClose }: { target: Rejecting; onClose: () => vo
       title={`Reject leave for ${target.name}`}
       description={target.summary}
       formId='reject-leave-form'
+      showSubmitShortcut={false}
       submitText='Reject'
       loading={reject.isPending}
     >

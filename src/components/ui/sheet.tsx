@@ -12,10 +12,10 @@ export function SheetContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className='fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0' />
+      <DialogPrimitive.Overlay className='fixed inset-0 z-50 bg-[#101714]/48 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0' />
       <DialogPrimitive.Content
         className={cn(
-          'fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l bg-background shadow-2xl outline-none sm:max-w-xl',
+          'fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-[#DFE4E1] bg-background shadow-[0_24px_48px_-12px_rgba(16,23,20,0.18)] outline-none sm:max-w-xl',
           'data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:animate-in data-[state=open]:slide-in-from-right',
           className
         )}
