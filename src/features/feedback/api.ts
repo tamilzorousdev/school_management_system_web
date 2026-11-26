@@ -66,6 +66,7 @@ export interface StudentFeedback {
   sports_label: string | null
   remark: string | null
   created_at: string
+  edited_at: string | null
 }
 
 export interface TeacherClassResult {
