@@ -1,11 +1,12 @@
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { DatePicker } from '@/components/common/date-picker'
 import { FormField } from '@/components/common/form-field'
+import { TrashIcon } from '@/components/common/icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FormAlert } from '@/features/maintenance/components/shared'
@@ -146,14 +147,14 @@ function AoWingsForm({
         message={errors.root?.message ?? errors.wings?.root?.message ?? errors.wings?.message}
       />
       {rows.fields.length === 0 && (
-        <p className='rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-sm text-info'>
+        <p className='rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-[12.5px] text-info'>
           No wing: {ao.name} is the head AO and sees the whole school.
         </p>
       )}
       {rows.fields.map((row, index) => {
         const rowErrors = errors.wings?.[index]
         return (
-          <fieldset key={row.id} className='grid gap-3 rounded-lg border p-3 sm:grid-cols-2'>
+          <fieldset key={row.id} className='grid gap-3 rounded-lg border border-[#EDF0EE] bg-white p-3 sm:grid-cols-2 dark:border-slate-800 dark:bg-card'>
             <legend className='sr-only'>Wing {index + 1}</legend>
             <FormField
               id={`ao-wing-${index}`}
@@ -230,12 +231,12 @@ function AoWingsForm({
             </FormField>
             <div className='flex justify-end sm:col-span-2'>
               <Button
-                variant='ghost'
+                variant='outline'
                 size='sm'
-                className='text-destructive hover:bg-destructive/10'
+                className='h-8 px-3 gap-1.5 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 font-medium'
                 onClick={() => rows.remove(index)}
               >
-                <Trash2 />
+                <TrashIcon className='size-3.5 stroke-[1.75]' />
                 Remove wing
               </Button>
             </div>
@@ -243,13 +244,13 @@ function AoWingsForm({
         )
       })}
       <Button
-        variant='outline'
+        variant='secondary'
         size='sm'
-        className='justify-self-start'
+        className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium justify-self-start'
         disabled={rows.fields.length >= wings.length}
         onClick={() => rows.append({ wing_id: '', valid_from: '', valid_to: '', note: '' })}
       >
-        <Plus />
+        <Plus className='size-3.5 stroke-[1.75]' />
         Add a wing
       </Button>
     </form>

@@ -162,10 +162,10 @@ export function Student360Page() {
 function Fact({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className='grid min-w-0 gap-0.5'>
-      <span className='text-[11px] font-bold tracking-wider text-muted-foreground uppercase'>
+      <span className='text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase'>
         {label}
       </span>
-      <span className='truncate text-sm font-semibold'>{value}</span>
+      <span className='truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100'>{value}</span>
     </div>
   )
 }
@@ -177,8 +177,10 @@ function StudentHeader({ data, canOpenProfile }: { data: Student360; canOpenProf
       <div className='flex flex-wrap items-start gap-4'>
         <Avatar name={student.name} src={student.photo_url} size='lg' previewable />
         <div className='grid min-w-0 flex-1 gap-1'>
-          <h1 className='text-xl font-extrabold tracking-tight break-words'>{student.name}</h1>
-          <span className='text-sm text-muted-foreground'>
+          <h1 className='text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 break-words'>
+            {student.name}
+          </h1>
+          <span className='text-[12.5px] text-slate-500 dark:text-slate-400'>
             {student.admission_no}
             {current && ` · ${current.class_section}`}
             {current?.roll_no !== null &&
@@ -194,13 +196,18 @@ function StudentHeader({ data, canOpenProfile }: { data: Student360; canOpenProf
           />
         </div>
         {canOpenProfile && (
-          <Button variant='outline' size='sm' asChild>
+          <Button
+            variant='secondary'
+            size='sm'
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+            asChild
+          >
             <Link
               to='/students/$studentId'
               params={{ studentId: String(student.id) }}
               search={{ tab: 'profile' }}
             >
-              <ExternalLink />
+              <ExternalLink className='size-3.5 stroke-[1.75]' />
               Open full profile
             </Link>
           </Button>
@@ -215,24 +222,24 @@ function StudentHeader({ data, canOpenProfile }: { data: Student360; canOpenProf
       </div>
       <div className='grid gap-3 border-t pt-4 md:grid-cols-2'>
         <div className='grid gap-1.5'>
-          <span className='text-[11px] font-bold tracking-wider text-muted-foreground uppercase'>
+          <span className='text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase'>
             Guardians
           </span>
           {data.guardians.length ? (
             <ul className='grid gap-1'>
               {data.guardians.map((guardian) => (
-                <li key={guardian.id} className='flex flex-wrap items-center gap-x-2 text-sm'>
-                  <span className='font-semibold'>{guardian.name}</span>
+                <li key={guardian.id} className='flex flex-wrap items-center gap-x-2 text-[13px]'>
+                  <span className='font-semibold text-slate-900 dark:text-slate-100'>{guardian.name}</span>
                   {guardian.relation && (
-                    <span className='text-muted-foreground capitalize'>{guardian.relation}</span>
+                    <span className='text-[12px] text-slate-500 capitalize'>{guardian.relation}</span>
                   )}
                   {guardian.is_primary && <Badge tone='info'>Primary</Badge>}
                   {guardian.mobile && (
                     <a
                       href={`tel:${guardian.mobile}`}
-                      className='tabular inline-flex items-center gap-1 text-primary hover:underline'
+                      className='tabular inline-flex items-center gap-1 text-[12px] text-primary hover:underline'
                     >
-                      <Phone className='size-3.5' />
+                      <Phone className='size-3 stroke-[1.75]' />
                       {guardian.mobile}
                     </a>
                   )}
@@ -240,19 +247,19 @@ function StudentHeader({ data, canOpenProfile }: { data: Student360; canOpenProf
               ))}
             </ul>
           ) : (
-            <span className='text-sm text-muted-foreground'>No guardian linked</span>
+            <span className='text-[12px] text-slate-400'>No guardian linked</span>
           )}
         </div>
         <div className='grid content-start gap-1.5'>
-          <span className='text-[11px] font-bold tracking-wider text-muted-foreground uppercase'>
+          <span className='text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase'>
             Transport
           </span>
           {transport ? (
-            <div className='flex min-w-0 items-start gap-2 text-sm'>
-              <Bus className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+            <div className='flex min-w-0 items-start gap-2 text-[13px]'>
+              <Bus className='mt-0.5 size-4 shrink-0 text-slate-400' />
               <div className='grid min-w-0'>
-                <span className='font-semibold break-words'>{transport.route}</span>
-                <span className='text-muted-foreground'>
+                <span className='font-semibold text-slate-900 dark:text-slate-100 break-words'>{transport.route}</span>
+                <span className='text-[12px] text-slate-500 dark:text-slate-400'>
                   {transport.stop ?? 'No stop set'}
                   {transport.pass_status && (
                     <Badge
@@ -266,7 +273,7 @@ function StudentHeader({ data, canOpenProfile }: { data: Student360; canOpenProf
               </div>
             </div>
           ) : (
-            <span className='text-sm text-muted-foreground'>Does not use the school bus</span>
+            <span className='text-[12px] text-slate-400'>Does not use the school bus</span>
           )}
         </div>
       </div>

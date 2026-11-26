@@ -239,7 +239,7 @@ function RosterEditor({
               </div>
               {editable && (
                 <Button variant='outline' size='sm' onClick={allPresent}>
-                  <CheckCheck />
+                  <CheckCheck className='size-3.5' />
                   All present
                 </Button>
               )}
@@ -395,7 +395,7 @@ function ReportView({ sectionId, sectionName }: { sectionId: number | null; sect
             }
           }}
         >
-          <Download />
+          <Download className='size-3.5' />
           Excel
         </Button>
       </div>

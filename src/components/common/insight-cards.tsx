@@ -48,7 +48,7 @@ export function InsightCards({ items, loading }: { items: Insight[]; loading?: b
     <div
       ref={ref}
       className={cn(
-        'grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3',
+        'grid grid-cols-2 gap-3.5 lg:grid-cols-4 lg:gap-4',
         items.length === 5 && 'min-[1400px]:grid-cols-5 lg:grid-cols-3',
         items.length === 6 && 'min-[1400px]:grid-cols-6 lg:grid-cols-3'
       )}
@@ -71,10 +71,10 @@ export function InsightCards({ items, loading }: { items: Insight[]; loading?: b
             }
             aria-pressed={interactive ? Boolean(item.active) : undefined}
             className={cn(
-              'group flex min-w-0 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left shadow-xs transition-[box-shadow,border-color]',
+              'group flex min-w-0 items-center gap-3 rounded-lg border border-[#DFE4E1] bg-white px-3 py-2.5 text-left shadow-xs transition-[box-shadow,border-color] dark:bg-card dark:border-border',
               interactive &&
                 'cursor-pointer outline-none hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/40',
-              item.active && cn('ring-2', tone.ring)
+              item.active && cn('border-[#127D48] bg-[#EAF7F0] ring-1 ring-[#127D48] dark:bg-[#0b2e1f] dark:border-[#24b06a]', tone.ring)
             )}
           >
             <span className={cn('grid size-9 shrink-0 place-items-center rounded-lg', tone.icon)}>

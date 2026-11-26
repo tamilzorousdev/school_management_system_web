@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Controller, useForm, useWatch, type Control, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Camera, Trash2 } from 'lucide-react'
+import { Camera, Trash } from 'lucide-react'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
@@ -15,6 +15,7 @@ import { GENDER_LABELS, LANGUAGE_OPTIONS, toOptions } from '@/features/staff/lab
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
+import { cn } from '@/lib/utils'
 import {
   crewApi,
   useCrewMutation,
@@ -30,6 +31,9 @@ const FORM_ID = 'crew-form'
 const MOBILE = /^[6-9]\d{9}$/
 const CODE = /^[A-Z0-9-/]+$/
 const EMPLOYEE_NO = /^[A-Za-z0-9/_-]{1,30}$/
+
+const FIELD_CLASS =
+  'h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
 
 const optional = (test: (value: string) => boolean, message: string) =>
   z
@@ -136,6 +140,7 @@ export function CrewFormModal({ open, onOpenChange, member, onSaved }: CrewFormM
       submitText={member ? 'Save changes' : 'Add'}
       loading={save.isPending}
       size='lg'
+      className='sm:max-w-[704px]'
     >
       {open && (
         <CrewForm
@@ -315,7 +320,7 @@ function CrewForm({
 
       <section className='grid gap-3'>
         <h3 className={heading}>Person</h3>
-        <div className='grid gap-3 sm:grid-cols-2'>
+        <div className='grid gap-4 sm:grid-cols-2'>
           <div className='flex items-center gap-4 sm:col-span-2'>
             <Avatar
               name={name || 'New crew'}
@@ -328,8 +333,8 @@ function CrewForm({
               className='size-16 text-lg'
             />
             <div className='flex flex-wrap items-center gap-2'>
-              <label className='inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold hover:bg-accent hover:text-accent-foreground'>
-                <Camera className='size-3.5' />
+              <label className='inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#C6CEC9] bg-white px-3 py-1.5 text-xs font-semibold text-[#171B19] hover:bg-[#F9FAFB]'>
+                <Camera className='size-3.5 stroke-[1.75]' />
                 {uploading ? 'Uploading…' : photo.url ? 'Change photo' : 'Upload photo'}
                 <input
                   type='file'
@@ -347,9 +352,9 @@ function CrewForm({
                 <button
                   type='button'
                   onClick={() => setPhoto({ id: null, url: null })}
-                  className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
+                  className='inline-flex items-center gap-1.5 rounded-md border border-[#FDA29B] bg-white px-3 py-1.5 text-xs font-semibold text-[#D92D20] hover:bg-rose-50'
                 >
-                  <Trash2 className='size-3.5' />
+                  <Trash className='size-3.5 stroke-[1.75]' />
                   Remove
                 </button>
               )}
@@ -359,9 +364,11 @@ function CrewForm({
             <Input
               id='crew-name'
               autoFocus
+              size='sm'
               maxLength={120}
               placeholder='Ganesan Pillai'
               aria-invalid={Boolean(errors.name) || undefined}
+              className={FIELD_CLASS}
               {...register('name')}
             />
           </FormField>
@@ -383,8 +390,11 @@ function CrewForm({
             <Input
               id='crew-email'
               type='email'
+              size='sm'
               maxLength={120}
+              placeholder='ganesan@example.com'
               aria-invalid={Boolean(errors.email) || undefined}
+              className={FIELD_CLASS}
               {...register('email')}
             />
           </FormField>
@@ -400,7 +410,8 @@ function CrewForm({
                   options={LANGUAGE_OPTIONS}
                   placeholder='Choose language'
                   highlightSelected={false}
-                  className='sm:w-full'
+                  size='sm'
+                  className={FIELD_CLASS}
                   onChange={(value) => field.onChange(value ?? 'ta')}
                 />
               )}
@@ -419,7 +430,8 @@ function CrewForm({
                   allLabel='Not set'
                   placeholder='Not set'
                   highlightSelected={false}
-                  className='sm:w-full'
+                  size='sm'
+                  className={FIELD_CLASS}
                   onChange={(value) => field.onChange(value ?? '')}
                 />
               )}
@@ -431,7 +443,7 @@ function CrewForm({
 
       <section className='grid gap-3'>
         <h3 className={heading}>Work</h3>
-        <div className='grid gap-3 sm:grid-cols-2'>
+        <div className='grid gap-4 sm:grid-cols-2'>
           <FormField
             id='crew-employee-no'
             label='Employee number'
@@ -440,8 +452,10 @@ function CrewForm({
           >
             <Input
               id='crew-employee-no'
+              size='sm'
               maxLength={30}
-              className='font-mono'
+              placeholder='TZMS-EMP-0001'
+              className={cn(FIELD_CLASS, 'font-mono')}
               aria-invalid={Boolean(errors.employee_no) || undefined}
               {...register('employee_no')}
             />
@@ -458,6 +472,9 @@ function CrewForm({
               inputMode='numeric'
               min={0}
               max={50}
+              size='sm'
+              placeholder='0'
+              className={FIELD_CLASS}
               aria-invalid={Boolean(errors.prior_experience_years) || undefined}
               {...register('prior_experience_years')}
             />
@@ -468,7 +485,7 @@ function CrewForm({
       {driver && (
         <section className='grid gap-3'>
           <h3 className={heading}>Driving licence and PSV badge</h3>
-          <div className='grid gap-3 sm:grid-cols-2'>
+          <div className='grid gap-4 sm:grid-cols-2'>
             <FormField
               id='crew-licence-no'
               label='Licence number'
@@ -477,8 +494,9 @@ function CrewForm({
               <Input
                 id='crew-licence-no'
                 maxLength={24}
+                size='sm'
                 placeholder='TN0920190012345'
-                className='font-mono uppercase'
+                className={cn(FIELD_CLASS, 'font-mono uppercase')}
                 aria-invalid={Boolean(errors.licence_no) || undefined}
                 {...register('licence_no')}
               />
@@ -496,7 +514,8 @@ function CrewForm({
                     allLabel='Not set'
                     placeholder='Not set'
                     highlightSelected={false}
-                    className='sm:w-full'
+                    size='sm'
+                    className={FIELD_CLASS}
                     onChange={(value) => field.onChange(value ?? '')}
                   />
                 )}
@@ -519,8 +538,9 @@ function CrewForm({
               <Input
                 id='crew-badge-no'
                 maxLength={30}
+                size='sm'
                 placeholder='PSV0912345'
-                className='font-mono uppercase'
+                className={cn(FIELD_CLASS, 'font-mono uppercase')}
                 aria-invalid={Boolean(errors.badge_no) || undefined}
                 {...register('badge_no')}
               />
@@ -537,7 +557,7 @@ function CrewForm({
 
       <section className='grid gap-3'>
         <h3 className={heading}>Medical and police checks</h3>
-        <div className='grid gap-3 sm:grid-cols-2'>
+        <div className='grid gap-4 sm:grid-cols-2'>
           <DateField
             control={control}
             errors={errors}
@@ -562,7 +582,7 @@ function CrewForm({
 
       <section className='grid gap-3'>
         <h3 className={heading}>Contact</h3>
-        <div className='grid gap-3 sm:grid-cols-2'>
+        <div className='grid gap-4 sm:grid-cols-2'>
           <FormField
             id='crew-emergency-name'
             label='Emergency contact name'
@@ -571,7 +591,10 @@ function CrewForm({
             <Input
               id='crew-emergency-name'
               maxLength={120}
+              size='sm'
+              placeholder='Contact person name'
               aria-invalid={Boolean(errors.emergency_contact_name) || undefined}
+              className={FIELD_CLASS}
               {...register('emergency_contact_name')}
             />
           </FormField>
@@ -603,7 +626,9 @@ function CrewForm({
               id='crew-address'
               rows={2}
               maxLength={255}
+              placeholder='Street address'
               aria-invalid={Boolean(errors.address) || undefined}
+              className='w-full border-[#9AA49F] bg-white px-3 py-2 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
               {...register('address')}
             />
           </FormField>
@@ -658,9 +683,11 @@ function DateField({
           <Input
             id={id}
             type='date'
+            size='sm'
             max={max ? today() : undefined}
             value={String(field.value ?? '')}
             aria-invalid={Boolean(errors[name]) || undefined}
+            className={FIELD_CLASS}
             onChange={(event) => field.onChange(event.target.value)}
           />
         )}
@@ -681,16 +708,17 @@ function MobileInput({
   onChange: (value: string) => void
 }) {
   return (
-    <div className='flex'>
-      <span className='inline-flex h-9 items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-sm font-semibold text-muted-foreground'>
+    <div className='flex w-full sm:w-[320px]'>
+      <span className='inline-flex h-8 items-center rounded-l-md border border-r-0 border-[#9AA49F] bg-[#F9FAFB] px-3 text-xs font-semibold text-slate-600'>
         +91
       </span>
       <Input
         id={id}
         type='tel'
+        size='sm'
         inputMode='numeric'
         maxLength={10}
-        className='tabular rounded-l-none'
+        className='tabular rounded-l-none h-8 border-[#9AA49F] bg-white px-3 text-[13px]'
         value={value}
         aria-invalid={invalid || undefined}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(-10))}

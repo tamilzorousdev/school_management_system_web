@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { GraduationCap, PenLine, Phone, Smartphone } from 'lucide-react'
+import { GraduationCap, Pencil, Phone, Smartphone } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
@@ -81,10 +81,11 @@ export function GuardianSheet({
                   canManage && (
                     <Button
                       variant='secondary'
-                      className='w-[85px]'
+                      size='md'
+                      className='w-[85px] h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                       onClick={() => setEditing(true)}
                     >
-                      <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                      <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                       Edit
                     </Button>
                   )

@@ -38,9 +38,9 @@ import { DOCUMENT_STATUS, TIMELINE_LABEL, TIMELINE_OPTIONS, percent, rupees } fr
 
 function Metric({ label, value, tone }: { label: string; value: React.ReactNode; tone?: string }) {
   return (
-    <div className='grid min-w-0 gap-0.5 rounded-lg border bg-muted/30 px-3 py-2'>
-      <span className='truncate text-[11px] font-semibold text-muted-foreground'>{label}</span>
-      <span className={`tabular truncate text-lg font-extrabold ${tone ?? ''}`}>{value}</span>
+    <div className='grid min-w-0 gap-0.5 rounded-lg border border-[#EDF0EE] bg-muted/20 px-3 py-2 dark:border-border'>
+      <span className='truncate text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider'>{label}</span>
+      <span className={cn('tabular truncate text-[15px] font-bold text-slate-900 dark:text-slate-100', tone)}>{value}</span>
     </div>
   )
 }

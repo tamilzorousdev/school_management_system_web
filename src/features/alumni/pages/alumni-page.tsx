@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
-  CircleOff,
-  ClipboardCheck,
+  Clock,
   Download,
-  GraduationCap,
+  Eye,
   Inbox,
   Link2,
-  PhoneCall,
-  UsersRound,
+  Search,
+  Smartphone,
+  Users,
 } from 'lucide-react'
 import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
@@ -162,7 +162,7 @@ export function AlumniPage() {
       label: 'All alumni',
       value: data?.total ?? 0,
       hint: `${data?.active ?? 0} active`,
-      icon: GraduationCap,
+      icon: Users,
       tone: 'primary',
       active:
         tab === 'alumni' &&
@@ -178,7 +178,7 @@ export function AlumniPage() {
       label: latest ? `Batch of ${latest.batch_year}` : 'Latest batch',
       value: latest?.count ?? 0,
       hint: latest ? 'Most recent batch' : 'No batches yet',
-      icon: UsersRound,
+      icon: Users,
       tone: 'info',
       active: tab === 'alumni' && Boolean(latest) && search.batch_year === latest?.batch_year,
       onClick: () => {
@@ -193,7 +193,7 @@ export function AlumniPage() {
       label: 'Reachable',
       value: data?.reachable ?? 0,
       hint: 'Agreed to contact, with a mobile or email',
-      icon: PhoneCall,
+      icon: Smartphone,
       tone: 'success',
       active: tab === 'alumni' && search.reachable === true,
       onClick: () => {
@@ -206,7 +206,7 @@ export function AlumniPage() {
       label: 'Pending approvals',
       value: data?.pending_submissions ?? 0,
       hint: 'Self-registrations and updates',
-      icon: ClipboardCheck,
+      icon: Clock,
       tone: data?.pending_submissions ? 'warning' : 'neutral',
       active: tab === 'submissions' && search.submission_status === 'pending',
       onClick: () => switchTab('submissions', { submission_status: 'pending' }),
@@ -219,14 +219,16 @@ export function AlumniPage() {
   const columns: Column<AlumniItem>[] = [
     {
       key: 'name',
-      header: 'Alumnus',
+      header: 'ALUMNUS',
       sortKey: 'name',
       cell: (row) => (
         <div className='flex items-center gap-3'>
           <Avatar name={row.full_name} src={row.photo_url} />
           <div className='grid min-w-0'>
-            <span className='truncate font-bold'>{row.full_name}</span>
-            <span className='truncate font-mono text-xs text-muted-foreground'>
+            <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {row.full_name}
+            </span>
+            <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {row.alumni_no}
               {row.emis_number ? ` · EMIS ${row.emis_number}` : ''}
             </span>
@@ -236,25 +238,31 @@ export function AlumniPage() {
     },
     {
       key: 'batch',
-      header: 'Batch',
+      header: 'BATCH',
       sortKey: 'batch_year',
       cell: (row) => (
         <div className='grid gap-0.5'>
-          <span className='tabular font-semibold'>{row.batch_year}</span>
-          <span className='text-xs text-muted-foreground'>{EXIT_TYPE[row.exit_type].label}</span>
+          <span className='tabular text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.batch_year}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {EXIT_TYPE[row.exit_type].label}
+          </span>
         </div>
       ),
     },
     {
       key: 'class',
-      header: 'Final class',
+      header: 'FINAL CLASS',
       sortKey: 'final_percent',
       hideBelow: 'lg',
       cell: (row) => (
         <div className='grid gap-0.5'>
-          <span>{classLabel(row.final_class_name, row.final_section_name)}</span>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {classLabel(row.final_class_name, row.final_section_name)}
+          </span>
           {row.final_percent !== null && (
-            <span className='tabular text-xs text-muted-foreground'>
+            <span className='tabular text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {row.final_percent}%{row.final_grade ? ` · ${row.final_grade}` : ''}
             </span>
           )}
@@ -263,23 +271,31 @@ export function AlumniPage() {
     },
     {
       key: 'career',
-      header: 'Now',
-      cell: (row) => <span className='line-clamp-2 text-sm'>{careerLine(row)}</span>,
+      header: 'NOW',
+      cell: (row) => (
+        <span className='line-clamp-2 text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          {careerLine(row)}
+        </span>
+      ),
     },
     {
       key: 'contact',
-      header: 'Contact',
+      header: 'CONTACT',
       hideBelow: 'xl',
       cell: (row) => (
         <div className='grid min-w-0 gap-0.5'>
-          <span className='tabular truncate'>{row.mobile ? `+91 ${row.mobile}` : '—'}</span>
-          <span className='truncate text-xs text-muted-foreground'>{row.email ?? 'No email'}</span>
+          <span className='tabular truncate text-[13px] leading-[18px] font-medium text-slate-900 dark:text-slate-100'>
+            {row.mobile ? `+91 ${row.mobile}` : '—'}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {row.email ?? 'No email'}
+          </span>
         </div>
       ),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (row) => (
         <div className='flex flex-wrap gap-1'>
           <Badge tone={ALUMNI_STATUS[row.status].tone} dot>
@@ -289,19 +305,41 @@ export function AlumniPage() {
         </div>
       ),
     },
+    {
+      key: 'actions',
+      header: 'ACTION',
+      align: 'right',
+      cell: (row) => (
+        <Button
+          size='icon-sm'
+          variant='outline'
+          aria-label={`View ${row.full_name}`}
+          title='View alumnus'
+          className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+          onClick={(event) => {
+            event.stopPropagation()
+            openProfile(row)
+          }}
+        >
+          <Eye className='size-4 stroke-[1.75]' />
+        </Button>
+      ),
+    },
   ]
 
   const submissionColumns: Column<Submission>[] = [
     {
       key: 'name',
-      header: 'Name',
+      header: 'NAME',
       sortKey: 'name',
       cell: (row) => (
         <div className='flex items-center gap-3'>
           <Avatar name={row.name} />
           <div className='grid min-w-0'>
-            <span className='truncate font-bold'>{row.name}</span>
-            <span className='truncate font-mono text-xs text-muted-foreground'>
+            <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {row.name}
+            </span>
+            <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {row.alumni_no ?? 'New'}
             </span>
           </div>
@@ -310,28 +348,34 @@ export function AlumniPage() {
     },
     {
       key: 'type',
-      header: 'Type',
+      header: 'TYPE',
       cell: (row) => (
         <Badge tone={SUBMISSION_TYPE[row.type].tone}>{SUBMISSION_TYPE[row.type].label}</Badge>
       ),
     },
     {
       key: 'mobile',
-      header: 'Mobile',
-      cell: (row) => <span className='tabular'>{row.mobile ? `+91 ${row.mobile}` : '—'}</span>,
+      header: 'MOBILE',
+      cell: (row) => (
+        <span className='tabular text-[13px] leading-[18px] font-medium text-slate-900 dark:text-slate-100'>
+          {row.mobile ? `+91 ${row.mobile}` : '—'}
+        </span>
+      ),
     },
     {
       key: 'created_at',
-      header: 'Sent',
+      header: 'SENT',
       sortKey: 'created_at',
       hideBelow: 'lg',
       cell: (row) => (
-        <span className='text-muted-foreground'>{formatDateTime(row.created_at)}</span>
+        <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          {formatDateTime(row.created_at)}
+        </span>
       ),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (row) => (
         <Badge tone={SUBMISSION_STATUS[row.status].tone} dot>
           {SUBMISSION_STATUS[row.status].label}
@@ -340,17 +384,19 @@ export function AlumniPage() {
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       cell: (row) => (
         <Button
-          variant='outline'
+          variant='secondary'
           size='sm'
+          className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
           onClick={(event) => {
             event.stopPropagation()
             setReviewing(row)
           }}
         >
+          <Eye className='size-3.5 stroke-[1.75]' />
           {row.status === 'pending' && canManage ? 'Review' : 'View'}
         </Button>
       ),
@@ -377,13 +423,24 @@ export function AlumniPage() {
         actions={
           <>
             {canManage && registrationUrl && (
-              <Button variant='outline' onClick={() => void copyRegistrationLink()}>
-                <Link2 />
+              <Button
+                variant='secondary'
+                size='md'
+                className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={() => void copyRegistrationLink()}
+              >
+                <Link2 className='size-4 stroke-[1.75]' />
                 Registration link
               </Button>
             )}
-            <Button variant='outline' loading={exporting} onClick={() => void exportList()}>
-              <Download />
+            <Button
+              variant='secondary'
+              size='md'
+              className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+              loading={exporting}
+              onClick={() => void exportList()}
+            >
+              <Download className='size-4 stroke-[1.75]' />
               Export
             </Button>
           </>
@@ -397,7 +454,7 @@ export function AlumniPage() {
         value={tab}
         onChange={(next) => switchTab(next)}
         tabs={[
-          { value: 'alumni', label: 'Alumni', icon: GraduationCap },
+          { value: 'alumni', label: 'Alumni', icon: Users },
           {
             value: 'submissions',
             label: 'Submissions',
@@ -479,7 +536,7 @@ export function AlumniPage() {
             sort={{ sort: search.sort ?? 'batch_year', order: search.order ?? 'desc' }}
             onSortChange={(next) => setSearch(next as Partial<AlumniSearch>)}
             empty={{
-              icon: listFiltered ? CircleOff : GraduationCap,
+              icon: listFiltered ? Search : Users,
               title: listFiltered ? 'No alumni match these filters' : 'No alumni yet',
               description: listFiltered
                 ? 'Try another name or batch, or clear the filters.'
@@ -560,7 +617,7 @@ export function AlumniPage() {
             sort={{ sort: search.sort ?? 'created_at', order: search.order ?? 'desc' }}
             onSortChange={(next) => setSearch(next as Partial<AlumniSearch>)}
             empty={{
-              icon: submissionsFiltered ? CircleOff : Inbox,
+              icon: submissionsFiltered ? Search : Inbox,
               title: submissionsFiltered
                 ? 'No submissions match these filters'
                 : 'No submissions yet',

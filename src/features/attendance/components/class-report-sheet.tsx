@@ -103,7 +103,7 @@ export function ClassReportSheet({ open, onClose }: { open: boolean; onClose: ()
                 }
               }}
             >
-              <Download />
+              <Download className='size-3.5' />
               Excel
             </Button>
           </div>

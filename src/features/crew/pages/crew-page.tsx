@@ -333,6 +333,7 @@ export function CrewPage() {
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Name, mobile, employee, licence or badge no.'
             label='Search drivers and attendants'
+            compact
           />
           <FilterSelect
             id='crew-role-filter'
@@ -341,6 +342,7 @@ export function CrewPage() {
             value={search.role}
             options={toOptions(ROLE_LABELS)}
             onChange={(value) => setSearch({ role: value as CrewSearch['role'] })}
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
           <FilterSelect
             id='crew-duty-filter'
@@ -349,6 +351,7 @@ export function CrewPage() {
             value={search.duty_status}
             options={toOptions(DUTY_LABELS)}
             onChange={(value) => setSearch({ duty_status: value as CrewSearch['duty_status'] })}
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
           <FilterSelect
             id='crew-expiry-filter'
@@ -357,6 +360,7 @@ export function CrewPage() {
             value={search.expiry_state}
             options={toOptions(EXPIRY_FILTER_LABELS)}
             onChange={(value) => setSearch({ expiry_state: value as CrewSearch['expiry_state'] })}
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
           <FilterSelect
             id='crew-bus-filter'
@@ -367,6 +371,7 @@ export function CrewPage() {
             onChange={(value) =>
               setSearch({ vehicle_id: value ? Number(value) : undefined, unassigned: undefined })
             }
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
           <FilterSelect
             id='crew-status-filter'
@@ -375,6 +380,7 @@ export function CrewPage() {
             value={search.status}
             options={toOptions(STAFF_STATUS_LABELS)}
             onChange={(value) => setSearch({ status: value as CrewSearch['status'] })}
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
           {reminding && (
             <Button

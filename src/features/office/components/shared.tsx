@@ -13,7 +13,7 @@ export interface Crumb {
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
     <nav aria-label='Breadcrumb' className='min-w-0'>
-      <ol className='flex flex-wrap items-center gap-1 text-sm'>
+      <ol className='flex flex-wrap items-center gap-1 text-[13px]'>
         {items.map((item, index) => {
           const last = index === items.length - 1
           return (
@@ -22,19 +22,22 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
                 <button
                   type='button'
                   onClick={item.onClick}
-                  className='truncate rounded font-semibold text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/40'
+                  className='truncate rounded font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/40'
                 >
                   {item.label}
                 </button>
               ) : (
                 <span
                   aria-current={last ? 'page' : undefined}
-                  className={cn('truncate', last ? 'font-bold' : 'text-muted-foreground')}
+                  className={cn(
+                    'truncate',
+                    last ? 'font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
+                  )}
                 >
                   {item.label}
                 </span>
               )}
-              {!last && <ChevronRight className='size-3.5 shrink-0 text-muted-foreground' />}
+              {!last && <ChevronRight className='size-3 shrink-0 text-slate-400' />}
             </li>
           )
         })}
@@ -47,7 +50,7 @@ export function WingBanner({ wings }: { wings: string[] }) {
   return (
     <div
       role='status'
-      className='flex items-start gap-2 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-sm text-info'
+      className='flex items-start gap-2 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-[12.5px] text-info'
     >
       <Info className='mt-0.5 size-4 shrink-0' />
       <span>
@@ -72,15 +75,26 @@ export function Stat({
     <div className='flex min-w-0 items-center gap-2'>
       <Icon
         className={cn(
-          'size-4 shrink-0 text-muted-foreground',
+          'size-3.5 shrink-0 text-slate-400',
           tone === 'danger' && 'text-destructive',
           tone === 'warning' && 'text-warning',
           tone === 'success' && 'text-success'
         )}
       />
       <div className='grid min-w-0'>
-        <span className='truncate text-[11px] font-semibold text-muted-foreground'>{label}</span>
-        <span className='tabular truncate text-sm font-bold'>{value}</span>
+        <span className='truncate text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider'>
+          {label}
+        </span>
+        <span
+          className={cn(
+            'tabular truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100',
+            tone === 'danger' && 'text-destructive',
+            tone === 'warning' && 'text-amber-600 dark:text-amber-400',
+            tone === 'success' && 'text-success'
+          )}
+        >
+          {value}
+        </span>
       </div>
     </div>
   )
@@ -100,7 +114,7 @@ export function ClickCard({
       type='button'
       aria-label={label}
       onClick={onClick}
-      className='grid min-w-0 content-start gap-4 rounded-xl border bg-card p-4 text-left text-card-foreground shadow-xs transition-[box-shadow,border-color] outline-none hover:border-primary/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/40'
+      className='grid min-w-0 content-start gap-3 rounded-lg border border-[#DFE4E1] bg-white p-3.5 text-left text-card-foreground shadow-xs transition-[box-shadow,border-color] outline-none hover:border-primary/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/40 dark:bg-card dark:border-border'
     >
       {children}
     </button>

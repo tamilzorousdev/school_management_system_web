@@ -23,6 +23,7 @@ interface ComboboxProps {
   highlightSelected?: boolean
   emptyText?: string
   onSearch?: (query: string) => void
+  size?: 'default' | 'sm'
 }
 
 const VISIBLE_ROWS = 5
@@ -41,6 +42,7 @@ export function Combobox({
   highlightSelected = true,
   emptyText = 'No options yet',
   onSearch,
+  size = 'default',
 }: ComboboxProps) {
   const listId = useId()
   const listRef = useRef<HTMLDivElement>(null)
@@ -113,7 +115,8 @@ export function Combobox({
           aria-controls={listId}
           aria-invalid={invalid || undefined}
           className={cn(
-            'flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-[#D0D5DD] bg-white px-3 text-left text-sm text-slate-900 shadow-xs transition-[color,box-shadow,border-color] outline-none sm:w-48 dark:bg-card dark:border-border dark:text-foreground',
+            'flex w-full min-w-0 items-center justify-between gap-2 rounded-md border border-[#D0D5DD] bg-white px-3 text-left text-slate-900 shadow-xs transition-[color,box-shadow,border-color] outline-none sm:w-48 dark:bg-card dark:border-border dark:text-foreground',
+            size === 'sm' ? 'h-8 text-[13px]' : 'h-9 text-sm',
             'focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20',
             open && 'border-[#127D48] ring-2 ring-[#127D48]/20 dark:border-[#127D48]',
             invalid && 'border-[#D92D20] focus-visible:border-[#D92D20] focus-visible:ring-[#D92D20]/20',
@@ -126,7 +129,8 @@ export function Combobox({
           </span>
           <ChevronDown
             className={cn(
-              'size-4 shrink-0 text-slate-500 transition-transform duration-200 dark:text-slate-400',
+              size === 'sm' ? 'size-3.5' : 'size-4',
+              'shrink-0 text-slate-500 transition-transform duration-200 dark:text-slate-400',
               open && 'rotate-180 text-slate-900 dark:text-slate-100'
             )}
           />

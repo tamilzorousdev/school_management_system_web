@@ -274,6 +274,7 @@ export function StaffPage() {
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Name, mobile, employee no. or department'
             label='Search staff'
+            compact
           />
           <FilterSelect
             id='staff-type-filter'
@@ -282,6 +283,7 @@ export function StaffPage() {
             value={search.staff_type}
             options={toOptions(STAFF_TYPE_LABELS)}
             onChange={(value) => setSearch({ staff_type: value as StaffSearch['staff_type'] })}
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
           <FilterSelect
             id='role-filter'
@@ -290,6 +292,7 @@ export function StaffPage() {
             value={search.role}
             options={toOptions(STAFF_ROLE_LABELS)}
             onChange={(value) => setSearch({ role: value as StaffSearch['role'] })}
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
           <FilterSelect
             id='status-filter'
@@ -298,6 +301,7 @@ export function StaffPage() {
             value={search.status}
             options={toOptions(STAFF_STATUS_LABELS)}
             onChange={(value) => setSearch({ status: value as StaffSearch['status'] })}
+            className='h-8 text-[13px] border-[#9AA49F]'
           />
         </ListToolbar>
 

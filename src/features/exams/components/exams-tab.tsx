@@ -135,7 +135,7 @@ export function ExamsTab({
           <h2 className='font-bold'>Exams</h2>
           {canManage && (
             <Button size='sm' onClick={() => setModal({ kind: 'create' })}>
-              <Plus />
+              <Plus className='size-3.5' />
               New exam
             </Button>
           )}
@@ -184,7 +184,7 @@ export function ExamsTab({
             action:
               canManage && !filtered ? (
                 <Button size='sm' onClick={() => setModal({ kind: 'create' })}>
-                  <Plus />
+                  <Plus className='size-3.5' />
                   New exam
                 </Button>
               ) : undefined,

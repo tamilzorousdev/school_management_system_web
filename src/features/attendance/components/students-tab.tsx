@@ -402,11 +402,11 @@ export function StudentsTab({
             options={slotOptions}
           />
           <Button variant='outline' size='sm' onClick={() => setClassReport(true)}>
-            <FileBarChart />
+            <FileBarChart className='size-3.5' />
             Class report
           </Button>
           <Button variant='outline' size='sm' onClick={() => setMissedReport(true)}>
-            <AlarmClockOff />
+            <AlarmClockOff className='size-3.5' />
             Missed report
           </Button>
         </div>
@@ -440,7 +440,7 @@ export function StudentsTab({
             </span>
             {canBulk && Boolean(data?.sections_not_marked) && (
               <Button size='sm' variant='outline' onClick={() => setBulk('not_marked')}>
-                <CheckCheck />
+                <CheckCheck className='size-3.5' />
                 Mark all sections not marked
               </Button>
             )}

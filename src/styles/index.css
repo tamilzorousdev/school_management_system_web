@@ -46,6 +46,7 @@
   --border-default: #dfe4e1;
   --border-strong: #c6cec9;
   --border-subtle: #edf0ee;
+  --border-hover: #9aa49f;
   --text-primary: #171b19;
 
   /* Icon Semantic Colors */
@@ -96,6 +97,7 @@
   --viewer-foreground: #eef3f0;
   --viewer-muted: #94a39c;
   --border: #22312a;
+  --border-default: #22312a;
   --input: #2a3a33;
   --ring: #24b06a;
   --border-strong: #2f4339;

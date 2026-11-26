@@ -6,7 +6,7 @@ import {
   Gavel,
   MessageSquareWarning,
   NotebookPen,
-  PenLine,
+  Pencil,
   Plus,
   Trash,
 } from 'lucide-react'
@@ -134,20 +134,23 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
                       {note.recorded_by ? ` · ${note.recorded_by.name}` : ''}
                     </span>
                     {canManage && (
-                      <span className='flex gap-1'>
+                      <span className='flex gap-1.5'>
                         <Button
                           size='icon-sm'
-                          variant='ghost'
+                          variant='outline'
                           aria-label={`Edit ${note.title}`}
+                          title='Edit'
+                          className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                           onClick={() => setEditing(note)}
                         >
-                          <PenLine className='size-4 stroke-[1.75]' />
+                          <Pencil className='size-4 stroke-[1.75]' />
                         </Button>
                         <Button
                           size='icon-sm'
-                          variant='ghost'
+                          variant='outline'
                           aria-label={`Delete ${note.title}`}
-                          className='text-destructive hover:bg-destructive/10'
+                          title='Delete'
+                          className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                           onClick={() => setRemoving(note)}
                         >
                           <Trash className='size-4 stroke-[1.75]' />

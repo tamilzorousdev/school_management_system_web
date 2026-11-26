@@ -50,6 +50,7 @@ export function QualificationsModal({
       description='Degrees and certificates, newest first. Empty rows are skipped.'
       formId='qualifications-form'
       size='lg'
+      className='sm:max-w-[704px]'
       loading={save.isPending}
     >
       {open && (
@@ -138,6 +139,7 @@ export function BankModal({
       formId='bank-form'
       loading={save.isPending}
       size='lg'
+      className='sm:max-w-[704px]'
     >
       {open &&
         (loading ? (
@@ -346,15 +348,15 @@ function BankForm({
                 <button
                   type='button'
                   onClick={() => removeAccount(index)}
-                  className='rounded p-1 text-muted-foreground transition-colors hover:text-destructive'
+                  className='inline-flex size-8 items-center justify-center rounded-md border border-[#FDA29B] bg-white text-[#D92D20] hover:bg-rose-50 transition-colors'
                   title='Remove account'
                 >
-                  <Trash className='size-4 stroke-[1.75]' />
+                  <Trash className='size-3.5 stroke-[1.75]' />
                 </button>
               )}
             </div>
 
-            <div className='grid gap-3 sm:grid-cols-2'>
+            <div className='grid gap-4 sm:grid-cols-2'>
               <FormField
                 id={`account_holder_${index}`}
                 label='Account holder'
@@ -365,6 +367,8 @@ function BankForm({
                 <Input
                   id={`account_holder_${index}`}
                   maxLength={120}
+                  size='sm'
+                  className='w-full border-[#9AA49F] bg-white px-3 h-8 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={d.account_holder}
                   onChange={(event) => updateDraft(index, 'account_holder', event.target.value)}
                 />
@@ -379,6 +383,8 @@ function BankForm({
                   id={`bank_name_${index}`}
                   placeholder='Indian Bank'
                   maxLength={80}
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={d.bank_name}
                   onChange={(event) => updateDraft(index, 'bank_name', event.target.value)}
                 />
@@ -388,7 +394,8 @@ function BankForm({
                   id={`ifsc_${index}`}
                   placeholder='IDIB000T012'
                   maxLength={11}
-                  className='font-mono uppercase'
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md font-mono uppercase focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={d.ifsc}
                   onChange={(event) => updateDraft(index, 'ifsc', upper(event.target.value))}
                 />
@@ -404,7 +411,8 @@ function BankForm({
                   inputMode='numeric'
                   autoComplete='off'
                   maxLength={18}
-                  className='font-mono'
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md font-mono focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={d.account_no}
                   onChange={(event) =>
                     updateDraft(index, 'account_no', event.target.value.replace(/\D/g, ''))
@@ -422,7 +430,8 @@ function BankForm({
                   placeholder='ABCPV1234K'
                   autoComplete='off'
                   maxLength={10}
-                  className='font-mono uppercase'
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md font-mono uppercase focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={d.pan ?? ''}
                   onChange={(event) => updateDraft(index, 'pan', upper(event.target.value))}
                 />
@@ -434,12 +443,12 @@ function BankForm({
 
       <Button
         type='button'
-        variant='outline'
+        variant='secondary'
         size='sm'
         onClick={addAccount}
-        className='flex items-center gap-1.5 self-start'
+        className='border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium h-8 px-3 gap-1.5 self-start'
       >
-        <Plus className='size-4' />
+        <Plus className='size-3.5 stroke-[1.75]' />
         Add another bank account
       </Button>
     </form>

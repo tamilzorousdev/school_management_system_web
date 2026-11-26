@@ -10,9 +10,9 @@ export function Card({ className, elevation, ...props }: CardProps) {
     <div
       data-slot='card'
       className={cn(
-        'flex flex-col rounded-xl border bg-card text-card-foreground shadow-xs transition-[box-shadow,border-color]',
+        'flex flex-col rounded-lg border border-[#DFE4E1] bg-card text-card-foreground shadow-xs transition-[box-shadow,border-color] dark:border-border',
         (elevation === 4 || elevation === 'modal') &&
-          'border-[#DFE4E1] shadow-[0_24px_48px_-12px_rgba(16,23,20,0.18)]',
+          'shadow-[0_24px_48px_-12px_rgba(16,23,20,0.18)]',
         elevation === 2 && 'shadow-md',
         elevation === 1 && 'shadow-xs',
         className

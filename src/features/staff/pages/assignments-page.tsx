@@ -200,6 +200,7 @@ export function AssignmentsPage() {
           onChange={(value) =>
             navigate({ search: { class_id: value ? Number(value) : undefined }, replace: true })
           }
+          className='h-8 text-[13px] border-[#9AA49F]'
         />
         {matrix.data && (
           <Badge tone={unassigned ? 'warning' : 'success'} className='text-[11.5px] font-medium'>

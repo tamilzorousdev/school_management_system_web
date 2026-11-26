@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import {
-  Ban,
-  CircleCheck,
-  Clock3,
-  FileCheck2,
-  Printer,
-  ShieldAlert,
-  Undo2,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  FileText,
+  RefreshCw,
+  XCircle,
   type LucideIcon,
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
@@ -57,7 +56,7 @@ export function NocPanel({
   if (noc.isPending) return <Skeleton className='h-72 w-full rounded-xl' />
   if (!noc.data) {
     return (
-      <Card className='p-4 text-sm text-muted-foreground'>
+      <Card className='p-4 text-[13px] text-muted-foreground'>
         {noc.error ? toApiError(noc.error).message : 'No leaving request found.'}
       </Card>
     )
@@ -73,26 +72,26 @@ export function NocPanel({
       <div className='flex flex-wrap items-start justify-between gap-3'>
         <div className='grid min-w-0 gap-1'>
           <div className='flex flex-wrap items-center gap-2'>
-            <h2 className='text-base font-semibold'>Leaving request (NOC)</h2>
+            <h2 className='text-[15px] font-bold text-slate-900 dark:text-slate-100'>Leaving request (NOC)</h2>
             <Badge tone={status.tone} dot>
               {status.label}
             </Badge>
           </div>
-          <p className='text-sm text-muted-foreground'>
+          <p className='text-[13px] text-slate-600 dark:text-slate-400'>
             {EXIT_TYPE_LABELS[data.exit_type]} · leaving {formatDate(data.leaving_date)} ·{' '}
             {data.reason}
           </p>
-          <p className='text-xs text-muted-foreground'>
+          <p className='text-[12px] text-slate-500 dark:text-slate-400'>
             Started {formatDateTime(data.requested_at)}
             {data.requested_by_name ? ` by ${data.requested_by_name}` : ''}
           </p>
         </div>
         <div className='grid justify-items-end gap-1'>
-          <span className='text-sm font-semibold'>
+          <span className='text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
             {data.cleared_count} of {total} cleared
           </span>
           <div
-            className='h-2 w-36 overflow-hidden rounded-full bg-muted'
+            className='h-2 w-36 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700'
             role='progressbar'
             aria-valuemin={0}
             aria-valuemax={total}
@@ -100,14 +99,14 @@ export function NocPanel({
             aria-label='Departments cleared'
           >
             <div
-              className='h-full rounded-full bg-success transition-[width]'
+              className='h-full rounded-full bg-[#127D48] transition-[width]'
               style={{ width: `${total ? (data.cleared_count / total) * 100 : 0}%` }}
             />
           </div>
         </div>
       </div>
 
-      <ul className='divide-y rounded-lg border'>
+      <ul className='divide-y divide-[#EDF0EE] rounded-lg border border-[#EDF0EE] bg-white dark:border-slate-800 dark:divide-slate-800 dark:bg-card'>
         {data.items.map((item) => (
           <NocRow
             key={item.department}
@@ -128,31 +127,44 @@ export function NocPanel({
 
       <div className='flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end'>
         {canManage && (
-          <Button variant='ghost' onClick={() => setCancelling(true)}>
-            <Ban />
+          <Button
+            variant='outline'
+            size='md'
+            className='h-9 px-4 gap-2 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50 font-medium'
+            onClick={() => setCancelling(true)}
+          >
+            <XCircle className='size-4 stroke-[1.75]' />
             Cancel request
           </Button>
         )}
         <Button
-          variant='outline'
+          variant='secondary'
+          size='md'
+          className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
           onClick={() =>
             void openFile(studentFiles.noc(student.id)).catch((error: unknown) =>
               alerts.error(toApiError(error).message)
             )
           }
         >
-          <Printer />
+          <FileText className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
           Print NOC
         </Button>
         {canManage && (
-          <Button disabled={!cleared} onClick={onIssueTc}>
-            <FileCheck2 />
+          <Button
+            variant='primary'
+            size='md'
+            disabled={!cleared}
+            className='h-9 px-4 gap-2 bg-[#127D48] text-white hover:bg-[#0E6339] font-medium shadow-xs disabled:opacity-50'
+            onClick={onIssueTc}
+          >
+            <FileText className='size-4 stroke-[1.75]' />
             Issue TC
           </Button>
         )}
       </div>
       {canManage && !cleared && (
-        <p className='text-xs text-muted-foreground sm:text-right'>
+        <p className='text-[12px] text-slate-500 dark:text-slate-400 sm:text-right'>
           The TC can be issued once every department has cleared.
         </p>
       )}
@@ -179,7 +191,7 @@ function NocRow({
   onReopen: () => void
 }) {
   const done = item.status === 'cleared'
-  const Icon: LucideIcon = done ? CircleCheck : item.blocking ? ShieldAlert : Clock3
+  const Icon: LucideIcon = done ? CheckCircle2 : item.blocking ? AlertTriangle : Clock
 
   return (
     <li className='flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between'>
@@ -188,21 +200,21 @@ function NocRow({
           className={cn(
             'grid size-9 shrink-0 place-items-center rounded-lg',
             done
-              ? 'bg-success/15 text-success'
+              ? 'bg-emerald-50 text-[#127D48] dark:bg-emerald-950/50 dark:text-emerald-400'
               : item.blocking
-                ? 'bg-destructive/10 text-destructive'
-                : 'bg-warning/15 text-warning'
+                ? 'bg-rose-50 text-[#D92D20] dark:bg-rose-950/50 dark:text-rose-400'
+                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400'
           )}
         >
-          <Icon className='size-4' />
+          <Icon className='size-4 stroke-[1.75]' />
         </span>
         <div className='grid min-w-0 gap-0.5'>
-          <span className='flex flex-wrap items-center gap-2 text-sm font-semibold'>
+          <span className='flex flex-wrap items-center gap-2 text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
             {NOC_DEPARTMENT_LABELS[item.department]}
             <Badge tone={done ? 'success' : 'warning'}>{done ? 'Cleared' : 'Pending'}</Badge>
           </span>
           {done ? (
-            <span className='text-xs text-muted-foreground'>
+            <span className='text-[12px] text-slate-500 dark:text-slate-400'>
               {item.cleared_by_name ?? 'Someone'}
               {item.cleared_at ? `, ${formatDateTime(item.cleared_at)}` : ''}
               {item.remarks ? ` · ${item.remarks}` : ''}
@@ -210,14 +222,14 @@ function NocRow({
             </span>
           ) : (
             <>
-              <span className='text-xs text-muted-foreground'>
+              <span className='text-[12px] text-slate-500 dark:text-slate-400'>
                 {NOC_DEPARTMENT_HINTS[item.department]}
               </span>
               {item.blocker && (
                 <span
                   className={cn(
-                    'text-xs font-medium',
-                    item.blocking ? 'text-destructive' : 'text-warning'
+                    'text-[12px] font-semibold',
+                    item.blocking ? 'text-[#D92D20] dark:text-rose-400' : 'text-amber-700 dark:text-amber-400'
                   )}
                 >
                   {item.blocker}
@@ -229,13 +241,25 @@ function NocRow({
       </div>
       {item.can_clear &&
         (done ? (
-          <Button variant='ghost' size='sm' loading={reopening} onClick={onReopen}>
-            <Undo2 />
+          <Button
+            variant='secondary'
+            size='sm'
+            loading={reopening}
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+            onClick={onReopen}
+          >
+            <RefreshCw className='size-3.5 stroke-[1.75] text-[#3C4440]' />
             Reopen
           </Button>
         ) : (
-          <Button variant='outline' size='sm' disabled={item.blocking} onClick={onClear}>
-            <CircleCheck />
+          <Button
+            variant='secondary'
+            size='sm'
+            disabled={item.blocking}
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium disabled:opacity-50'
+            onClick={onClear}
+          >
+            <CheckCircle2 className='size-3.5 stroke-[1.75] text-[#127D48]' />
             Clear
           </Button>
         ))}

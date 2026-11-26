@@ -264,7 +264,7 @@ export function StaffTab({
             )}
             {canManage && Boolean(data?.not_checked_in) && (
               <Button size='sm' variant='outline' onClick={() => setBulk('not_checked_in')}>
-                <CheckCheck />
+                <CheckCheck className='size-3.5' />
                 Mark everyone not checked in
               </Button>
             )}
