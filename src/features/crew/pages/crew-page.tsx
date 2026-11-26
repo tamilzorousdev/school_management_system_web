@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
-  BellRing,
-  CalendarClock,
-  CircleOff,
-  IdCard,
+  AlertCircle,
+  AlertTriangle,
+  Bell,
+  Clock,
+  Eye,
   Plus,
-  ShieldAlert,
   ShieldCheck,
-  ShieldQuestion,
   Smartphone,
-  UsersRound,
+  User,
+  Users,
 } from 'lucide-react'
 import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
@@ -74,7 +74,7 @@ export function CrewPage() {
       hint: data?.unassigned
         ? `${data.unassigned} crew not on a bus`
         : 'Every crew member has a bus',
-      icon: IdCard,
+      icon: User,
       tone: 'primary',
       active: search.role === 'driver',
       onClick: () => setSearch({ role: search.role === 'driver' ? undefined : 'driver' }),
@@ -84,7 +84,7 @@ export function CrewPage() {
       label: 'Attendants',
       value: data?.attendants ?? 0,
       hint: 'Bus attendants',
-      icon: UsersRound,
+      icon: Users,
       tone: 'info',
       active: search.role === 'attendant',
       onClick: () => setSearch({ role: search.role === 'attendant' ? undefined : 'attendant' }),
@@ -104,7 +104,7 @@ export function CrewPage() {
       label: 'Not approved',
       value: data?.pending ?? 0,
       hint: 'Waiting for checks or approval',
-      icon: ShieldQuestion,
+      icon: AlertCircle,
       tone: data?.pending ? 'warning' : 'success',
       active: search.duty_status === 'pending',
       onClick: () => toggleDuty('pending'),
@@ -114,7 +114,7 @@ export function CrewPage() {
       label: 'Blocked',
       value: data?.blocked ?? 0,
       hint: data?.blocked ? 'Cannot run a bus' : 'Nobody is blocked',
-      icon: ShieldAlert,
+      icon: AlertTriangle,
       tone: data?.blocked ? 'danger' : 'success',
       active: search.duty_status === 'blocked',
       onClick: () => toggleDuty('blocked'),
@@ -124,7 +124,7 @@ export function CrewPage() {
       label: 'Ending in 30 days',
       value: data?.due_soon ?? 0,
       hint: 'Licence, badge, medical or police',
-      icon: CalendarClock,
+      icon: Clock,
       tone: data?.due_soon ? 'warning' : 'success',
       active: search.expiry_state === 'due_soon',
       onClick: () =>
@@ -157,7 +157,7 @@ export function CrewPage() {
   const columns: Column<CrewListItem>[] = [
     {
       key: 'name',
-      header: 'Name',
+      header: 'NAME',
       sortKey: 'name',
       cell: (member) => (
         <div className='flex items-center gap-3'>
@@ -168,15 +168,17 @@ export function CrewPage() {
             subtitle={`Employee No: ${member.employee_no}`}
           />
           <div className='grid min-w-0'>
-            <span className='flex items-center gap-1.5 truncate font-bold'>
-              {member.name}
+            <span className='flex items-center gap-1.5 truncate'>
+              <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                {member.name}
+              </span>
               {member.status !== 'active' && (
-                <Badge tone={STAFF_STATUS[member.status].tone}>
+                <Badge tone={STAFF_STATUS[member.status].tone} className='text-[11px] font-medium'>
                   {STAFF_STATUS[member.status].label}
                 </Badge>
               )}
             </span>
-            <span className='truncate font-mono text-xs text-muted-foreground'>
+            <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {member.employee_no}
             </span>
           </div>
@@ -185,56 +187,69 @@ export function CrewPage() {
     },
     {
       key: 'role',
-      header: 'Role',
+      header: 'ROLE',
       cell: (member) => (
-        <Badge tone={ROLE_BADGE[member.role].tone}>{ROLE_BADGE[member.role].label}</Badge>
+        <Badge tone={ROLE_BADGE[member.role].tone} className='font-medium'>
+          {ROLE_BADGE[member.role].label}
+        </Badge>
       ),
     },
     {
       key: 'duty',
-      header: 'Duty',
+      header: 'DUTY',
       cell: (member) => (
-        <Badge tone={DUTY_STATUS[member.duty_status].tone} dot>
+        <Badge tone={DUTY_STATUS[member.duty_status].tone} dot className='font-medium'>
           {DUTY_STATUS[member.duty_status].label}
         </Badge>
       ),
     },
     {
       key: 'bus',
-      header: 'Bus',
+      header: 'BUS',
       cell: (member) =>
         member.vehicle ? (
-          <span className='grid'>
-            <span className='font-mono font-semibold'>{member.vehicle.name}</span>
+          <div className='grid min-w-0'>
+            <span className='font-mono text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {member.vehicle.name}
+            </span>
             {member.route && (
-              <span className='text-xs text-muted-foreground'>{member.route.name}</span>
+              <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                {member.route.name}
+              </span>
             )}
-          </span>
+          </div>
         ) : (
-          <span className='text-muted-foreground'>Not on a bus</span>
+          <span className='text-[12px] leading-[16px] text-slate-400 dark:text-slate-500'>
+            Not on a bus
+          </span>
         ),
     },
     {
       key: 'licence',
-      header: 'Licence',
+      header: 'LICENCE',
       sortKey: 'licence_expiry',
       cell: (member) => {
         const state = licence(member)
-        if (!state) return <span className='text-muted-foreground'>Not needed</span>
+        if (!state)
+          return (
+            <span className='text-[12px] leading-[16px] text-slate-400 dark:text-slate-500'>
+              Not needed
+            </span>
+          )
         return (
-          <span className='grid gap-1'>
-            <span className='font-mono text-xs'>
+          <div className='grid min-w-0 gap-1'>
+            <span className='font-mono text-[12px] leading-[16px] font-medium text-slate-700 dark:text-slate-300'>
               {member.licence_no ?? 'No number'}
               {member.licence_type ? ` · ${member.licence_type}` : ''}
             </span>
             <ExpiryBadge item={state} withKind={false} />
-          </span>
+          </div>
         )
       },
     },
     {
       key: 'compliance',
-      header: 'Other documents',
+      header: 'OTHER DOCUMENTS',
       hideBelow: 'lg',
       cell: (member) => (
         <ExpiryBadges items={member.expiries.filter((item) => item.kind !== 'licence')} />
@@ -242,13 +257,35 @@ export function CrewPage() {
     },
     {
       key: 'mobile',
-      header: 'Mobile',
+      header: 'MOBILE',
       hideBelow: 'xl',
       cell: (member) => (
-        <span className='flex items-center gap-1.5 text-sm'>
+        <span className='flex items-center gap-1.5 tabular text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
           +91 {member.mobile}
-          {member.on_app && <Smartphone className='size-3 text-success' />}
+          {member.on_app && <Smartphone className='size-3.5 text-emerald-600 dark:text-emerald-400' />}
         </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'ACTION',
+      align: 'right' as const,
+      cell: (member) => (
+        <div className='flex items-center justify-end gap-1'>
+          <Button
+            variant='outline'
+            size='icon-sm'
+            aria-label={`View crew member ${member.name}`}
+            title='View crew member'
+            className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+            onClick={(event) => {
+              event.stopPropagation()
+              openMember(member.id)
+            }}
+          >
+            <Eye className='size-4 stroke-[1.75]' />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -271,8 +308,13 @@ export function CrewPage() {
         description='Bus crew with their licence, badge, medical and police checks. Approve each person for duty once every document is verified and in date.'
         actions={
           canManage && (
-            <Button onClick={() => setAdding(true)}>
-              <Plus />
+            <Button
+              variant='primary'
+              size='md'
+              className='h-9 px-4 font-semibold'
+              onClick={() => setAdding(true)}
+            >
+              <Plus className='size-4 stroke-[1.75]' />
               Add driver or attendant
             </Button>
           )
@@ -335,8 +377,14 @@ export function CrewPage() {
             onChange={(value) => setSearch({ status: value as CrewSearch['status'] })}
           />
           {reminding && (
-            <Button variant='outline' onClick={sendReminders} loading={remindMany.isPending}>
-              <BellRing />
+            <Button
+              variant='secondary'
+              size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+              onClick={sendReminders}
+              loading={remindMany.isPending}
+            >
+              <Bell className='size-4 stroke-[1.75]' />
               Remind these crew
             </Button>
           )}
@@ -353,14 +401,19 @@ export function CrewPage() {
           sort={{ sort: search.sort, order: search.order ?? 'asc' }}
           onSortChange={(next) => setSearch(next as Partial<CrewSearch>)}
           empty={{
-            icon: filtered ? CircleOff : IdCard,
+            icon: filtered ? AlertCircle : Users,
             title: filtered ? 'No crew match these filters' : 'No drivers or attendants yet',
             description: filtered
               ? 'Try another name or number, or clear the filters.'
               : 'Add bus drivers and attendants, upload their documents and approve them for duty.',
             action: !filtered && canManage && (
-              <Button onClick={() => setAdding(true)}>
-                <Plus />
+              <Button
+                variant='primary'
+                size='md'
+                className='h-9 px-4 font-semibold'
+                onClick={() => setAdding(true)}
+              >
+                <Plus className='size-4 stroke-[1.75]' />
                 Add driver or attendant
               </Button>
             ),
@@ -378,22 +431,26 @@ export function CrewPage() {
                 <div className='grid min-w-0 flex-1 gap-1.5'>
                   <div className='flex items-start justify-between gap-2'>
                     <span className='grid min-w-0'>
-                      <span className='truncate font-bold'>{member.name}</span>
-                      <span className='truncate text-xs text-muted-foreground'>
+                      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                        {member.name}
+                      </span>
+                      <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                         {ROLE_BADGE[member.role].label}
                         {member.vehicle ? ` · ${member.vehicle.name}` : ' · Not on a bus'}
                       </span>
                     </span>
-                    <Badge tone={DUTY_STATUS[member.duty_status].tone} dot>
+                    <Badge tone={DUTY_STATUS[member.duty_status].tone} dot className='font-medium'>
                       {DUTY_STATUS[member.duty_status].label}
                     </Badge>
                   </div>
-                  <span className='flex items-center gap-1.5 font-mono text-xs text-muted-foreground'>
+                  <span className='flex items-center gap-1.5 font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {member.employee_no}
-                    {member.on_app && <Smartphone className='size-3 text-success' />}
+                    {member.on_app && <Smartphone className='size-3 text-emerald-600 dark:text-emerald-400' />}
                   </span>
                   {state && member.licence_no && (
-                    <span className='font-mono text-xs'>{member.licence_no}</span>
+                    <span className='font-mono text-[12px] leading-[16px] text-slate-600 dark:text-slate-300'>
+                      {member.licence_no}
+                    </span>
                   )}
                   <ExpiryBadges items={member.expiries} />
                 </div>

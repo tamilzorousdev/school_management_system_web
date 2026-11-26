@@ -109,13 +109,20 @@ export function ReportCard({ studentId }: { studentId: number }) {
             variant='outline'
             disabled={empty}
             loading={busy === 'download'}
+            className='h-9 w-[134px] px-4 gap-2 font-medium border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:bg-card dark:text-foreground dark:border-border'
             onClick={() => run('download')}
           >
-            <Download />
+            <Download className='size-4' />
             Download PDF
           </Button>
-          <Button disabled={empty} loading={busy === 'print'} onClick={() => run('print')}>
-            <Printer />
+          <Button
+            variant='primary'
+            disabled={empty}
+            loading={busy === 'print'}
+            className='h-9 w-[112px] px-4 gap-2 font-medium'
+            onClick={() => run('print')}
+          >
+            <Printer className='size-4' />
             Print
           </Button>
         </div>

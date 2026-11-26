@@ -6,7 +6,7 @@ import {
   ImageIcon,
   Paperclip,
   Plus,
-  Trash2,
+  Trash,
   Upload,
   XCircle,
 } from 'lucide-react'
@@ -118,7 +118,7 @@ export function DocumentList({
         </p>
         {canManage && (
           <Button size='sm' onClick={() => setAdding(true)}>
-            <Plus />
+            <Plus className='size-4 stroke-[1.75]' />
             Add document
           </Button>
         )}
@@ -194,32 +194,41 @@ export function DocumentList({
                   </span>
                 </a>
                 {canManage && (
-                  <div className='flex shrink-0 flex-wrap gap-1.5 sm:justify-end'>
+                  <div className='flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end'>
                     {document.status !== 'verified' && (
                       <Button
                         size='sm'
-                        variant='outline'
+                        variant='secondary'
+                        className='h-8 px-3 gap-1.5 border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                         loading={busy === document.id}
                         onClick={() => void verify(document)}
                       >
-                        <CheckCircle2 className='text-success' />
+                        <CheckCircle2 className='size-3.5 stroke-[1.75] text-success' />
                         Verify
                       </Button>
                     )}
                     {document.status !== 'rejected' && (
-                      <Button size='sm' variant='outline' onClick={() => setRejecting(document)}>
-                        <XCircle className='text-destructive' />
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        aria-label={`Reject ${document.title}`}
+                        title='Reject'
+                        className='h-8 px-3 gap-1.5 border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50 font-medium'
+                        onClick={() => setRejecting(document)}
+                      >
+                        <XCircle className='size-4 stroke-[1.75]' />
                         Reject
                       </Button>
                     )}
                     <Button
                       size='icon-sm'
-                      variant='ghost'
+                      variant='outline'
                       aria-label={`Delete ${document.title}`}
-                      className='text-destructive hover:bg-destructive/10'
+                      title='Delete'
+                      className='size-8 border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                       onClick={() => setRemoving(document)}
                     >
-                      <Trash2 />
+                      <Trash className='size-4 stroke-[1.75]' />
                     </Button>
                   </div>
                 )}

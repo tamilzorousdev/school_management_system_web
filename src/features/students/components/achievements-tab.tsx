@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { EyeOff, FileText, Medal, Paperclip, Pencil, Plus, Trash2, Trophy } from 'lucide-react'
+import { EyeOff, FileText, Medal, Paperclip, PenLine, Plus, Trash, Trophy } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -66,8 +66,8 @@ export function AchievementsTab({
           notification.
         </p>
         {canManage && (
-          <Button size='sm' onClick={() => setEditing('new')}>
-            <Plus />
+          <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+            <Plus className='size-4 stroke-[1.75]' />
             Add achievement
           </Button>
         )}
@@ -153,7 +153,7 @@ export function AchievementsTab({
                           aria-label={`Edit ${item.title}`}
                           onClick={() => setEditing(item)}
                         >
-                          <Pencil />
+                          <PenLine className='size-4 stroke-[1.75]' />
                         </Button>
                         <Button
                           size='icon-sm'
@@ -162,7 +162,7 @@ export function AchievementsTab({
                           className='text-destructive hover:bg-destructive/10'
                           onClick={() => setRemoving(item)}
                         >
-                          <Trash2 />
+                          <Trash className='size-4 stroke-[1.75]' />
                         </Button>
                       </>
                     )}

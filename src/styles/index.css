@@ -33,7 +33,30 @@
   --ring: #159053;
   --radius: 0.625rem;
 
-  --sidebar: #0e1b15;
+  /* Figma Design Tokens */
+  --bg-sidebar: #083419;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --bg-brand: #127d48;
+  --bg-brand-subtle: #eaf7f0;
+  --bg-selected: #eaf7f0;
+  --border-default: #dfe4e1;
+  --border-strong: #c6cec9;
+  --border-subtle: #edf0ee;
+  --text-primary: #171b19;
+
+  /* Icon Semantic Colors */
+  --icon-primary: #344054;
+  --icon-secondary: #667085;
+  --icon-brand: #127d48;
+  --icon-success: #127d48;
+  --icon-warning: #f79009;
+  --icon-error: #d92d20;
+  --icon-info: #1570ef;
+  --icon-accent: #7f56d9;
+  --icon-disabled: #d0d5dd;
+
+  --sidebar: #083419;
   --sidebar-foreground: #c9d6cf;
   --sidebar-muted: #7f938a;
   --sidebar-accent: #17302a;
@@ -65,6 +88,10 @@
   --border: #22312a;
   --input: #2a3a33;
   --ring: #24b06a;
+  --border-strong: #2f4339;
+  --border-subtle: #1c2c25;
+  --bg-selected: #0b2e1f;
+  --text-primary: #e3ece7;
 
   --sidebar: #070d0a;
   --sidebar-foreground: #c2d0c9;
@@ -105,6 +132,30 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-border: var(--sidebar-border);
+
+  --color-bg-sidebar: var(--bg-sidebar);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-raised: var(--bg-surface-raised);
+  --color-bg-brand: var(--bg-brand);
+  --color-bg-brand-subtle: var(--bg-brand-subtle);
+  --color-bg-selected: var(--bg-selected);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+
+  --color-icon-primary: var(--icon-primary);
+  --color-icon-secondary: var(--icon-secondary);
+  --color-icon-brand: var(--icon-brand);
+  --color-icon-success: var(--icon-success);
+  --color-icon-warning: var(--icon-warning);
+  --color-icon-error: var(--icon-error);
+  --color-icon-info: var(--icon-info);
+  --color-icon-accent: var(--icon-accent);
+  --color-icon-disabled: var(--icon-disabled);
+
+  --shadow-elevation-4: 0 24px 48px -12px rgba(16, 23, 20, 0.18);
+  --shadow-modal: 0 24px 48px -12px rgba(16, 23, 20, 0.18);
 
   --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
   --font-table: 'Plus Jakarta Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
@@ -154,6 +205,11 @@
 }
 
 @layer utilities {
+  .shadow-elevation-4,
+  .shadow-modal {
+    box-shadow: 0 24px 48px -12px rgba(16, 23, 20, 0.18);
+  }
+
   .tabular {
     font-variant-numeric: tabular-nums;
   }

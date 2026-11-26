@@ -4,6 +4,7 @@ import {
   ArrowUpCircle,
   ChevronDown,
   CircleOff,
+  Eye,
   FileSpreadsheet,
   GraduationCap,
   IdCard,
@@ -20,7 +21,6 @@ import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
-import { Kbd } from '@/components/shortcuts/kbd'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -83,10 +83,14 @@ export function StudentsPage() {
   const printCards = async () => {
     setPrinting(true)
     try {
-      await openFile(studentFiles.idCards, {
-        class_id: search.section_id ? undefined : search.class_id,
-        section_id: search.section_id,
-      })
+      if (search.section_id || search.class_id) {
+        await openFile(studentFiles.idCards, {
+          class_id: search.section_id ? undefined : search.class_id,
+          section_id: search.section_id,
+        })
+      } else {
+        alerts.error('Choose a class or a section to print')
+      }
     } catch (error) {
       alerts.error(toApiError(error).message)
     } finally {
@@ -101,7 +105,6 @@ export function StudentsPage() {
       [key]: search[key] ? undefined : true,
     })
 
-  useShortcut('students.create', () => setAdding(true), { enabled: canManage })
   useShortcut('app.refresh', () => {
     void students.refetch()
     void insights.refetch()
@@ -155,7 +158,7 @@ export function StudentsPage() {
   const columns: Column<StudentListItem>[] = [
     {
       key: 'name',
-      header: 'Student',
+      header: 'STUDENT',
       sortKey: 'name',
       cell: (student) => (
         <div className='flex items-center gap-3'>
@@ -166,8 +169,10 @@ export function StudentsPage() {
             subtitle={student.admission_no ? `Admission No: ${student.admission_no}` : undefined}
           />
           <div className='grid min-w-0'>
-            <span className='truncate font-bold'>{student.full_name}</span>
-            <span className='truncate font-mono text-xs text-muted-foreground'>
+            <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {student.full_name}
+            </span>
+            <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400 font-mono'>
               {student.admission_no}
               {student.emis_number ? ` · EMIS ${student.emis_number}` : ''}
             </span>
@@ -177,58 +182,68 @@ export function StudentsPage() {
     },
     {
       key: 'class',
-      header: 'Class',
+      header: 'CLASS',
       sortKey: 'class',
       cell: (student) =>
         student.class ? (
           <div className='grid'>
-            <span className='font-semibold'>
+            <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
               {classSection(student.class.name, student.section?.name)}
             </span>
-            <span className='text-xs text-muted-foreground'>
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {student.roll_no ? `Roll ${student.roll_no}` : 'No roll number'}
             </span>
           </div>
         ) : (
-          <Badge tone='warning'>Not placed</Badge>
+          <span className='inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[11.5px] font-semibold text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'>
+            Not placed
+          </span>
         ),
     },
     {
       key: 'roll',
-      header: 'Roll',
+      header: 'ROLL',
       sortKey: 'roll_no',
       hideBelow: 'xl',
-      cell: (student) => <span className='tabular font-semibold'>{student.roll_no ?? '—'}</span>,
+      cell: (student) => (
+        <span className='tabular text-[13px] leading-[18px] font-semibold text-slate-700 dark:text-slate-300'>
+          {student.roll_no ?? '—'}
+        </span>
+      ),
     },
     {
       key: 'parent',
-      header: 'Parent',
+      header: 'PARENT',
       cell: (student) => {
         const main = student.guardians[0]
         return main ? (
           <div className='grid'>
-            <span className='font-medium'>
+            <span className='text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
               {main.name}{' '}
-              <span className='text-xs text-muted-foreground'>
+              <span className='text-[11.5px] text-slate-400 dark:text-slate-500'>
                 ({RELATION_LABELS[main.relation]})
               </span>
             </span>
-            <span className='tabular text-xs text-muted-foreground'>+91 {main.mobile}</span>
+            <span className='tabular text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              +91 {main.mobile}
+            </span>
           </div>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         )
       },
     },
     {
       key: 'years',
-      header: 'In school',
+      header: 'IN SCHOOL',
       sortKey: 'admission_date',
       hideBelow: 'lg',
       cell: (student) => (
         <div className='grid'>
-          <span className='font-medium'>{yearsLabel(student.years_in_school)}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+            {yearsLabel(student.years_in_school)}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {GENDER_LABELS[student.gender]} · {student.age} yrs
           </span>
         </div>
@@ -236,14 +251,36 @@ export function StudentsPage() {
     },
     {
       key: 'siblings',
-      header: 'Siblings',
+      header: 'SIBLINGS',
       hideBelow: 'lg',
       cell: (student) =>
         student.sibling_count ? (
-          <Badge tone='info'>{student.sibling_count}</Badge>
+          <span className='inline-flex items-center rounded-full bg-[#EAF7F0] px-2.5 py-0.5 text-[11.5px] font-semibold text-[#127D48] dark:bg-emerald-950/60 dark:text-emerald-300'>
+            {student.sibling_count}
+          </span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
+    },
+    {
+      key: 'action',
+      header: 'ACTION',
+      align: 'right' as const,
+      cell: (student: StudentListItem) => (
+        <Button
+          variant='outline'
+          size='icon-sm'
+          aria-label={`View ${student.full_name}`}
+          title='View profile'
+          className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+          onClick={(event) => {
+            event.stopPropagation()
+            openStudent(student.id)
+          }}
+        >
+          <Eye className='size-4 stroke-[1.75]' />
+        </Button>
+      ),
     },
   ]
 
@@ -267,8 +304,13 @@ export function StudentsPage() {
         actions={
           <>
             {search.class_id && (
-              <Button variant='outline' loading={printing} onClick={() => void printCards()}>
-                <IdCard />
+              <Button
+                variant='secondary'
+                size='sm'
+                loading={printing}
+                onClick={() => void printCards()}
+              >
+                <IdCard className='size-4' />
                 Print ID cards
               </Button>
             )}
@@ -276,9 +318,9 @@ export function StudentsPage() {
               <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant='outline'>
+                    <Button variant='secondary' size='sm'>
                       Bulk actions
-                      <ChevronDown />
+                      <ChevronDown className='size-4' />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
@@ -293,15 +335,14 @@ export function StudentsPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
                 {selectedSection && (
-                  <Button variant='outline' onClick={() => setNumbering(true)}>
-                    <ListOrdered />
+                  <Button variant='secondary' size='sm' onClick={() => setNumbering(true)}>
+                    <ListOrdered className='size-4' />
                     Number {classSection(selectedSection.class_name, selectedSection.name)}
                   </Button>
                 )}
-                <Button onClick={() => setAdding(true)}>
-                  <Plus />
+                <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
+                  <Plus className='size-4' />
                   Add student
-                  <Kbd id='students.create' inverted />
                 </Button>
               </>
             )}
@@ -377,14 +418,14 @@ export function StudentsPage() {
               ? 'Try another name, class or parent mobile, or clear the filters.'
               : 'Enrol students from Admissions, or add existing students here.',
             action: !filtered && canManage && (
-              <Button onClick={() => setAdding(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
+                <Plus className='size-4' />
                 Add student
               </Button>
             ),
           }}
           card={(student) => (
-            <div className='flex items-start gap-3'>
+            <div className='flex items-start gap-3 p-2.5'>
               <Avatar
                 name={student.full_name}
                 src={student.photo_url}
@@ -415,6 +456,19 @@ export function StudentsPage() {
                   </span>
                 )}
               </div>
+              <Button
+                variant='outline'
+                size='icon-sm'
+                aria-label={`View ${student.full_name}`}
+                title='View profile'
+                className='shrink-0 border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                onClick={(event) => {
+                  event.stopPropagation()
+                  openStudent(student.id)
+                }}
+              >
+                <Eye className='size-4 stroke-[1.75]' />
+              </Button>
             </div>
           )}
           pagination={{

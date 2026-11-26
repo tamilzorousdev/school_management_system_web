@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowRight, Building2, CircleOff, Plus } from 'lucide-react'
+import { Building2, CircleOff, Eye, PenLine, Plus } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { DataTable, type Column } from '@/components/common/data-table'
@@ -32,7 +32,7 @@ export function SchoolsPage() {
   const selected = useSelectedSchool()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<School | 'new' | null>(null)
   const schools = useSchools({ page, limit: LIMIT, search: search || undefined })
   const rows = schools.data?.items ?? []
 
@@ -46,15 +46,17 @@ export function SchoolsPage() {
   const columns: Column<School>[] = [
     {
       key: 'name',
-      header: 'School',
+      header: 'SCHOOL',
       cell: (school) => (
         <div className='flex items-center gap-3'>
-          <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 font-mono text-[11px] font-bold text-primary'>
+          <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-[#EAF7F0] font-mono text-[11.5px] font-bold text-[#127D48] dark:bg-emerald-950/60 dark:text-emerald-300'>
             {school.code.slice(0, 4)}
           </span>
           <div className='grid min-w-0'>
-            <span className='truncate font-bold'>{school.name}</span>
-            <span className='text-xs text-muted-foreground'>
+            <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {school.name}
+            </span>
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {[school.city, school.board].filter(Boolean).join(' · ') || '—'}
             </span>
           </div>
@@ -63,20 +65,28 @@ export function SchoolsPage() {
     },
     {
       key: 'students',
-      header: 'Students',
-      cell: (school) => <span className='tabular font-semibold'>{school.student_count}</span>,
+      header: 'STUDENTS',
+      cell: (school) => (
+        <span className='tabular text-[13px] leading-[18px] font-semibold text-slate-700 dark:text-slate-300'>
+          {school.student_count}
+        </span>
+      ),
     },
     {
       key: 'users',
-      header: 'Users',
+      header: 'USERS',
       hideBelow: 'lg',
-      cell: (school) => <span className='tabular'>{school.user_count}</span>,
+      cell: (school) => (
+        <span className='tabular text-[13px] leading-[18px] text-slate-600 dark:text-slate-400'>
+          {school.user_count}
+        </span>
+      ),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (school) => (
-        <span className='flex flex-wrap gap-1'>
+        <span className='flex flex-wrap items-center gap-1.5'>
           <Badge tone={school.is_active ? 'success' : 'neutral'} dot>
             {school.is_active ? 'Active' : 'Switched off'}
           </Badge>
@@ -85,21 +95,38 @@ export function SchoolsPage() {
       ),
     },
     {
-      key: 'open',
-      header: <span className='sr-only'>Open</span>,
+      key: 'action',
+      header: 'ACTION',
       align: 'right',
       cell: (school) => (
-        <Button
-          size='sm'
-          variant='outline'
-          onClick={(event) => {
-            event.stopPropagation()
-            workOn(school)
-          }}
-        >
-          Open
-          <ArrowRight />
-        </Button>
+        <div className='flex items-center justify-end gap-1.5'>
+          <Button
+            size='icon-sm'
+            variant='outline'
+            aria-label={`Edit ${school.name}`}
+            title='Edit school'
+            className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+            onClick={(event) => {
+              event.stopPropagation()
+              setEditing(school)
+            }}
+          >
+            <PenLine className='size-4 stroke-[1.75]' />
+          </Button>
+          <Button
+            size='icon-sm'
+            variant='outline'
+            aria-label={`Open ${school.name}`}
+            title='Open school'
+            className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+            onClick={(event) => {
+              event.stopPropagation()
+              workOn(school)
+            }}
+          >
+            <Eye className='size-4 stroke-[1.75]' />
+          </Button>
+        </div>
       ),
     },
   ]
@@ -111,13 +138,13 @@ export function SchoolsPage() {
         title='Schools'
         description='Every school on the platform. Opening a school switches the whole console to it.'
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus />
+          <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+            <Plus className='size-4 stroke-[1.75]' />
             Add school
           </Button>
         }
       />
-      <Card className='overflow-hidden'>
+      <Card className='overflow-hidden border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900'>
         <ListToolbar summary={schools.data ? `${schools.data.total} schools` : ''}>
           <SearchBox
             value={search}
@@ -143,18 +170,59 @@ export function SchoolsPage() {
             description: search
               ? 'Try another name or code.'
               : 'Add the first school and its admin.',
+            action: !search && (
+              <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+                <Plus className='size-4 stroke-[1.75]' />
+                Add school
+              </Button>
+            ),
           }}
           card={(school) => (
-            <div className='flex items-center justify-between gap-3'>
-              <div className='grid'>
-                <span className='font-bold'>{school.name}</span>
-                <span className='text-xs text-muted-foreground'>
-                  {school.code} · {school.student_count} students
+            <div className='flex items-center justify-between gap-3 p-3'>
+              <div className='flex items-center gap-3 min-w-0'>
+                <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-[#EAF7F0] font-mono text-[11.5px] font-bold text-[#127D48] dark:bg-emerald-950/60 dark:text-emerald-300'>
+                  {school.code.slice(0, 4)}
                 </span>
+                <div className='grid min-w-0'>
+                  <span className='truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
+                    {school.name}
+                  </span>
+                  <span className='text-[12px] text-slate-500 dark:text-slate-400'>
+                    {school.code} · {school.student_count} students
+                  </span>
+                </div>
               </div>
-              <Badge tone={school.is_active ? 'success' : 'neutral'} dot>
-                {school.is_active ? 'Active' : 'Off'}
-              </Badge>
+              <div className='flex items-center gap-1.5 shrink-0'>
+                <Badge tone={school.is_active ? 'success' : 'neutral'} dot>
+                  {school.is_active ? 'Active' : 'Off'}
+                </Badge>
+                <Button
+                  size='icon-sm'
+                  variant='outline'
+                  aria-label={`Edit ${school.name}`}
+                  title='Edit school'
+                  className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setEditing(school)
+                  }}
+                >
+                  <PenLine className='size-4 stroke-[1.75]' />
+                </Button>
+                <Button
+                  size='icon-sm'
+                  variant='outline'
+                  aria-label={`Open ${school.name}`}
+                  title='Open school'
+                  className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    workOn(school)
+                  }}
+                >
+                  <Eye className='size-4 stroke-[1.75]' />
+                </Button>
+              </div>
             </div>
           )}
           pagination={{
@@ -166,23 +234,30 @@ export function SchoolsPage() {
           }}
         />
       </Card>
-      {creating && <SchoolModal onClose={() => setCreating(false)} />}
+      {editing && (
+        <SchoolModal
+          school={editing === 'new' ? undefined : editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </Page>
   )
 }
 
-function SchoolModal({ onClose }: { onClose: () => void }) {
+function SchoolModal({ school, onClose }: { school?: School; onClose: () => void }) {
   const save = useSaveSchool()
+  const isEdit = Boolean(school)
   const [draft, setDraft] = useState({
-    name: '',
-    code: '',
-    board: 'CBSE',
-    city: '',
+    name: school?.name ?? '',
+    code: school?.code ?? '',
+    board: school?.board ?? 'CBSE',
+    city: school?.city ?? '',
+    is_active: school?.is_active ?? true,
     admin_name: '',
     admin_mobile: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const set = (field: keyof typeof draft, value: string) => {
+  const set = (field: keyof typeof draft, value: any) => {
     setDraft((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: '' }))
   }
@@ -191,10 +266,14 @@ function SchoolModal({ onClose }: { onClose: () => void }) {
     <AppModal
       open
       onOpenChange={(open) => !open && onClose()}
-      title='Add school'
-      description='The admin gets a sign-in invite by SMS and can set up classes from there.'
+      title={isEdit ? `Edit ${school?.name}` : 'Add school'}
+      description={
+        isEdit
+          ? 'Update the school details or toggle its active status.'
+          : 'The admin gets a sign-in invite by SMS and can set up classes from there.'
+      }
       formId='school-form'
-      submitText='Create school'
+      submitText={isEdit ? 'Save changes' : 'Create school'}
       loading={save.isPending}
       size='lg'
     >
@@ -208,24 +287,25 @@ function SchoolModal({ onClose }: { onClose: () => void }) {
           if (draft.name.trim().length < 3) next.name = 'Enter the school name'
           if (!/^[A-Za-z0-9]{2,20}$/.test(draft.code.trim()))
             next.code = '2 to 20 letters or digits'
-          if (draft.admin_name && !/^[6-9]\d{9}$/.test(draft.admin_mobile))
+          if (!isEdit && draft.admin_name && !/^[6-9]\d{9}$/.test(draft.admin_mobile))
             next.admin_mobile = 'Enter a valid 10-digit mobile number'
-          if (draft.admin_mobile && draft.admin_name.trim().length < 2)
+          if (!isEdit && draft.admin_mobile && draft.admin_name.trim().length < 2)
             next.admin_name = 'Enter the admin name'
           setErrors(next)
           if (Object.keys(next).length) return
-          const input: SchoolInput = {
+          const input: SchoolInput & { is_active?: boolean } = {
             name: draft.name.trim(),
             code: draft.code.trim().toUpperCase(),
             board: draft.board as SchoolInput['board'],
             city: draft.city.trim() || null,
-            ...(draft.admin_name
+            ...(isEdit ? { is_active: draft.is_active } : {}),
+            ...(!isEdit && draft.admin_name
               ? { admin_name: draft.admin_name.trim(), admin_mobile: draft.admin_mobile }
               : {}),
           }
           try {
-            const school = await save.mutateAsync({ input })
-            alerts.success(`${school.name} created`)
+            const saved = await save.mutateAsync({ id: school?.id, input })
+            alerts.success(`${saved.name} ${isEdit ? 'updated' : 'created'}`)
             onClose()
           } catch (error) {
             const fields = fieldErrorsOf(error)
@@ -284,27 +364,49 @@ function SchoolModal({ onClose }: { onClose: () => void }) {
             onChange={(event) => set('city', event.target.value)}
           />
         </FormField>
-        <div />
-        <FormField id='admin-name' label='First admin name' error={errors.admin_name}>
-          <Input
-            id='admin-name'
-            value={draft.admin_name}
-            onChange={(event) => set('admin_name', event.target.value)}
-          />
-        </FormField>
-        <FormField id='admin-mobile' label='First admin mobile' error={errors.admin_mobile}>
-          <Input
-            id='admin-mobile'
-            type='tel'
-            inputMode='numeric'
-            maxLength={10}
-            className='tabular'
-            value={draft.admin_mobile}
-            onChange={(event) =>
-              set('admin_mobile', event.target.value.replace(/\D/g, '').slice(-10))
-            }
-          />
-        </FormField>
+        {isEdit ? (
+          <FormField id='school-status' label='Status'>
+            <Combobox
+              id='school-status'
+              label='Status'
+              value={draft.is_active ? 'active' : 'inactive'}
+              placeholder='Select status'
+              options={[
+                { value: 'active', label: 'Active (enabled)' },
+                { value: 'inactive', label: 'Switched off (disabled)' },
+              ]}
+              onChange={(value) => set('is_active', value === 'active')}
+              highlightSelected={false}
+              className='sm:w-full'
+            />
+          </FormField>
+        ) : (
+          <div />
+        )}
+        {!isEdit && (
+          <>
+            <FormField id='admin-name' label='First admin name' error={errors.admin_name}>
+              <Input
+                id='admin-name'
+                value={draft.admin_name}
+                onChange={(event) => set('admin_name', event.target.value)}
+              />
+            </FormField>
+            <FormField id='admin-mobile' label='First admin mobile' error={errors.admin_mobile}>
+              <Input
+                id='admin-mobile'
+                type='tel'
+                inputMode='numeric'
+                maxLength={10}
+                className='tabular'
+                value={draft.admin_mobile}
+                onChange={(event) =>
+                  set('admin_mobile', event.target.value.replace(/\D/g, '').slice(-10))
+                }
+              />
+            </FormField>
+          </>
+        )}
       </form>
     </AppModal>
   )

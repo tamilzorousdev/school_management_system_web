@@ -91,7 +91,7 @@ export interface NavItem {
   label: string
   description: string
   icon: LucideIcon
-  shortcut: ShortcutId
+  shortcut?: ShortcutId
   permission?: string
 }
 
@@ -205,7 +205,6 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Attendance',
         description: 'Daily attendance, staff check-ins and leave requests',
         icon: CalendarCheck,
-        shortcut: 'nav.attendance',
         permission: 'attendance.view',
       },
       {

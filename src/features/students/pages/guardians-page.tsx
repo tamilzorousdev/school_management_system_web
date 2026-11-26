@@ -1,5 +1,5 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { CircleOff, HeartHandshake, Languages, Smartphone, UsersRound } from 'lucide-react'
+import { CircleOff, Eye, HeartHandshake, Languages, Smartphone, UsersRound } from 'lucide-react'
 import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
@@ -7,6 +7,7 @@ import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-t
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { can, useMe } from '@/features/auth/api'
 import { useNow } from '@/hooks/use-now'
@@ -86,21 +87,23 @@ export function GuardiansPage() {
   const columns: Column<GuardianListItem>[] = [
     {
       key: 'name',
-      header: 'Parent',
+      header: 'PARENT',
       sortKey: 'name',
       cell: (guardian) => (
         <div className='flex items-center gap-3'>
           <Avatar name={guardian.name} />
           <div className='grid min-w-0'>
             <span className='flex items-center gap-1.5'>
-              <span className='truncate font-bold'>{guardian.name}</span>
+              <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                {guardian.name}
+              </span>
               {guardian.language === 'ta' && (
                 <span className='shrink-0 rounded border border-warning/30 bg-warning/10 px-1 text-[10px] leading-4 font-bold text-warning'>
                   தமிழ்
                 </span>
               )}
             </span>
-            <span className='truncate text-xs text-muted-foreground'>
+            <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
               {[guardian.occupation, guardian.qualification].filter(Boolean).join(' · ') ||
                 'No occupation recorded'}
             </span>
@@ -110,12 +113,16 @@ export function GuardiansPage() {
     },
     {
       key: 'mobile',
-      header: 'Mobile',
-      cell: (guardian) => <span className='tabular font-medium'>+91 {guardian.mobile}</span>,
+      header: 'MOBILE',
+      cell: (guardian) => (
+        <span className='tabular text-[13px] leading-[18px] font-medium text-slate-700 dark:text-slate-300'>
+          +91 {guardian.mobile}
+        </span>
+      ),
     },
     {
       key: 'children',
-      header: 'Children',
+      header: 'CHILDREN',
       cell: (guardian) => (
         <span className='flex flex-wrap gap-1'>
           {guardian.children.map((child) => (
@@ -128,7 +135,7 @@ export function GuardiansPage() {
     },
     {
       key: 'app',
-      header: 'App',
+      header: 'APP',
       sortKey: 'last_login_at',
       hideBelow: 'lg',
       cell: (guardian) =>
@@ -141,6 +148,26 @@ export function GuardiansPage() {
             Not yet
           </Badge>
         ),
+    },
+    {
+      key: 'action',
+      header: 'ACTION',
+      align: 'right' as const,
+      cell: (guardian: GuardianListItem) => (
+        <Button
+          variant='outline'
+          size='icon-sm'
+          aria-label={`View ${guardian.name}`}
+          title='View parent details'
+          className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+          onClick={(event) => {
+            event.stopPropagation()
+            openParent(guardian.id)
+          }}
+        >
+          <Eye className='size-4 stroke-[1.75]' />
+        </Button>
+      ),
     },
   ]
 

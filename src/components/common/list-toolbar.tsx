@@ -12,9 +12,18 @@ interface SearchBoxProps {
   onChange: (value: string) => void
   placeholder: string
   label: string
+  compact?: boolean
+  showShortcut?: boolean
 }
 
-export function SearchBox({ value, onChange, placeholder, label }: SearchBoxProps) {
+export function SearchBox({
+  value,
+  onChange,
+  placeholder,
+  label,
+  compact = false,
+  showShortcut = true,
+}: SearchBoxProps) {
   const ref = useRef<HTMLInputElement>(null)
   const [text, setText] = useState(value)
   const [syncedValue, setSyncedValue] = useState(value)
@@ -34,11 +43,11 @@ export function SearchBox({ value, onChange, placeholder, label }: SearchBoxProp
     if (debounced !== latest.current.value) latest.current.onChange(debounced)
   }, [debounced])
 
-  useShortcut('app.search', () => ref.current?.focus())
+  useShortcut('app.search', () => ref.current?.focus(), { enabled: showShortcut })
 
   return (
-    <div className='relative w-full sm:max-w-xs'>
-      <Search className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
+    <div className={compact ? 'relative w-full sm:w-80' : 'relative w-full sm:max-w-xs'}>
+      <Search className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground stroke-[1.75]' />
       <Input
         ref={ref}
         type='search'
@@ -52,7 +61,7 @@ export function SearchBox({ value, onChange, placeholder, label }: SearchBoxProp
         }}
         placeholder={placeholder}
         aria-label={label}
-        className='pr-10 pl-9 [&::-webkit-search-cancel-button]:hidden'
+        className={`pr-10 pl-9 [&::-webkit-search-cancel-button]:hidden${compact ? 'h-8' : ''}`}
       />
       {text ? (
         <button
@@ -63,9 +72,9 @@ export function SearchBox({ value, onChange, placeholder, label }: SearchBoxProp
         >
           <X className='size-3.5' />
         </button>
-      ) : (
+      ) : showShortcut ? (
         <Kbd id='app.search' className='absolute top-1/2 right-2.5 -translate-y-1/2' />
-      )}
+      ) : null}
     </div>
   )
 }

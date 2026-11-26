@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Camera, Plus, Trash2 } from 'lucide-react'
+import { Camera, Plus, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
@@ -18,7 +18,7 @@ import {
   type StudentDetail,
   type StudentInput,
 } from '../api'
-import { BLOOD_GROUPS, GENDER_LABELS, HOUSES, toOptions } from '../labels'
+import { BLOOD_GROUPS, GENDER_LABELS, HOUSES, RELATION_LABELS, toOptions } from '../labels'
 import { emptyGuardian, type GuardianDraft } from '../guardian-draft'
 import { GuardianFields } from './guardian-fields'
 
@@ -103,6 +103,7 @@ export function StudentFormModal({
       description='For students who are already admitted. New applicants go through Admissions.'
       formId={FORM_ID}
       submitText='Add student'
+      showSubmitShortcut={false}
       size='lg'
       loading={create.isPending}
     >
@@ -166,6 +167,10 @@ function StudentForm({
     if (new Set(mobiles).size !== mobiles.length) {
       next.guardians = 'Each contact must have a different mobile number'
     }
+    const alertGuardians = guardians.filter((g) => g.receives_alerts)
+    if (alertGuardians.length > 1) {
+      next.guardians = 'Only one contact can have Parent app login and alerts active'
+    }
 
     guardians.forEach((guardian, index) => {
       if (guardian.name.trim().length < 2) next[`guardians.${index}.name`] = 'Enter the full name'
@@ -212,8 +217,8 @@ function StudentForm({
           email: guardian.email || null,
           occupation: guardian.occupation || null,
           qualification: guardian.qualification || null,
-          can_pickup: guardian.can_pickup ?? true,
-          receives_alerts: guardian.receives_alerts ?? true,
+          can_pickup: Boolean(guardian.can_pickup),
+          receives_alerts: Boolean(guardian.receives_alerts),
           is_primary: index === primary,
         })),
       })
@@ -326,7 +331,7 @@ function StudentForm({
                   }
                   className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
                 >
-                  <Trash2 className='size-3.5' />
+                  <Trash className='size-3.5 stroke-[1.75]' />
                   Remove
                 </button>
               )}
@@ -583,7 +588,7 @@ function StudentForm({
                 type='button'
                 className={`rounded-md px-2.5 py-0.5 text-xs font-semibold transition-all ${
                   caregiverType === 'parents'
-                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    ? 'bg-[#127D48] text-white shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => {
@@ -598,7 +603,7 @@ function StudentForm({
                 type='button'
                 className={`rounded-md px-2.5 py-0.5 text-xs font-semibold transition-all ${
                   caregiverType === 'guardian'
-                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    ? 'bg-[#127D48] text-white shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => {
@@ -616,18 +621,27 @@ function StudentForm({
               type='button'
               variant='outline'
               size='sm'
+              className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
               onClick={() => {
                 if (caregiverType === 'parents') {
                   const hasMother = guardians.some((g) => g.relation === 'mother')
                   const hasFather = guardians.some((g) => g.relation === 'father')
                   const nextRelation = !hasMother ? 'mother' : !hasFather ? 'father' : 'grandparent'
-                  setGuardians((current) => [...current, emptyGuardian(nextRelation)])
+                  const nextGuardian = emptyGuardian(nextRelation)
+                  if (guardians.some((g) => g.receives_alerts)) {
+                    nextGuardian.receives_alerts = false
+                  }
+                  setGuardians((current) => [...current, nextGuardian])
                 } else {
-                  setGuardians((current) => [...current, emptyGuardian('other')])
+                  const nextGuardian = emptyGuardian('other')
+                  if (guardians.some((g) => g.receives_alerts)) {
+                    nextGuardian.receives_alerts = false
+                  }
+                  setGuardians((current) => [...current, nextGuardian])
                 }
               }}
             >
-              <Plus />
+              <Plus className='size-4 stroke-[1.75]' />
               Add another
             </Button>
           )}
@@ -635,33 +649,49 @@ function StudentForm({
         {errors.guardians && (
           <p className='text-xs font-medium text-destructive'>{errors.guardians}</p>
         )}
-        {guardians.map((guardian, index) => (
-          <GuardianFields
-            key={guardian.key}
-            value={guardian}
-            index={index}
-            primary={index === primary}
-            errors={guardianErrors(index)}
-            onChange={(next) =>
-              setGuardians((current) =>
-                current.map((item, position) => (position === index ? next : item))
-              )
-            }
-            onMakePrimary={() => setPrimary(index)}
-            onRemove={
-              guardians.length > 1
-                ? () => {
-                    setGuardians((current) =>
-                      current.filter((_item, position) => position !== index)
-                    )
-                    setPrimary((current) =>
-                      current === index ? 0 : current > index ? current - 1 : current
-                    )
-                  }
-                : undefined
-            }
-          />
-        ))}
+        {guardians.map((guardian, index) => {
+          const hasOtherAlertsActive = guardians.some(
+            (g, pos) => pos !== index && Boolean(g.receives_alerts)
+          )
+          return (
+            <GuardianFields
+              key={guardian.key}
+              value={guardian}
+              index={index}
+              primary={index === primary}
+              errors={guardianErrors(index)}
+              hasOtherAlertsActive={hasOtherAlertsActive}
+              onChange={(next) => {
+                const turnedAlertsOn =
+                  Boolean(next.receives_alerts) && !guardians[index]?.receives_alerts
+                if (turnedAlertsOn && hasOtherAlertsActive) {
+                  const active = guardians.find(
+                    (g, pos) => pos !== index && Boolean(g.receives_alerts)
+                  )
+                  const rel = active ? (RELATION_LABELS[active.relation] ?? active.relation) : 'other contact'
+                  alerts.error(`Turn off ${rel}'s login first before enabling this.`)
+                  return
+                }
+                setGuardians((current) =>
+                  current.map((item, position) => (position === index ? next : item))
+                )
+              }}
+              onMakePrimary={() => setPrimary(index)}
+              onRemove={
+                guardians.length > 1
+                  ? () => {
+                      setGuardians((current) =>
+                        current.filter((_item, position) => position !== index)
+                      )
+                      setPrimary((current) =>
+                        current === index ? 0 : current > index ? current - 1 : current
+                      )
+                    }
+                  : undefined
+              }
+            />
+          )
+        })}
       </section>
     </form>
   )

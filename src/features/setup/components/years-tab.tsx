@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Archive, ArchiveRestore, CalendarRange, Pencil, Plus, Star, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, CalendarRange, PenLine, Plus, Star, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -70,8 +70,8 @@ export function YearsTab({ canManage }: { canManage: boolean }) {
       description='Exactly one year is current. Making a new year current closes the previous one. Classes, sections and enrolments belong to a year.'
       action={
         canManage && (
-          <Button size='sm' onClick={() => setForm({ kind: 'year' })}>
-            <Plus />
+          <Button size='sm' variant='primary' onClick={() => setForm({ kind: 'year' })}>
+            <Plus className='size-4 stroke-[1.75]' />
             Add year
           </Button>
         )
@@ -84,8 +84,8 @@ export function YearsTab({ canManage }: { canManage: boolean }) {
           description='Add the current year first, for example 2026-27 from June to April.'
           action={
             canManage && (
-              <Button onClick={() => setForm({ kind: 'year' })}>
-                <Plus />
+              <Button variant='primary' onClick={() => setForm({ kind: 'year' })}>
+                <Plus className='size-4 stroke-[1.75]' />
                 Add year
               </Button>
             )
@@ -96,72 +96,78 @@ export function YearsTab({ canManage }: { canManage: boolean }) {
           {years.data.map((year) => (
             <article
               key={year.id}
-              className={`grid content-start gap-3 rounded-xl border p-4 ${year.is_current ? 'border-primary/50 bg-primary/5' : ''}`}
+              className={`grid content-start gap-3 rounded-xl border border-[#EDF0EE] bg-white p-4 dark:border-slate-800 dark:bg-slate-900 ${year.is_current ? 'border-primary/50 bg-primary/5 dark:border-primary/50' : ''}`}
             >
               <div className='flex flex-wrap items-start justify-between gap-2'>
                 <div className='grid gap-0.5'>
                   <div className='flex items-center gap-2'>
-                    <h3 className='text-lg font-extrabold tracking-tight'>{year.name}</h3>
+                    <h3 className='text-[14px] leading-[20px] font-bold text-slate-900 dark:text-slate-100'>{year.name}</h3>
                     <Badge tone={YEAR_STATUS[year.status].tone} dot={year.is_current}>
                       {YEAR_STATUS[year.status].label}
                     </Badge>
                   </div>
-                  <span className='text-xs text-muted-foreground'>
+                  <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {formatDate(year.start_date)} to {formatDate(year.end_date)} ·{' '}
                     {YEAR_STATUS_HINT[year.status]}
                   </span>
-                  {year.description && <span className='text-xs'>{year.description}</span>}
+                  {year.description && <span className='text-[12px] text-slate-600 dark:text-slate-300'>{year.description}</span>}
                   <YearHistory year={year} />
                 </div>
                 {canManage && (
-                  <div className='flex flex-wrap gap-1'>
+                  <div className='flex flex-wrap items-center gap-1.5'>
                     {(year.status === 'draft' || year.status === 'closed') && (
                       <Button
                         size='sm'
-                        variant='outline'
+                        variant='secondary'
+                        className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
                         onClick={() => setAction({ kind: 'activate', year })}
                       >
-                        <Star />
+                        <Star className='size-3.5 stroke-[1.75]' />
                         Make current
                       </Button>
                     )}
                     {year.status === 'closed' && (
                       <Button
                         size='sm'
-                        variant='ghost'
+                        variant='secondary'
+                        className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
                         onClick={() => setAction({ kind: 'archive', year })}
                       >
-                        <Archive />
+                        <Archive className='size-3.5 stroke-[1.75]' />
                         Archive
                       </Button>
                     )}
                     {year.status === 'archived' && (
                       <Button
                         size='sm'
-                        variant='outline'
+                        variant='secondary'
+                        className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
                         onClick={() => setAction({ kind: 'restore', year })}
                       >
-                        <ArchiveRestore />
+                        <ArchiveRestore className='size-3.5 stroke-[1.75]' />
                         Restore
                       </Button>
                     )}
                     <Button
                       size='icon-sm'
-                      variant='ghost'
+                      variant='outline'
                       aria-label={`Edit ${year.name}`}
+                      title='Edit'
+                      className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                       onClick={() => setForm({ kind: 'year', year })}
                     >
-                      <Pencil />
+                      <PenLine className='size-4 stroke-[1.75]' />
                     </Button>
                     {!year.is_current && (
                       <Button
                         size='icon-sm'
-                        variant='ghost'
+                        variant='outline'
                         aria-label={`Delete ${year.name}`}
-                        className='text-destructive hover:bg-destructive/10'
+                        title='Delete'
+                        className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
                         onClick={() => setRemoving({ kind: 'year', id: year.id, name: year.name })}
                       >
-                        <Trash2 />
+                        <Trash className='size-4 stroke-[1.75]' />
                       </Button>
                     )}
                   </div>
@@ -171,33 +177,36 @@ export function YearsTab({ canManage }: { canManage: boolean }) {
                 {year.terms.map((term) => (
                   <li
                     key={term.id}
-                    className='flex items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm'
+                    className='flex items-center justify-between gap-2 rounded-lg border border-[#EDF0EE] bg-[#F9FAFB] px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900/50'
                   >
-                    <span className='font-semibold'>{term.name}</span>
-                    <span className='flex items-center gap-1'>
-                      <span className='text-xs text-muted-foreground'>
+                    <span className='text-[13px] font-semibold text-slate-900 dark:text-slate-100'>{term.name}</span>
+                    <span className='flex items-center gap-1.5'>
+                      <span className='text-[12px] text-slate-500 dark:text-slate-400'>
                         {formatDate(term.start_date)} – {formatDate(term.end_date)}
                       </span>
                       {canManage && (
                         <>
                           <Button
                             size='icon-sm'
-                            variant='ghost'
+                            variant='outline'
                             aria-label={`Edit ${term.name}`}
+                            title='Edit'
+                            className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                             onClick={() => setForm({ kind: 'term', year, term })}
                           >
-                            <Pencil />
+                            <PenLine className='size-4 stroke-[1.75]' />
                           </Button>
                           <Button
                             size='icon-sm'
-                            variant='ghost'
+                            variant='outline'
                             aria-label={`Delete ${term.name}`}
-                            className='text-destructive hover:bg-destructive/10'
+                            title='Delete'
+                            className='border-[#EDF0EE] bg-white text-[#D92D20] hover:bg-red-50 dark:border-slate-800 dark:bg-slate-900'
                             onClick={() =>
                               setRemoving({ kind: 'term', id: term.id, name: term.name })
                             }
                           >
-                            <Trash2 />
+                            <Trash className='size-4 stroke-[1.75]' />
                           </Button>
                         </>
                       )}
@@ -205,17 +214,17 @@ export function YearsTab({ canManage }: { canManage: boolean }) {
                   </li>
                 ))}
                 {year.terms.length === 0 && (
-                  <li className='text-xs text-muted-foreground'>No terms yet.</li>
+                  <li className='text-[12px] text-slate-500'>No terms yet.</li>
                 )}
               </ul>
               {canManage && (
                 <Button
                   size='sm'
                   variant='ghost'
-                  className='justify-self-start'
+                  className='justify-self-start text-[12px] font-semibold text-primary hover:bg-primary/10'
                   onClick={() => setForm({ kind: 'term', year })}
                 >
-                  <Plus />
+                  <Plus className='size-3.5 stroke-[1.75]' />
                   Add term
                 </Button>
               )}

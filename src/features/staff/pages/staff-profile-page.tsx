@@ -11,11 +11,11 @@ import {
   FileText,
   Landmark,
   Library,
-  Pencil,
+  PenLine,
   Phone,
   SearchX,
   Smartphone,
-  Trash2,
+  Trash,
   UserRound,
 } from 'lucide-react'
 import { Avatar, ImagePreviewModal } from '@/components/common/avatar'
@@ -278,22 +278,31 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
           <StaffRoleBadges roles={staff.roles} max={6} />
         </div>
         {canManage && (
-          <div className='flex flex-wrap gap-2'>
-            <Button variant='outline' onClick={() => setEditing(true)}>
-              <Pencil />
+          <div className='flex flex-wrap items-center gap-2'>
+            <Button
+              variant='secondary'
+              size='md'
+              className='w-[85px] border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+              onClick={() => setEditing(true)}
+            >
+              <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
               Edit
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant='outline'>
+                <Button
+                  variant='secondary'
+                  size='md'
+                  className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                >
                   More
-                  <ChevronDown />
+                  <ChevronDown className='size-4 stroke-[1.75]' />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {staff.photo_url && (
                   <DropdownMenuItem onSelect={() => setViewingPhoto(true)}>
-                    <Eye className='size-4' />
+                    <Eye className='size-4 stroke-[1.75]' />
                     View photo
                   </DropdownMenuItem>
                 )}
@@ -308,7 +317,7 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
                 </DropdownMenuItem>
                 {staff.photo_url && (
                   <DropdownMenuItem destructive onSelect={() => void removePhoto()}>
-                    <Trash2 className='size-4' />
+                    <Trash className='size-4 stroke-[1.75]' />
                     Remove photo
                   </DropdownMenuItem>
                 )}
@@ -320,7 +329,7 @@ function ProfileHeader({ staff, canManage }: { staff: StaffDetail; canManage: bo
                 ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem destructive onSelect={() => setDeleting(true)}>
-                  <Trash2 />
+                  <Trash className='size-4 stroke-[1.75]' />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>

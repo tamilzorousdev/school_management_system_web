@@ -6,9 +6,9 @@ import {
   Gavel,
   MessageSquareWarning,
   NotebookPen,
-  Pencil,
+  PenLine,
   Plus,
-  Trash2,
+  Trash,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
@@ -83,8 +83,8 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
           Parents see these notes in the Parent app unless a note is marked staff only.
         </p>
         {canManage && (
-          <Button size='sm' onClick={() => setEditing('new')}>
-            <Plus />
+          <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+            <Plus className='size-4 stroke-[1.75]' />
             Add note
           </Button>
         )}
@@ -141,7 +141,7 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
                           aria-label={`Edit ${note.title}`}
                           onClick={() => setEditing(note)}
                         >
-                          <Pencil />
+                          <PenLine className='size-4 stroke-[1.75]' />
                         </Button>
                         <Button
                           size='icon-sm'
@@ -150,7 +150,7 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
                           className='text-destructive hover:bg-destructive/10'
                           onClick={() => setRemoving(note)}
                         >
-                          <Trash2 />
+                          <Trash className='size-4 stroke-[1.75]' />
                         </Button>
                       </span>
                     )}

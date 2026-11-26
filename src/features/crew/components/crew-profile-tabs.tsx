@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
+  AlertCircle,
   BadgeCheck,
-  BellRing,
+  Bell,
   Bus,
-  CircleAlert,
-  CircleCheck,
+  CheckCircle2,
   FileText,
   ShieldCheck,
   Upload,
@@ -70,16 +70,26 @@ export function ClearanceTab({
         description='Each document must be uploaded, verified and in date before the person can run a bus.'
         action={
           canManage && (
-            <div className='flex flex-wrap gap-2'>
+            <div className='flex flex-wrap items-center gap-2'>
               {hasDue && (
-                <Button size='sm' variant='outline' onClick={onRemind}>
-                  <BellRing />
+                <Button
+                  size='sm'
+                  variant='secondary'
+                  className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                  onClick={onRemind}
+                >
+                  <Bell className='size-3.5 stroke-[1.75]' />
                   Send reminder
                 </Button>
               )}
               {member.duty_status !== 'approved' && (
-                <Button size='sm' onClick={onApprove} disabled={!member.clear}>
-                  <ShieldCheck />
+                <Button
+                  size='sm'
+                  variant='primary'
+                  onClick={onApprove}
+                  disabled={!member.clear}
+                >
+                  <ShieldCheck className='size-3.5 stroke-[1.75]' />
                   Approve for duty
                 </Button>
               )}
@@ -97,9 +107,9 @@ export function ClearanceTab({
                 )}
               >
                 {check.clear ? (
-                  <CircleCheck className='size-4' />
+                  <CheckCircle2 className='size-4' />
                 ) : (
-                  <CircleAlert className='size-4' />
+                  <AlertCircle className='size-4' />
                 )}
               </span>
               <span className='grid min-w-0 flex-1 gap-1'>
@@ -120,19 +130,25 @@ export function ClearanceTab({
                   {(check.document_status === 'missing' ||
                     check.document_status === 'rejected' ||
                     check.expiry.state === 'expired') && (
-                    <Button size='sm' variant='outline' onClick={() => setUploading(check)}>
-                      <Upload />
+                    <Button
+                      size='sm'
+                      variant='secondary'
+                      className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                      onClick={() => setUploading(check)}
+                    >
+                      <Upload className='size-3.5 stroke-[1.75]' />
                       Upload
                     </Button>
                   )}
                   {check.document_status === 'pending' && (
                     <Button
                       size='sm'
-                      variant='outline'
+                      variant='secondary'
+                      className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                       loading={verify.isPending && verify.variables === check.document_id}
                       onClick={() => verifyNow(check)}
                     >
-                      <BadgeCheck />
+                      <BadgeCheck className='size-3.5 stroke-[1.75]' />
                       Mark verified
                     </Button>
                   )}
@@ -274,9 +290,14 @@ export function ProfileTab({ member }: { member: CrewDetail }) {
         <Section
           title='Bus'
           action={
-            <Button size='sm' variant='outline' asChild>
+            <Button
+              size='sm'
+              variant='secondary'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+              asChild
+            >
               <Link to='/transport' search={{ tab: 'buses' }}>
-                <Bus />
+                <Bus className='size-3.5 stroke-[1.75]' />
                 Buses and routes
               </Link>
             </Button>

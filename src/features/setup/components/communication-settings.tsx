@@ -133,8 +133,8 @@ function CommunicationSettings({
 
       {canManage && (
         <div className='flex justify-end'>
-          <Button type='submit' loading={save.isPending}>
-            <Save />
+          <Button type='submit' variant='primary' loading={save.isPending}>
+            <Save className='size-4 stroke-[1.75]' />
             Save settings
           </Button>
         </div>

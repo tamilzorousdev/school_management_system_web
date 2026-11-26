@@ -9,16 +9,20 @@ const APP_TONES: Record<AppSection, BadgeTone> = {
 }
 
 export function RoleBadges({ roles, max = 3 }: { roles: RoleSummary[]; max?: number }) {
-  if (!roles.length) return <span className='text-xs text-muted-foreground'>No role</span>
+  if (!roles.length) return <span className='text-[12px] text-slate-400'>No role</span>
   const shown = roles.slice(0, max)
   return (
-    <span className='flex flex-wrap gap-1'>
+    <span className='flex flex-wrap items-center gap-1'>
       {shown.map((role) => (
-        <Badge key={role.code} tone={APP_TONES[role.app]}>
+        <Badge key={role.code} tone={APP_TONES[role.app]} className='text-[11.5px] font-medium'>
           {role.name}
         </Badge>
       ))}
-      {roles.length > max && <Badge tone='neutral'>+{roles.length - max}</Badge>}
+      {roles.length > max && (
+        <Badge tone='neutral' className='text-[11.5px] font-medium'>
+          +{roles.length - max}
+        </Badge>
+      )}
     </span>
   )
 }

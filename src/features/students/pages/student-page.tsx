@@ -15,7 +15,7 @@ import {
   Link2,
   LogOut,
   NotebookPen,
-  Pencil,
+  PenLine,
   Phone,
   Plus,
   RefreshCw,
@@ -24,7 +24,7 @@ import {
   Star,
   Medal,
   Trophy,
-  Trash2,
+  Trash,
   UserRound,
   UsersRound,
   X,
@@ -262,25 +262,40 @@ export function StudentPage() {
               </div>
             </div>
           </div>
-          <div className='flex flex-wrap gap-2'>
+          <div className='flex flex-wrap items-center gap-2'>
             {active && (
-              <Button variant='outline' loading={printing} onClick={() => void printCard()}>
-                <IdCard />
+              <Button
+                variant='secondary'
+                size='md'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                loading={printing}
+                onClick={() => void printCard()}
+              >
+                <IdCard className='size-4 stroke-[1.75]' />
                 ID card
               </Button>
             )}
             {canManage && (
-              <Button variant='outline' onClick={() => setModal('edit')}>
-                <Pencil />
+              <Button
+                variant='secondary'
+                size='md'
+                className='w-[85px] border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={() => setModal('edit')}
+              >
+                <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Edit
               </Button>
             )}
             {canManage && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant='outline'>
+                  <Button
+                    variant='secondary'
+                    size='md'
+                    className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                  >
                     More
-                    <ChevronDown />
+                    <ChevronDown className='size-4 stroke-[1.75]' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -325,7 +340,7 @@ export function StudentPage() {
                   </DropdownMenuItem>
                   {data.photo_url && (
                     <DropdownMenuItem destructive onSelect={() => void removePhoto()}>
-                      <Trash2 className='size-4' />
+                      <Trash className='size-4 stroke-[1.75]' />
                       Remove photo
                     </DropdownMenuItem>
                   )}
@@ -470,14 +485,16 @@ function LeftBanner({ student }: { student: StudentDetail }) {
       </div>
       {tc.data && (
         <Button
-          variant='outline'
+          variant='secondary'
+          size='sm'
+          className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
           onClick={() =>
             void openFile(studentFiles.tc(student.id)).catch((error: unknown) =>
               alerts.error(toApiError(error).message)
             )
           }
         >
-          <FileText />
+          <FileText className='size-3.5 stroke-[1.75]' />
           Transfer certificate
         </Button>
       )}
@@ -501,8 +518,13 @@ function ProfileTab({
           title='Class this year'
           action={
             canManage && (
-              <Button variant='outline' size='sm' onClick={onChangeClass}>
-                <Pencil />
+              <Button
+                variant='secondary'
+                size='sm'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={onChangeClass}
+              >
+                <PenLine className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Change
               </Button>
             )
@@ -596,8 +618,13 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
           title='Parents and guardians'
           action={
             canManage && (
-              <Button variant='outline' size='sm' onClick={() => setLinking(true)}>
-                <Plus />
+              <Button
+                variant='outline'
+                size='sm'
+                className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                onClick={() => setLinking(true)}
+              >
+                <Plus className='size-4 stroke-[1.75]' />
                 Link parent
               </Button>
             )
@@ -637,13 +664,14 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                   <div className='flex shrink-0 gap-1'>
                     {!guardian.is_primary && (
                       <Button
-                        variant='ghost'
+                        variant='outline'
                         size='icon-sm'
                         aria-label={`Make ${guardian.name} the main contact`}
                         title='Make main contact'
+                        className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                         onClick={() => makeMain.mutate(guardian.id)}
                       >
-                        <Star />
+                        <Star className='size-4 stroke-[1.75]' />
                       </Button>
                     )}
                     {student.guardian_details.length > 1 && (

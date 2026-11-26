@@ -212,17 +212,16 @@ export function ReviewAppealModal({
             Resolving will finalize appraisal and sync revised salary to Payroll records.
           </span>
           <div className='flex items-center gap-2'>
-            <Button variant='outline' size='sm' onClick={onClose}>
+            <Button variant='secondary' size='sm' onClick={onClose}>
               Cancel
             </Button>
             <Button
-              variant='default'
+              variant='primary'
               size='sm'
-              className='bg-primary text-primary-foreground'
               onClick={() => void handleResolve()}
               disabled={isSubmitting}
             >
-              <CheckCircle2 className='mr-1.5 h-3.5 w-3.5' />
+              <CheckCircle2 className='size-3.5 stroke-[1.75]' />
               {isSubmitting ? 'Resolving…' : 'Finalize & Update Payroll'}
             </Button>
           </div>

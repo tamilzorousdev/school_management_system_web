@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
@@ -6,7 +6,7 @@ import {
   RotateCcw,
   Save,
   Sliders,
-  Trash2,
+  Trash,
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { FormField } from '@/components/common/form-field'
@@ -29,7 +29,14 @@ export function KraConfigurationModal({
   onClose: () => void
 }) {
   const query = useKraConfigs()
-  const [items, setItems] = useState<KraConfig[]>([])
+  const [items, setItems] = useState<KraConfig[]>(query.data ?? [])
+  const [prevData, setPrevData] = useState<KraConfig[] | undefined>(query.data)
+
+  if (query.data !== prevData) {
+    setPrevData(query.data)
+    setItems(query.data ?? [])
+  }
+
   const [isSaving, setIsSaving] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
@@ -43,12 +50,6 @@ export function KraConfigurationModal({
     'academics' | 'pedagogy' | 'administrative' | 'extracurricular' | 'general'
   >('pedagogy')
   const [isSubmittingNew, setIsSubmittingNew] = useState(false)
-
-  useEffect(() => {
-    if (query.data) {
-      setItems(query.data)
-    }
-  }, [query.data])
 
   const totalWeight = items.reduce((sum, item) => sum + (Number(item.weightage_percent) || 0), 0)
   const isWeightValid = Math.abs(totalWeight - 100) < 0.01
@@ -212,22 +213,22 @@ export function KraConfigurationModal({
           </span>
           <div className='flex items-center gap-2'>
             <Button
-              variant='outline'
+              variant='secondary'
               size='sm'
-              className='text-xs'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
               onClick={() => void handleResetDefaults()}
               disabled={isResetting}
             >
-              <RotateCcw className='mr-1.5 h-3.5 w-3.5' />
+              <RotateCcw className='size-3.5 stroke-[1.75]' />
               {isResetting ? 'Resetting…' : 'Reset to Standard Template'}
             </Button>
             <Button
-              variant='outline'
+              variant='secondary'
               size='sm'
-              className='text-xs text-primary'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
               onClick={() => setIsAddingNew(!isAddingNew)}
             >
-              <Plus className='mr-1 h-3.5 w-3.5' />
+              <Plus className='size-3.5 stroke-[1.75]' />
               Add Custom KRA
             </Button>
           </div>
@@ -305,20 +306,19 @@ export function KraConfigurationModal({
 
             <div className='flex justify-end gap-2 pt-1'>
               <Button
-                variant='ghost'
+                variant='secondary'
                 size='sm'
-                className='text-xs'
                 onClick={() => setIsAddingNew(false)}
               >
                 Cancel
               </Button>
               <Button
-                variant='default'
+                variant='primary'
                 size='sm'
-                className='text-xs'
                 onClick={() => void handleAddNewKra()}
                 disabled={isSubmittingNew}
               >
+                <Plus className='size-3.5 stroke-[1.75]' />
                 {isSubmittingNew ? 'Saving…' : 'Add KRA'}
               </Button>
             </div>
@@ -374,7 +374,7 @@ export function KraConfigurationModal({
                       onClick={() => void handleDeleteKra(kra.id)}
                       title='Deactivate KRA'
                     >
-                      <Trash2 className='h-3.5 w-3.5' />
+                      <Trash className='size-3.5 stroke-[1.75]' />
                     </Button>
                   )}
                 </div>
@@ -398,16 +398,16 @@ export function KraConfigurationModal({
             Evaluator scores will be dynamically weighted by these percentages.
           </span>
           <div className='flex items-center gap-2'>
-            <Button variant='outline' size='sm' onClick={onClose}>
+            <Button variant='secondary' size='sm' onClick={onClose}>
               Cancel
             </Button>
             <Button
-              variant='default'
+              variant='primary'
               size='sm'
               onClick={() => void handleSaveAll()}
               disabled={isSaving || !isWeightValid}
             >
-              <Save className='mr-1.5 h-3.5 w-3.5' />
+              <Save className='size-3.5 stroke-[1.75]' />
               {isSaving ? 'Saving…' : 'Save KRA Config'}
             </Button>
           </div>

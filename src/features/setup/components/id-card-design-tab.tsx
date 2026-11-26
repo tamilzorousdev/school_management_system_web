@@ -12,7 +12,6 @@ import { ID_CARD_DESIGN_LABELS, isIdCardDesign, type IdCardDesign } from '@/lib/
 import { useStudent, useStudents } from '@/features/students/api'
 import { studentFiles } from '@/features/students/records-api'
 import { setupApi, useSchoolProfile, useSetupMutation, type SchoolProfile } from '../api'
-import { UploadedIdCard } from './uploaded-id-card'
 
 export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
   const profileQuery = useSchoolProfile()
@@ -47,7 +46,10 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
       hint: item.admission_no,
     })),
   ]
-  const savedDesign = isIdCardDesign(school?.id_card_design) ? school.id_card_design : 'design2'
+  const savedDesign =
+    isIdCardDesign(school?.id_card_design) && school.id_card_design !== 'custom'
+      ? school.id_card_design
+      : 'design2'
   const selectedDesign = selectedOverride ?? savedDesign
 
   const saveMutation = useSetupMutation((input: Partial<SchoolProfile>) =>
@@ -97,11 +99,11 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
   return (
     <div className='grid gap-6'>
       {/* Intro Header */}
-      <Card className='p-4 sm:p-6'>
+      <Card className='border border-[#EDF0EE] bg-white p-4 sm:p-6 dark:border-slate-800 dark:bg-slate-900'>
         <div className='flex flex-wrap items-center justify-between gap-4'>
           <div className='flex items-start gap-3.5'>
             <div className='flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary'>
-              <IdCard className='size-6' />
+              <IdCard className='size-6 stroke-[1.75]' />
             </div>
             <div>
               <div className='flex flex-wrap items-center gap-2'>
@@ -109,7 +111,7 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
                   Student ID Card Design
                 </h2>
                 <Badge tone='info' className='gap-1'>
-                  <Sparkles className='size-3' /> 3 templates or upload your own
+                  <Sparkles className='size-3 stroke-[1.75]' /> 3 templates
                 </Badge>
               </div>
               <p className='mt-1 text-xs text-muted-foreground sm:text-sm'>
@@ -119,7 +121,7 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
             </div>
           </div>
 
-          <div className='flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-xs'>
+          <div className='flex items-center gap-2 rounded-lg border border-[#EDF0EE] bg-muted/30 px-3 py-2 text-xs dark:border-slate-800'>
             <span className='text-muted-foreground'>Current active template:</span>
             <span className='font-bold text-foreground'>
               {ID_CARD_DESIGN_LABELS[selectedDesign]}
@@ -128,7 +130,7 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
         </div>
       </Card>
 
-      <Card className='grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-5'>
+      <Card className='grid gap-4 border border-[#EDF0EE] bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-5 dark:border-slate-800 dark:bg-slate-900'>
         <div className='grid gap-2'>
           <label htmlFor='id-card-student' className='text-sm font-semibold text-foreground'>
             Choose a student to preview
@@ -151,23 +153,16 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
           )}
         </div>
         <Button
+          variant='primary'
           onClick={() => void printStudentCard()}
           disabled={!student || printing}
           loading={printing}
           className='w-full sm:w-auto'
         >
-          <IdCard />
+          <IdCard className='size-4 stroke-[1.75]' />
           Print selected student card
         </Button>
       </Card>
-
-      <UploadedIdCard
-        school={school}
-        active={selectedDesign === 'custom'}
-        canManage={canManage}
-        busy={saveMutation.isPending}
-        onApply={() => void handleSelect('custom')}
-      />
 
       {/* 3 Card Designs Grid */}
       <div className='grid grid-cols-1 gap-6 xl:grid-cols-3'>
@@ -177,7 +172,7 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
           className={`group relative flex cursor-pointer flex-col rounded-2xl border-2 bg-card p-5 transition-all hover:shadow-lg ${
             selectedDesign === 'design1'
               ? 'border-emerald-600 shadow-md ring-4 ring-emerald-500/20'
-              : 'border-border hover:border-emerald-400'
+              : 'border-[#EDF0EE] hover:border-emerald-400 dark:border-slate-800'
           }`}
         >
           {/* Header Row */}
@@ -201,14 +196,14 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
               </Badge>
             ) : (
               <Button
-                variant='outline'
+                variant='secondary'
                 size='sm'
                 onClick={(e) => {
                   e.stopPropagation()
                   void handleSelect('design1')
                 }}
                 disabled={!canManage || saveMutation.isPending}
-                className='shrink-0 group-hover:border-emerald-500 group-hover:text-emerald-600'
+                className='shrink-0 border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
               >
                 Apply
               </Button>
@@ -349,7 +344,7 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
           className={`group relative flex cursor-pointer flex-col rounded-2xl border-2 bg-card p-5 transition-all hover:shadow-lg ${
             selectedDesign === 'design2'
               ? 'border-teal-600 shadow-md ring-4 ring-teal-500/20'
-              : 'border-border hover:border-teal-400'
+              : 'border-[#EDF0EE] hover:border-teal-400 dark:border-slate-800'
           }`}
         >
           {/* Header Row */}
@@ -372,14 +367,14 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
               </Badge>
             ) : (
               <Button
-                variant='outline'
+                variant='secondary'
                 size='sm'
                 onClick={(e) => {
                   e.stopPropagation()
                   void handleSelect('design2')
                 }}
                 disabled={!canManage || saveMutation.isPending}
-                className='shrink-0 group-hover:border-teal-500 group-hover:text-teal-600'
+                className='shrink-0 border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
               >
                 Apply
               </Button>
@@ -537,7 +532,7 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
           className={`group relative flex cursor-pointer flex-col rounded-2xl border-2 bg-card p-5 transition-all hover:shadow-lg ${
             selectedDesign === 'design3'
               ? 'border-indigo-600 shadow-md ring-4 ring-indigo-500/20'
-              : 'border-border hover:border-indigo-400'
+              : 'border-[#EDF0EE] hover:border-indigo-400 dark:border-slate-800'
           }`}
         >
           {/* Header Row */}
@@ -561,14 +556,14 @@ export function IdCardDesignTab({ canManage }: { canManage: boolean }) {
               </Badge>
             ) : (
               <Button
-                variant='outline'
+                variant='secondary'
                 size='sm'
                 onClick={(e) => {
                   e.stopPropagation()
                   void handleSelect('design3')
                 }}
                 disabled={!canManage || saveMutation.isPending}
-                className='shrink-0 group-hover:border-indigo-500 group-hover:text-indigo-600'
+                className='shrink-0 border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
               >
                 Apply
               </Button>

@@ -17,7 +17,6 @@ export const SHORTCUTS = {
     group: 'Navigation',
   },
   'nav.crew': { combo: 'g 7', label: 'Go to drivers and attendants', group: 'Navigation' },
-  'nav.attendance': { combo: 'g r', label: 'Go to attendance', group: 'Navigation' },
   'nav.timetable': { combo: 'g w', label: 'Go to timetable', group: 'Navigation' },
   'nav.substitutes': { combo: 'g v', label: 'Go to proxy', group: 'Navigation' },
   'nav.payroll': { combo: 'g y', label: 'Go to payroll', group: 'Navigation' },
@@ -76,7 +75,6 @@ export const SHORTCUTS = {
     group: 'Users',
   },
   'appraisals.create': { combo: 'alt+n', label: 'Add a staff appraisal', group: 'Users' },
-  'leaveTypes.create': { combo: 'alt+n', label: 'Add a leave type in Attendance', group: 'Users' },
   'banners.create': {
     combo: 'alt+n',
     label: 'Add a banner',

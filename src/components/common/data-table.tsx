@@ -38,6 +38,8 @@ interface DataTableProps<T> {
   onRetry?: () => void
   empty: { icon: LucideIcon; title: string; description?: string; action?: React.ReactNode }
   onRowClick?: (row: T) => void
+  isSelected?: (row: T) => boolean
+  rowClassName?: (row: T) => string
   sort?: SortState
   onSortChange?: (sort: SortState) => void
   pagination?: {
@@ -94,6 +96,8 @@ export function DataTable<T>({
   onRetry,
   empty,
   onRowClick,
+  isSelected,
+  rowClassName,
   sort,
   onSortChange,
   pagination,
@@ -151,41 +155,50 @@ export function DataTable<T>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow
-                key={rowKey(row)}
-                tabIndex={onRowClick ? 0 : undefined}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                onKeyDown={(event) => {
-                  if (!onRowClick || event.target !== event.currentTarget) return
-                  if (event.key === 'Enter') onRowClick(row)
-                  if (event.key === 'ArrowDown' || event.key === 'j') {
-                    event.preventDefault()
-                    ;(event.currentTarget.nextElementSibling as HTMLElement | null)?.focus()
-                  }
-                  if (event.key === 'ArrowUp' || event.key === 'k') {
-                    event.preventDefault()
-                    ;(event.currentTarget.previousElementSibling as HTMLElement | null)?.focus()
-                  }
-                }}
-                className={cn(
-                  onRowClick && 'cursor-pointer outline-none focus-visible:bg-accent/60'
-                )}
-              >
-                {columns.map((column) => (
-                  <TableCell
-                    key={column.key}
-                    className={cn(
-                      column.hideBelow && hidden[column.hideBelow],
-                      column.align === 'right' && 'text-right',
-                      column.className
-                    )}
-                  >
-                    {column.cell(row)}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {rows.map((row) => {
+              const selected = isSelected ? isSelected(row) : false
+              return (
+                <TableRow
+                  key={rowKey(row)}
+                  data-state={selected ? 'selected' : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onKeyDown={(event) => {
+                    if (!onRowClick || event.target !== event.currentTarget) return
+                    if (event.key === 'Enter') onRowClick(row)
+                    if (event.key === 'ArrowDown' || event.key === 'j') {
+                      event.preventDefault()
+                      ;(event.currentTarget.nextElementSibling as HTMLElement | null)?.focus()
+                    }
+                    if (event.key === 'ArrowUp' || event.key === 'k') {
+                      event.preventDefault()
+                      ;(event.currentTarget.previousElementSibling as HTMLElement | null)?.focus()
+                    }
+                  }}
+                  className={cn(
+                    'h-[52px]',
+                    selected &&
+                      'bg-[#EAF7F0] hover:bg-[#EAF7F0] dark:bg-emerald-950/40 dark:hover:bg-emerald-950/50',
+                    onRowClick && 'cursor-pointer outline-none focus-visible:bg-accent/60',
+                    rowClassName?.(row)
+                  )}
+                >
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.key}
+                      className={cn(
+                        'h-[52px]',
+                        column.hideBelow && hidden[column.hideBelow],
+                        column.align === 'right' && 'text-right',
+                        column.className
+                      )}
+                    >
+                      {column.cell(row)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>

@@ -184,8 +184,9 @@ export function PayslipModal({ slip, onClose }: { slip: Payslip | null; onClose:
               Print
             </Button>
             <Button
+              variant='outline'
               size='sm'
-              className='bg-[#159053] text-white hover:bg-[#117644]'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:bg-card dark:text-foreground dark:border-border'
               loading={downloading}
               onClick={() => void handleDownloadPdf()}
             >

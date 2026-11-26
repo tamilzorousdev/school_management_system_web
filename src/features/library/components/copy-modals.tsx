@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { History, Printer } from 'lucide-react'
+import { Download, History, Printer } from 'lucide-react'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
@@ -312,6 +312,7 @@ export function LabelsByDateModal({ onClose }: { onClose: () => void }) {
         <DialogFooter>
           <Button
             variant='outline'
+            className='h-9 w-[134px] px-4 gap-2 font-medium border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] dark:bg-card dark:text-foreground dark:border-border'
             disabled={!from}
             loading={busy}
             onClick={async () => {
@@ -320,6 +321,7 @@ export function LabelsByDateModal({ onClose }: { onClose: () => void }) {
               setBusy(false)
             }}
           >
+            <Download className='size-4' />
             Download PDF
           </Button>
           <Button disabled={!from} onClick={() => openLabels({ added_from: from })}>

@@ -176,9 +176,9 @@ export function AssignmentsPage() {
       <Link
         to='/staff'
         search={{ page: 1 }}
-        className='inline-flex items-center gap-1.5 self-start text-sm font-semibold text-muted-foreground hover:text-foreground'
+        className='inline-flex items-center gap-1.5 self-start text-[13px] font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
       >
-        <ArrowLeft className='size-4' />
+        <ArrowLeft className='size-4 stroke-[1.75]' />
         All staff
       </Link>
       <PageHeader
@@ -202,10 +202,10 @@ export function AssignmentsPage() {
           }
         />
         {matrix.data && (
-          <Badge tone={unassigned ? 'warning' : 'success'}>
+          <Badge tone={unassigned ? 'warning' : 'success'} className='text-[11.5px] font-medium'>
             {unassigned ? (
               <>
-                <UserRoundX className='size-3' />
+                <UserRoundX className='size-3.5 stroke-[1.75]' />
                 {unassigned} {unassigned === 1 ? 'subject has' : 'subjects have'} no teacher
               </>
             ) : (
@@ -213,49 +213,61 @@ export function AssignmentsPage() {
             )}
           </Badge>
         )}
-        {!allowed && <Badge tone='neutral'>View only</Badge>}
+        {!allowed && <Badge tone='neutral' className='text-[11.5px] font-medium'>View only</Badge>}
       </div>
 
       {weekInfo && (
-        <Card className='flex flex-row flex-wrap items-center justify-between gap-2 p-2 sm:px-3'>
-          <div className='flex items-center gap-1'>
+        <Card className='flex flex-row flex-wrap items-center justify-between gap-2 border border-[#EDF0EE] bg-white p-2.5 sm:px-3.5 dark:border-slate-800 dark:bg-slate-900'>
+          <div className='flex items-center gap-1.5'>
             <Button
               size='icon-sm'
-              variant='ghost'
+              variant='outline'
               aria-label='Previous week'
               disabled={changes > 0}
+              className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
               onClick={() => setWeek(shiftWeek(weekInfo.start, -7))}
             >
-              <ChevronLeft />
+              <ChevronLeft className='size-4 stroke-[1.75]' />
             </Button>
-            <span className='text-sm font-semibold'>
+            <span className='text-[13px] font-semibold text-slate-800 dark:text-slate-200'>
               Week of {formatDate(weekInfo.start)} – {formatDate(weekInfo.end)}
               {weekInfo.is_current ? ' (this week)' : ''}
             </span>
             <Button
               size='icon-sm'
-              variant='ghost'
+              variant='outline'
               aria-label='Next week'
               disabled={weekInfo.is_current || changes > 0}
+              className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
               onClick={() => setWeek(shiftWeek(weekInfo.start, 7))}
             >
-              <ChevronRight />
+              <ChevronRight className='size-4 stroke-[1.75]' />
             </Button>
             {!weekInfo.is_current && (
-              <Button size='sm' variant='outline' onClick={() => setWeek(undefined)}>
+              <Button
+                size='sm'
+                variant='secondary'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={() => setWeek(undefined)}
+              >
                 This week
               </Button>
             )}
           </div>
           <div className='flex flex-wrap items-center gap-2'>
             {weekInfo.read_only && (
-              <Badge tone='neutral'>
-                <Lock className='size-3' />
+              <Badge tone='neutral' className='text-[11.5px] font-medium'>
+                <Lock className='size-3 stroke-[1.75]' />
                 As it was that week
               </Badge>
             )}
-            <Button size='sm' variant='outline' onClick={() => setShowChanges(true)}>
-              <History />
+            <Button
+              size='sm'
+              variant='secondary'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+              onClick={() => setShowChanges(true)}
+            >
+              <History className='size-3.5 stroke-[1.75]' />
               Changes this week ({weekInfo.changes})
             </Button>
           </div>
@@ -272,11 +284,11 @@ export function AssignmentsPage() {
           <Skeleton className='h-80 w-full rounded-xl' />
         </div>
       ) : matrix.isError ? (
-        <Card>
+        <Card className='border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900'>
           <ErrorState message={matrix.error.message} onRetry={() => matrix.refetch()} />
         </Card>
       ) : rows.length === 0 ? (
-        <Card>
+        <Card className='border border-[#EDF0EE] bg-white p-8 dark:border-slate-800 dark:bg-slate-900'>
           <EmptyState
             icon={BookOpen}
             title='No sections this year'
@@ -305,11 +317,11 @@ export function AssignmentsPage() {
 
       {changes > 0 && (
         <div className='fixed inset-x-0 bottom-0 z-40 px-4 pb-4 sm:px-6 lg:px-8'>
-          <Card className='mx-auto flex max-w-3xl flex-row flex-wrap items-center justify-between gap-3 p-3 shadow-lg sm:px-4'>
-            <span className='grid text-sm font-semibold'>
+          <Card className='mx-auto flex max-w-3xl flex-row flex-wrap items-center justify-between gap-3 border border-[#EDF0EE] bg-white p-3.5 shadow-xl sm:px-5 dark:border-slate-800 dark:bg-slate-900'>
+            <span className='grid text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
               {changes} unsaved {changes === 1 ? 'change' : 'changes'}
               {overClasses.length > 0 && (
-                <span className='text-xs font-normal text-destructive'>
+                <span className='text-[12px] font-normal text-destructive'>
                   {overClasses
                     .map((row) => `Class ${row.class_name} - ${row.section_name}`)
                     .join(', ')}{' '}
@@ -318,16 +330,24 @@ export function AssignmentsPage() {
               )}
             </span>
             <div className='flex gap-2'>
-              <Button variant='outline' onClick={() => setEdits({})} disabled={save.isPending}>
-                <Undo2 />
+              <Button
+                variant='secondary'
+                size='sm'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={() => setEdits({})}
+                disabled={save.isPending}
+              >
+                <Undo2 className='size-3.5 stroke-[1.75]' />
                 Discard
               </Button>
               <Button
+                variant='primary'
+                size='sm'
                 onClick={() => void submit()}
                 loading={save.isPending}
                 disabled={overClasses.length > 0}
               >
-                <Save />
+                <Save className='size-3.5 stroke-[1.75]' />
                 Save {changes} {changes === 1 ? 'change' : 'changes'}
               </Button>
             </div>
@@ -359,11 +379,11 @@ function ChangesModal({ week, onClose }: { week: string; onClose: () => void }) 
       ) : !rows.length ? (
         <EmptyState icon={History} title='No changes in this week' className='py-6' />
       ) : (
-        <ul className='grid max-h-[60vh] divide-y overflow-y-auto rounded-xl border'>
+        <ul className='grid max-h-[60vh] divide-y divide-[#EDF0EE] overflow-y-auto rounded-xl border border-[#EDF0EE] dark:divide-slate-800 dark:border-slate-800'>
           {rows.map((row) => (
-            <li key={row.id} className='grid gap-0.5 p-3 text-sm'>
-              <span className='font-semibold'>{row.summary}</span>
-              <span className='text-xs text-muted-foreground'>
+            <li key={row.id} className='grid gap-1 p-3 text-[13px]'>
+              <span className='font-semibold text-slate-900 dark:text-slate-100'>{row.summary}</span>
+              <span className='text-[12px] text-slate-500 dark:text-slate-400'>
                 {formatDateTime(row.at)}
                 {row.changed_by ? ` · by ${row.changed_by.name}` : ''}
               </span>
@@ -397,29 +417,32 @@ function SectionCard({
   ) => void
 }) {
   return (
-    <Card className='overflow-hidden'>
-      <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-        <h2 className='flex flex-wrap items-center gap-2 font-bold'>
+    <Card className='overflow-hidden border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900'>
+      <div className='flex flex-wrap items-center justify-between gap-2 border-b border-[#EDF0EE] bg-slate-50/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50'>
+        <h2 className='flex flex-wrap items-center gap-2 text-[14px] leading-[20px] font-bold text-slate-900 dark:text-slate-100'>
           Class {row.class_name} - {row.section_name}
-          <Badge tone={total > limit ? 'danger' : total === limit ? 'warning' : 'success'}>
+          <Badge
+            tone={total > limit ? 'danger' : total === limit ? 'warning' : 'success'}
+            className='text-[11.5px] font-medium'
+          >
             {total} / {limit} periods a week
           </Badge>
         </h2>
-        <span className='text-xs text-muted-foreground'>
+        <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
           Class teacher:{' '}
           <span
-            className={cn('font-semibold', row.class_teacher ? 'text-foreground' : 'text-warning')}
+            className={cn('font-semibold', row.class_teacher ? 'text-slate-900 dark:text-slate-100' : 'text-amber-600 dark:text-amber-400')}
           >
             {row.class_teacher ?? 'Not set'}
           </span>
         </span>
       </div>
       {row.cells.length === 0 ? (
-        <p className='px-4 py-5 text-sm text-muted-foreground'>
+        <p className='px-4 py-5 text-[13px] text-slate-500 dark:text-slate-400'>
           No subjects set for this class. Add them in School setup.
         </p>
       ) : (
-        <ul className='grid gap-px bg-border sm:grid-cols-2 2xl:grid-cols-3'>
+        <ul className='grid gap-px bg-[#EDF0EE] sm:grid-cols-2 2xl:grid-cols-3 dark:bg-slate-800'>
           {row.cells.map((cell) => {
             const edit = edits[cellKey(row.section_id, cell.subject_id)]
             const teacherId = edit ? edit.teacher_user_id : cell.teacher_user_id
@@ -431,13 +454,13 @@ function SectionCard({
             return (
               <li
                 key={cell.subject_id}
-                className={cn('grid gap-2 bg-card p-3', edit && 'bg-primary/5')}
+                className={cn('grid gap-2.5 bg-white p-3.5 dark:bg-slate-900', edit && 'bg-[#EAF7F0]/30 dark:bg-emerald-950/20')}
               >
                 <div className='flex items-center justify-between gap-2'>
-                  <span className='truncate text-sm font-semibold'>{cell.subject_name}</span>
+                  <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>{cell.subject_name}</span>
                   <span className='flex shrink-0 items-center gap-1.5'>
-                    {edit && <Badge tone='info'>Changed</Badge>}
-                    <span className='font-mono text-[11px] text-muted-foreground'>
+                    {edit && <Badge tone='info' className='text-[10px] font-semibold'>Changed</Badge>}
+                    <span className='rounded bg-[#EAF7F0] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#127D48] dark:bg-emerald-950/60 dark:text-emerald-300'>
                       {cell.subject_code}
                     </span>
                   </span>
@@ -456,7 +479,7 @@ function SectionCard({
                         onChange(row, cell, { teacher_user_id: value ? Number(value) : null })
                       }
                       highlightSelected={false}
-                      className={cn('min-w-0 flex-1 sm:w-full', !teacherId && 'text-warning')}
+                      className={cn('min-w-0 flex-1 sm:w-full', !teacherId && 'text-amber-600')}
                     />
                     <Input
                       type='number'
@@ -467,7 +490,7 @@ function SectionCard({
                       title='Periods a week'
                       disabled={!teacherId}
                       placeholder={String(DEFAULT_PERIODS)}
-                      className='tabular w-16 shrink-0 text-center'
+                      className='tabular w-16 shrink-0 text-center border-[#C6CEC9] text-[13px]'
                       value={teacherId && periods !== null ? String(periods) : ''}
                       onChange={(event) => {
                         const value = Number(event.target.value)
@@ -480,12 +503,12 @@ function SectionCard({
                     />
                   </div>
                 ) : (
-                  <div className='flex items-center justify-between gap-2 text-sm'>
-                    <span className={cn('truncate', !teacherId && 'text-warning')}>
+                  <div className='flex items-center justify-between gap-2 text-[13px]'>
+                    <span className={cn('truncate font-medium', !teacherId ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-slate-200')}>
                       {teacherName ?? cell.teacher_name ?? 'No teacher'}
                     </span>
                     {teacherId && periods !== null && (
-                      <span className='tabular shrink-0 text-xs text-muted-foreground'>
+                      <span className='tabular shrink-0 text-[12px] font-medium text-slate-500 dark:text-slate-400'>
                         {periods} a week
                       </span>
                     )}
@@ -505,25 +528,25 @@ function TeachersPanel({ teachers }: { teachers: MatrixTeacher[] }) {
     (teacher) => loadTone(teacher.load_periods, teacher.max_periods_per_week) === 'danger'
   ).length
   return (
-    <Card className='overflow-hidden lg:sticky lg:top-20'>
-      <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
-        <h2 className='flex items-center gap-2 font-bold'>
-          <UsersRound className='size-4 text-primary' />
+    <Card className='overflow-hidden border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900 lg:sticky lg:top-20'>
+      <div className='flex items-center justify-between gap-2 border-b border-[#EDF0EE] bg-slate-50/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50'>
+        <h2 className='flex items-center gap-2 text-[14px] leading-[20px] font-bold text-slate-900 dark:text-slate-100'>
+          <UsersRound className='size-4 text-[#127D48] stroke-[1.75]' />
           Teachers
         </h2>
-        {over > 0 && <Badge tone='danger'>{over} over limit</Badge>}
+        {over > 0 && <Badge tone='danger' className='text-[11.5px] font-medium'>{over} over limit</Badge>}
       </div>
       {teachers.length === 0 ? (
-        <p className='px-4 py-5 text-sm text-muted-foreground'>
+        <p className='px-4 py-5 text-[13px] text-slate-500 dark:text-slate-400'>
           No teaching staff yet. Add teachers in Staff.
         </p>
       ) : (
-        <ul className='grid divide-y lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto'>
+        <ul className='grid divide-y divide-[#EDF0EE] dark:divide-slate-800 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto'>
           {teachers.map((teacher) => (
-            <li key={teacher.user_id} className='grid gap-1.5 px-4 py-2.5'>
+            <li key={teacher.user_id} className='grid gap-1.5 px-4 py-3'>
               <div className='flex items-baseline justify-between gap-2'>
-                <span className='truncate text-sm font-semibold'>{teacher.name}</span>
-                <span className='truncate text-xs text-muted-foreground'>
+                <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>{teacher.name}</span>
+                <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                   {teacher.department ?? ''}
                 </span>
               </div>

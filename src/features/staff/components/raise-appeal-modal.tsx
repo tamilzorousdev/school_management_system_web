@@ -103,16 +103,16 @@ export function RaiseAppealModal({
         </FormField>
 
         <div className='flex items-center justify-end gap-2 border-t border-border pt-3'>
-          <Button variant='outline' size='sm' onClick={onClose}>
+          <Button variant='secondary' size='sm' onClick={onClose}>
             Cancel
           </Button>
           <Button
-            variant='default'
+            variant='primary'
             size='sm'
             onClick={() => void handleSubmit()}
             disabled={isSubmitting}
           >
-            <Send className='mr-1.5 h-3.5 w-3.5' />
+            <Send className='size-3.5 stroke-[1.75]' />
             {isSubmitting ? 'Submitting…' : 'Submit Appeal to Management'}
           </Button>
         </div>

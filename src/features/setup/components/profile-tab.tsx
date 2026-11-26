@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ImageUp, PenLine, Save, Trash2 } from 'lucide-react'
+import { ImageUp, PenLine, Save, Trash } from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { ErrorState } from '@/components/common/display'
 import { FormField } from '@/components/common/form-field'
@@ -204,8 +204,8 @@ function ProfileForm({ school, canManage }: { school: SchoolProfile; canManage: 
         </FormField>
         {canManage && (
           <div className='flex justify-end sm:col-span-2'>
-            <Button type='submit' loading={save.isPending}>
-              <Save />
+            <Button type='submit' variant='primary' loading={save.isPending}>
+              <Save className='size-4 stroke-[1.75]' />
               Save profile
             </Button>
           </div>
@@ -263,9 +263,15 @@ function SchoolLogo({ school, canManage }: { school: SchoolProfile; canManage: b
         </div>
         {canManage && (
           <div className='flex flex-wrap gap-2'>
-            <Button asChild variant='outline' size='sm' disabled={uploading}>
+            <Button
+              asChild
+              variant='secondary'
+              size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
+              disabled={uploading}
+            >
               <label htmlFor='school-logo' className='cursor-pointer'>
-                <ImageUp />
+                <ImageUp className='size-4 stroke-[1.75]' />
                 {uploading ? 'Uploading…' : school.logo_url ? 'Change logo' : 'Upload logo'}
                 <input
                   id='school-logo'
@@ -285,7 +291,7 @@ function SchoolLogo({ school, canManage }: { school: SchoolProfile; canManage: b
                 type='button'
                 variant='ghost'
                 size='sm'
-                className='text-destructive hover:bg-destructive/10'
+                className='text-[#D92D20] hover:bg-red-50'
                 loading={save.isPending && !uploading}
                 onClick={async () => {
                   try {
@@ -296,7 +302,7 @@ function SchoolLogo({ school, canManage }: { school: SchoolProfile; canManage: b
                   }
                 }}
               >
-                <Trash2 />
+                <Trash className='size-3.5 stroke-[1.75]' />
                 Remove
               </Button>
             )}
@@ -331,21 +337,22 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
               className='size-full object-contain'
             />
           ) : (
-            <PenLine className='size-6 text-muted-foreground' aria-hidden />
+            <PenLine className='size-5 stroke-[1.75] text-slate-400 dark:text-slate-500' aria-hidden />
           )}
         </div>
         {canManage && (
           <div className='flex flex-wrap gap-2'>
             <Button
               type='button'
-              variant='outline'
+              variant='secondary'
               size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
               onClick={() => {
                 setError('')
                 setSigning(true)
               }}
             >
-              <PenLine />
+              <PenLine className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
               {school.signature_url ? 'Change signature' : 'Add signature'}
             </Button>
             {school.signature_url && (
@@ -353,7 +360,7 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
                 type='button'
                 variant='ghost'
                 size='sm'
-                className='text-destructive hover:bg-destructive/10'
+                className='text-[#D92D20] hover:bg-red-50'
                 loading={save.isPending && !signing}
                 onClick={async () => {
                   try {
@@ -364,7 +371,7 @@ function SchoolSignature({ school, canManage }: { school: SchoolProfile; canMana
                   }
                 }}
               >
-                <Trash2 />
+                <Trash className='size-3.5 stroke-[1.75]' />
                 Remove
               </Button>
             )}
@@ -432,9 +439,15 @@ function SchoolSeal({ school, canManage }: { school: SchoolProfile; canManage: b
         </div>
         {canManage && (
           <div className='flex flex-wrap gap-2'>
-            <Button asChild variant='outline' size='sm' disabled={uploading}>
+            <Button
+              asChild
+              variant='secondary'
+              size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]'
+              disabled={uploading}
+            >
               <label htmlFor='school-seal' className='cursor-pointer'>
-                <ImageUp />
+                <ImageUp className='size-4 stroke-[1.75]' />
                 {uploading ? 'Uploading…' : school.seal_url ? 'Change seal' : 'Upload seal'}
                 <input
                   id='school-seal'
@@ -454,7 +467,7 @@ function SchoolSeal({ school, canManage }: { school: SchoolProfile; canManage: b
                 type='button'
                 variant='ghost'
                 size='sm'
-                className='text-destructive hover:bg-destructive/10'
+                className='text-[#D92D20] hover:bg-red-50'
                 loading={save.isPending && !uploading}
                 onClick={async () => {
                   try {
@@ -465,7 +478,7 @@ function SchoolSeal({ school, canManage }: { school: SchoolProfile; canManage: b
                   }
                 }}
               >
-                <Trash2 />
+                <Trash className='size-3.5 stroke-[1.75]' />
                 Remove
               </Button>
             )}

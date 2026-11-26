@@ -26,7 +26,7 @@ export const ATTENDANCE_STATUSES = Object.keys(ATTENDANCE_STATUS) as AttendanceS
 export const STAFF_DAY_STATUS: Record<StaffBoardStatus, { label: string; tone: BadgeTone }> = {
   present: { label: 'Present', tone: 'success' },
   late: { label: 'Late', tone: 'warning' },
-  half_day: { label: 'Half day', tone: 'info' },
+  half_day: { label: 'Half day', tone: 'warning' },
   absent: { label: 'Absent', tone: 'danger' },
   on_leave: { label: 'On leave', tone: 'neutral' },
   not_checked_in: { label: 'Not checked in', tone: 'neutral' },

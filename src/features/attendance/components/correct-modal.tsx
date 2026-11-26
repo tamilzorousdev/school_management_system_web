@@ -38,6 +38,7 @@ export function CorrectModal({ row, onClose }: { row: StaffBoardRow; onClose: ()
       formId='correct-attendance-form'
       submitText='Save correction'
       loading={save.isPending}
+      showSubmitShortcut={false}
     >
       <form
         id='correct-attendance-form'

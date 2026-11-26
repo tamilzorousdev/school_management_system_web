@@ -324,8 +324,8 @@ export function DatePicker({
           disabled={disabled}
           data-slot='date-picker'
           className={cn(
-            'group relative flex w-full min-w-0 items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-left text-[13px] shadow-xs transition-all outline-none select-none table-typography dark:border-slate-800 dark:bg-slate-900',
-            'hover:bg-slate-50/70 hover:border-slate-300 focus-visible:border-[#159053] focus-visible:ring-[3px] focus-visible:ring-[#159053]/20',
+            'group relative flex w-full min-w-0 items-center justify-between rounded-md border border-[#D0D5DD] bg-white px-3 text-left text-sm shadow-xs transition-colors outline-none select-none',
+            'hover:bg-[#F9FAFB] hover:border-slate-300 focus-visible:border-[#127D48] focus-visible:ring-[3px] focus-visible:ring-[#127D48]/20',
             disabled && 'cursor-not-allowed opacity-50',
             invalid &&
               'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20',
@@ -376,7 +376,7 @@ export function DatePicker({
       <PopoverContent
         align={align}
         sideOffset={6}
-        className='z-50 w-[290px] rounded-2xl border border-slate-200/90 bg-white p-4 text-slate-800 shadow-xl outline-none select-none table-typography dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
+        className='z-50 w-[260px] rounded-xl border border-[#DFE4E1] bg-[#FFFFFF] p-3 text-slate-800 shadow-[0px_4px_8px_-2px_#0F171414,0px_2px_4px_-2px_#0F17140A] outline-none select-none table-typography dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
       >
         {/* Top Header */}
         <div className='mb-3 flex items-center justify-between'>
@@ -507,13 +507,13 @@ export function DatePicker({
                         !isSelected &&
                         !isToday &&
                         'font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800',
-                      // Today outline box (Day 2 in screenshot!)
+                      // Today outline box
                       isToday &&
                         !isSelected &&
-                        'border-2 border-[#159053] font-semibold text-[#159053] hover:bg-[#ECFDF5] dark:hover:bg-emerald-950/40',
-                      // Selected date filled solid green (Day 18 in screenshot!)
+                        'border border-[#127D48] font-semibold text-[#127D48] hover:bg-[#EAF7F0]',
+                      // Selected date filled solid green
                       isSelected &&
-                        'bg-[#159053] font-semibold text-white shadow-xs hover:bg-[#127d48]',
+                        'bg-[#127D48] font-semibold text-white shadow-xs hover:bg-[#0E6339]',
                       disabledCell && 'pointer-events-none cursor-not-allowed opacity-20'
                     )}
                   >
@@ -599,7 +599,7 @@ export function DatePicker({
           <button
             type='button'
             onClick={handleToday}
-            className='font-semibold text-[#159053] transition-colors hover:text-[#117343] hover:underline cursor-pointer'
+            className='font-semibold text-[#127D48] transition-colors hover:underline cursor-pointer'
           >
             Today
           </button>
@@ -608,14 +608,14 @@ export function DatePicker({
             <button
               type='button'
               onClick={handleClear}
-              className='rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12.5px] font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+              className='rounded-md border border-[#D0D5DD] bg-white px-3 py-1 text-xs font-semibold text-[#344054] shadow-xs transition-colors hover:bg-slate-50'
             >
               Clear
             </button>
             <button
               type='button'
               onClick={handleApply}
-              className='rounded-lg bg-[#159053] px-3.5 py-1.5 text-[12.5px] font-medium text-white shadow-xs transition-colors hover:bg-[#127d48]'
+              className='rounded-md bg-[#127D48] px-3.5 py-1 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#0E6339]'
             >
               Apply
             </button>

@@ -121,6 +121,7 @@ export function AppraisalsPage() {
       value: pendingCount,
       hint: 'Awaiting Admin/Principal sign-off',
       icon: Clock,
+      tone: 'warning',
     },
     {
       key: 'appealed',
@@ -128,6 +129,7 @@ export function AppraisalsPage() {
       value: appealedCount,
       hint: 'Teacher hike review requests',
       icon: AlertCircle,
+      tone: 'danger',
     },
     {
       key: 'finalized',
@@ -135,17 +137,20 @@ export function AppraisalsPage() {
       value: finalizedCount,
       hint: 'Synced with payroll',
       icon: CheckCircle2,
+      tone: 'success',
     },
   ]
 
   const columns: Column<StaffAppraisal>[] = [
     {
       key: 'teacher',
-      header: 'Teacher',
+      header: 'TEACHER',
       cell: (row: StaffAppraisal) => (
         <div className='flex flex-col'>
-          <span className='font-medium text-foreground'>{row.staff.name}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.staff.name}
+          </span>
+          <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {row.employee_no || 'No Emp ID'} · {row.designation} {row.department ? `(${row.department})` : ''}
           </span>
         </div>
@@ -153,17 +158,21 @@ export function AppraisalsPage() {
     },
     {
       key: 'period',
-      header: 'Review Period',
+      header: 'REVIEW PERIOD',
       cell: (row: StaffAppraisal) => (
         <div className='flex flex-col'>
-          <span className='text-sm text-foreground'>{row.period}</span>
-          <span className='text-xs text-muted-foreground'>{row.review_date}</span>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.period}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {row.review_date}
+          </span>
         </div>
       ),
     },
     {
       key: 'rating',
-      header: 'Performance Rating',
+      header: 'PERFORMANCE RATING',
       cell: (row: StaffAppraisal) => {
         const ratingConfig = APPRAISAL_RATING_LABELS[row.overall_rating] ?? {
           label: row.overall_rating,
@@ -171,8 +180,10 @@ export function AppraisalsPage() {
         }
         return (
           <div className='flex items-center gap-2'>
-            <Badge tone={ratingConfig.tone}>{ratingConfig.label}</Badge>
-            <span className='text-xs font-semibold text-muted-foreground'>
+            <Badge tone={ratingConfig.tone} dot className='font-medium text-[11.5px]'>
+              {ratingConfig.label}
+            </Badge>
+            <span className='tabular text-[12px] font-semibold text-slate-600 dark:text-slate-400'>
               {row.overall_score.toFixed(1)} / 5.0
             </span>
           </div>
@@ -181,21 +192,23 @@ export function AppraisalsPage() {
     },
     {
       key: 'hike_track',
-      header: 'Hike Track (Req vs Approved)',
+      header: 'HIKE TRACK',
       cell: (row: StaffAppraisal) => (
-        <div className='flex flex-col gap-0.5 text-xs'>
+        <div className='flex flex-col gap-0.5 text-[12px] leading-[16px]'>
           <div className='flex items-center gap-1.5'>
-            <span className='text-muted-foreground'>Requested:</span>
+            <span className='text-slate-500 dark:text-slate-400'>Requested:</span>
             {row.expected_increment_percent !== null ? (
-              <span className='font-semibold text-primary'>{row.expected_increment_percent}%</span>
+              <span className='font-semibold text-[#127D48] dark:text-emerald-400'>
+                {row.expected_increment_percent}%
+              </span>
             ) : (
-              <span className='text-muted-foreground italic'>Not specified</span>
+              <span className='italic text-slate-400'>Not specified</span>
             )}
           </div>
           <div className='flex items-center gap-1.5'>
-            <span className='text-muted-foreground'>Approved:</span>
-            <span className='font-semibold text-foreground'>{row.increment_percent}%</span>
-            <span className='text-[10px] text-muted-foreground capitalize'>
+            <span className='text-slate-500 dark:text-slate-400'>Approved:</span>
+            <span className='font-semibold text-slate-900 dark:text-slate-100'>{row.increment_percent}%</span>
+            <span className='text-[11px] text-slate-400 capitalize'>
               ({row.recommendation})
             </span>
           </div>
@@ -204,65 +217,61 @@ export function AppraisalsPage() {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (row: StaffAppraisal) => {
         const statusConfig = APPRAISAL_STATUS_LABELS[row.status] ?? {
           label: row.status,
           tone: 'neutral' as const,
         }
-        return <Badge tone={statusConfig.tone}>{statusConfig.label}</Badge>
+        return (
+          <Badge tone={statusConfig.tone} dot className='font-medium text-[11.5px]'>
+            {statusConfig.label}
+          </Badge>
+        )
       },
     },
     {
       key: 'actions',
-      header: '',
-      align: 'right',
+      header: 'ACTION',
+      align: 'right' as const,
       cell: (row: StaffAppraisal) => (
         <div className='flex items-center justify-end gap-1.5'>
           {row.status === 'appealed' && canApprove ? (
             <Button
               size='sm'
-              variant='default'
-              className='text-xs bg-amber-600 hover:bg-amber-700 text-white'
+              variant='primary'
+              className='bg-amber-600 hover:bg-amber-700 text-white'
               onClick={(e) => {
                 e.stopPropagation()
                 setAppealItem(row)
               }}
             >
-              <MessageSquare className='mr-1 h-3.5 w-3.5' />
-              Review Appeal
+              <MessageSquare className='size-3.5 stroke-[1.75]' />
+              Review appeal
             </Button>
-          ) : canApprove && row.status !== 'finalized' ? (
-            <Button
-              size='sm'
-              variant='outline'
-              className='text-xs text-primary border-primary/30 hover:bg-primary/5'
-              onClick={(e) => {
-                e.stopPropagation()
+          ) : null}
+          <Button
+            size='icon-sm'
+            variant='outline'
+            aria-label={`View ${row.staff.name}`}
+            title={canApprove && row.status !== 'finalized' ? 'Review & decide hike' : 'View appraisal'}
+            className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+            onClick={(e) => {
+              e.stopPropagation()
+              if (canApprove && row.status !== 'finalized') {
                 setEditingItem(row)
-              }}
-            >
-              <Edit3 className='mr-1 h-3.5 w-3.5' />
-              Review & Decide Hike
-            </Button>
-          ) : (
-            <Button
-              size='sm'
-              variant='ghost'
-              onClick={(e) => {
-                e.stopPropagation()
+              } else {
                 setActiveItem(row)
-              }}
-            >
-              <Eye className='mr-1 h-3.5 w-3.5' />
-              View
-            </Button>
-          )}
+              }
+            }}
+          >
+            <Eye className='size-4 stroke-[1.75]' />
+          </Button>
 
           {!canApprove && row.status !== 'finalized' && (
-            <span className='flex items-center gap-1 text-[11px] text-muted-foreground italic pl-1'>
-              <Lock className='h-3 w-3' />
-              Admin Approval
+            <span className='flex items-center gap-1 text-[11px] text-slate-400 italic pl-1'>
+              <Lock className='size-3 stroke-[1.75]' />
+              Admin approval
             </span>
           )}
         </div>
@@ -289,35 +298,37 @@ export function AppraisalsPage() {
   return (
     <Page>
       <PageHeader
-        title='Staff Performance Reviews & Appraisals Track'
+        eyebrow='People'
+        title='Performance & appraisals'
         description='Track teacher evaluation ratings, criteria breakdown, requested salary hike %, and management approvals.'
         actions={
           canApprove && (
             <div className='flex items-center gap-2'>
               <Button
-                variant='outline'
+                variant='secondary'
                 size='sm'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={() => setKraModalOpen(true)}
               >
-                <Sliders className='mr-1.5 h-4 w-4' />
+                <Sliders className='size-4 stroke-[1.75]' />
                 Configure KRAs
               </Button>
               <Button
-                variant='outline'
+                variant='secondary'
                 size='sm'
+                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={() => setUploadModalOpen(true)}
-                className='border-dashed'
               >
-                <Upload className='mr-1.5 h-4 w-4' />
-                Upload Ratings (CSV/Excel)
+                <Upload className='size-4 stroke-[1.75]' />
+                Upload ratings
               </Button>
               <Button
-                variant='default'
+                variant='primary'
                 size='sm'
                 onClick={() => setConductModalOpen(true)}
               >
-                <Plus className='mr-1.5 h-4 w-4' />
-                Rate Staff / Conduct Review
+                <Plus className='size-4 stroke-[1.75]' />
+                Rate staff
               </Button>
             </div>
           )
@@ -325,10 +336,10 @@ export function AppraisalsPage() {
       />
 
       {isPrincipal && (
-        <div className='flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-primary'>
-          <Sparkles className='h-4 w-4 shrink-0' />
+        <div className='flex items-center gap-2.5 rounded-lg border border-[#EDF0EE] bg-[#EAF7F0]/40 p-3 text-[12px] leading-[16px] text-slate-700 dark:border-slate-800 dark:bg-emerald-950/20 dark:text-slate-300'>
+          <Sparkles className='size-4 text-[#127D48] shrink-0 stroke-[1.75]' />
           <span>
-            <strong>Principal & Management Evaluation Track:</strong> You have full evaluation authority to rate teaching staff against active school KRAs, review teacher performance dossiers, and determine salary increment percentages.
+            <strong className='font-semibold text-slate-900 dark:text-slate-100'>Principal & Management Evaluation Track:</strong> You have full evaluation authority to rate teaching staff against active school KRAs, review teacher performance dossiers, and determine salary increment percentages.
           </span>
         </div>
       )}
@@ -360,7 +371,7 @@ export function AppraisalsPage() {
         />
       </ListToolbar>
 
-      <Card className='p-0 overflow-hidden'>
+      <Card className='overflow-hidden border border-[#EDF0EE] bg-white dark:border-slate-800 dark:bg-slate-900'>
         <DataTable<StaffAppraisal>
           columns={columns}
           rows={rows}
@@ -377,21 +388,31 @@ export function AppraisalsPage() {
             icon: Award,
             title: 'No performance reviews found',
             description: 'No staff performance reviews match the current filters.',
+            action: canApprove && (
+              <Button
+                variant='primary'
+                size='sm'
+                onClick={() => setConductModalOpen(true)}
+              >
+                <Plus className='size-4 stroke-[1.75]' />
+                Rate staff
+              </Button>
+            ),
           }}
           card={(row) => (
-            <div className='flex flex-col gap-2 p-1 text-xs'>
+            <div className='flex flex-col gap-2 p-3 text-[13px]'>
               <div className='flex items-start justify-between gap-2'>
                 <div>
-                  <span className='font-semibold text-foreground'>{row.staff.name}</span>
-                  <p className='text-muted-foreground text-[11px]'>
+                  <span className='font-semibold text-slate-900 dark:text-slate-100'>{row.staff.name}</span>
+                  <p className='font-mono text-[12px] text-slate-500 dark:text-slate-400'>
                     {row.employee_no} · {row.designation}
                   </p>
                 </div>
-                <Badge tone={APPRAISAL_RATING_LABELS[row.overall_rating]?.tone ?? 'neutral'}>
+                <Badge tone={APPRAISAL_RATING_LABELS[row.overall_rating]?.tone ?? 'neutral'} dot className='text-[11.5px] font-medium'>
                   {APPRAISAL_RATING_LABELS[row.overall_rating]?.label ?? row.overall_rating}
                 </Badge>
               </div>
-              <div className='flex items-center justify-between text-muted-foreground text-[11px]'>
+              <div className='flex items-center justify-between text-[12px] text-slate-500 dark:text-slate-400'>
                 <span>
                   Req:{' '}
                   {row.expected_increment_percent !== null
@@ -400,7 +421,7 @@ export function AppraisalsPage() {
                 </span>
                 <span>
                   Approved:{' '}
-                  <strong className='text-foreground'>{row.increment_percent}%</strong>
+                  <strong className='font-semibold text-slate-900 dark:text-slate-100'>{row.increment_percent}%</strong>
                 </span>
               </div>
             </div>
@@ -1518,21 +1539,22 @@ function AppraisalReviewModal({
           </Button>
           <div className='flex items-center gap-2'>
             <Button
-              variant='outline'
+              variant='secondary'
               size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
               disabled={isSaving || isFinalizing}
               onClick={() => void handleSave(false)}
             >
-              <Save className='mr-1 h-3.5 w-3.5' />
+              <Save className='size-3.5 stroke-[1.75]' />
               {isSaving ? 'Saving…' : 'Save Changes'}
             </Button>
             <Button
-              variant='default'
+              variant='primary'
               size='sm'
               disabled={isSaving || isFinalizing}
               onClick={() => void handleSave(true)}
             >
-              <UserCheck className='mr-1 h-3.5 w-3.5' />
+              <UserCheck className='size-3.5 stroke-[1.75]' />
               {isFinalizing ? 'Finalizing…' : 'Approve & Finalize'}
             </Button>
           </div>
@@ -2065,26 +2087,27 @@ function ConductAppraisalModal({
 
         {/* Footer actions */}
         <div className='flex items-center justify-between pt-2 border-t border-border'>
-          <Button variant='outline' size='sm' onClick={onClose} disabled={isSubmitting}>
+          <Button variant='secondary' size='sm' onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <div className='flex items-center gap-2'>
             <Button
-              variant='outline'
+              variant='secondary'
               size='sm'
+              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
               disabled={isSubmitting || !selectedStaffId}
               onClick={() => void handleSubmit(false)}
             >
-              <Save className='mr-1 h-3.5 w-3.5' />
+              <Save className='size-3.5 stroke-[1.75]' />
               {isSubmitting ? 'Saving…' : 'Save as Draft'}
             </Button>
             <Button
-              variant='default'
+              variant='primary'
               size='sm'
               disabled={isSubmitting || !selectedStaffId}
               onClick={() => void handleSubmit(true)}
             >
-              <UserCheck className='mr-1 h-3.5 w-3.5' />
+              <UserCheck className='size-3.5 stroke-[1.75]' />
               {isSubmitting ? 'Publishing…' : 'Approve & Finalize'}
             </Button>
           </div>
@@ -2500,16 +2523,16 @@ function UploadRatingsModal({
 
         {/* Action footer */}
         <div className='flex items-center justify-between pt-2 border-t border-border'>
-          <Button variant='outline' size='sm' onClick={onClose} disabled={isImporting}>
+          <Button variant='secondary' size='sm' onClick={onClose} disabled={isImporting}>
             Cancel
           </Button>
           <Button
-            variant='default'
+            variant='primary'
             size='sm'
             onClick={handleImport}
             disabled={isImporting || validCount === 0}
           >
-            <Upload className='mr-1.5 h-3.5 w-3.5' />
+            <Upload className='size-3.5 stroke-[1.75]' />
             {isImporting ? 'Importing Ratings…' : `Upload & Import (${validCount} Ratings)`}
           </Button>
         </div>
