@@ -3,15 +3,15 @@ import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpen,
+  Book,
   ChevronDown,
-  ClipboardCheck,
+  Clock,
   ExternalLink,
   Link2,
   Pencil,
-  Trash2,
-  UserRoundCheck,
-  UserRoundX,
+  Trash,
+  UserCheck,
+  UserX,
 } from 'lucide-react'
 import { Avatar } from '@/components/common/avatar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -156,37 +156,48 @@ export function AlumniProfilePage() {
           </div>
           {canManage && (
             <div className='flex flex-wrap gap-2'>
-              <Button variant='outline' onClick={() => setModal('edit')}>
-                <Pencil />
+              <Button
+                variant='secondary'
+                size='md'
+                className='w-[85px] h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                onClick={() => setModal('edit')}
+              >
+                <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Edit
               </Button>
               <Button
-                variant='outline'
+                variant='secondary'
+                size='md'
+                className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 loading={issueLink.isPending}
                 onClick={() => void createLink()}
               >
-                <Link2 />
+                <Link2 className='size-4 stroke-[1.75]' />
                 Update link
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant='outline'>
+                  <Button
+                    variant='secondary'
+                    size='md'
+                    className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                  >
                     More
-                    <ChevronDown />
+                    <ChevronDown className='size-4 stroke-[1.75]' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onSelect={() => setModal('status')}>
-                    {active ? <UserRoundX /> : <UserRoundCheck />}
+                    {active ? <UserX className='size-4 stroke-[1.75]' /> : <UserCheck className='size-4 stroke-[1.75]' />}
                     {active ? 'Mark do not contact' : 'Mark active'}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setModal('history')}>
-                    <BookOpen />
+                    <Book className='size-4 stroke-[1.75]' />
                     Edit academic history
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem destructive onSelect={() => setModal('delete')}>
-                    <Trash2 />
+                    <Trash className='size-4 stroke-[1.75]' />
                     Delete record
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -200,26 +211,31 @@ export function AlumniProfilePage() {
         <Card className='flex flex-wrap items-center justify-between gap-3 border-warning/40 bg-warning/5 p-4'>
           <div className='flex items-center gap-3'>
             <span className='grid size-10 shrink-0 place-items-center rounded-lg bg-warning/15 text-warning'>
-              <ClipboardCheck className='size-5' />
+              <Clock className='size-5 stroke-[1.75]' />
             </span>
             <div className='grid'>
-              <span className='font-semibold'>
+              <span className='text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
                 {data.pending_submissions === 1
                   ? 'A change sent by this person is waiting for review'
                   : `${data.pending_submissions} changes sent by this person are waiting for review`}
               </span>
-              <span className='text-sm text-muted-foreground'>
+              <span className='text-[12px] text-slate-500 dark:text-slate-400'>
                 Their details here stay the same until you approve.
               </span>
             </div>
           </div>
-          <Button variant='outline' asChild>
+          <Button
+            variant='secondary'
+            size='sm'
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+            asChild
+          >
             <Link
               to='/alumni'
               search={{ page: 1, tab: 'submissions', submission_status: 'pending' }}
             >
               Review
-              <ArrowRight />
+              <ArrowRight className='size-3.5 stroke-[1.75]' />
             </Link>
           </Button>
         </Card>
@@ -300,14 +316,19 @@ export function AlumniProfilePage() {
             action={
               data.student_id &&
               canSeeStudents && (
-                <Button variant='outline' size='sm' asChild>
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                  asChild
+                >
                   <Link
                     to='/students/$studentId'
                     params={{ studentId: String(data.student_id) }}
                     search={{ tab: 'profile' }}
                   >
                     Student record
-                    <ArrowRight />
+                    <ArrowRight className='size-3.5 stroke-[1.75]' />
                   </Link>
                 </Button>
               )
@@ -421,26 +442,31 @@ function AcademicHistory({
       title='Academic history'
       action={
         canManage && (
-          <Button variant='outline' size='sm' onClick={onEdit}>
-            <Pencil />
+          <Button
+            variant='secondary'
+            size='sm'
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+            onClick={onEdit}
+          >
+            <Pencil className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
             Edit
           </Button>
         )
       }
     >
       {rows.length === 0 ? (
-        <p className='rounded-lg border border-dashed p-3 text-sm text-muted-foreground'>
+        <p className='rounded-lg border border-dashed border-[#EDF0EE] p-3 text-sm text-muted-foreground'>
           No class history on record.
         </p>
       ) : (
-        <ul className='grid overflow-hidden rounded-lg border'>
+        <ul className='grid overflow-hidden rounded-lg border border-[#EDF0EE] divide-y divide-[#EDF0EE] bg-white dark:border-slate-800 dark:divide-slate-800 dark:bg-card'>
           {rows.map((row) => (
             <li
               key={row.id}
-              className='grid gap-1 border-b px-3 py-2.5 text-sm last:border-0 sm:grid-cols-[6rem_1fr_auto] sm:items-center sm:gap-3'
+              className='grid gap-1 px-3 py-2.5 text-sm sm:grid-cols-[6rem_1fr_auto] sm:items-center sm:gap-3'
             >
-              <span className='font-semibold'>{row.academic_year_name}</span>
-              <span className='text-muted-foreground'>
+              <span className='text-[13px] font-semibold text-slate-900 dark:text-slate-100 font-mono'>{row.academic_year_name}</span>
+              <span className='text-[12px] text-slate-500 dark:text-slate-400 font-medium'>
                 {classLabel(row.class_name, row.section_name)}
                 {row.roll_no ? ` · Roll ${row.roll_no}` : ''}
                 {row.percent !== null ? ` · ${row.percent}%` : ''}

@@ -43,15 +43,15 @@ export function QualificationsEditor({
               <Button
                 type='button'
                 size='icon-sm'
-                variant='ghost'
+                variant='outline'
                 aria-label={`Remove qualification ${index + 1}`}
-                className='text-destructive hover:bg-destructive/10'
+                className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50'
                 onClick={() => onChange(value.filter((_item, position) => position !== index))}
               >
                 <Trash className='size-4 stroke-[1.75]' />
               </Button>
             </div>
-            <div className='grid gap-3 sm:grid-cols-2'>
+            <div className='grid gap-4 sm:grid-cols-2'>
               <FormField
                 id={id('degree')}
                 label='Degree'
@@ -62,6 +62,8 @@ export function QualificationsEditor({
                   id={id('degree')}
                   placeholder='M.Sc., B.Ed.'
                   maxLength={60}
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={item.degree}
                   onChange={(event) => update(index, 'degree', event.target.value)}
                 />
@@ -75,6 +77,8 @@ export function QualificationsEditor({
                   id={id('specialization')}
                   placeholder='Mathematics'
                   maxLength={80}
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={item.specialization}
                   onChange={(event) => update(index, 'specialization', event.target.value)}
                 />
@@ -87,6 +91,8 @@ export function QualificationsEditor({
                 <Input
                   id={id('institution')}
                   maxLength={150}
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={item.institution}
                   onChange={(event) => update(index, 'institution', event.target.value)}
                 />
@@ -101,7 +107,8 @@ export function QualificationsEditor({
                   inputMode='numeric'
                   maxLength={4}
                   placeholder='2012'
-                  className='tabular'
+                  size='sm'
+                  className='h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md font-mono tabular focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
                   value={item.year_completed}
                   onChange={(event) =>
                     update(index, 'year_completed', event.target.value.replace(/\D/g, ''))
@@ -115,12 +122,12 @@ export function QualificationsEditor({
       {value.length < MAX_QUALIFICATIONS && (
         <Button
           type='button'
-          variant='outline'
+          variant='secondary'
           size='sm'
-          className='justify-self-start'
+          className='border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium h-8 px-3 gap-1.5 justify-self-start'
           onClick={() => onChange([...value, emptyQualification()])}
         >
-          <Plus className='size-4 stroke-[1.75]' />
+          <Plus className='size-3.5 stroke-[1.75]' />
           Add qualification
         </Button>
       )}

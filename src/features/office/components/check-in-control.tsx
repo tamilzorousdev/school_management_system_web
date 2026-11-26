@@ -46,7 +46,7 @@ export function CheckInControl({ className }: { className?: string }) {
   const [busy, setBusy] = useState(false)
 
   if (status.isPending)
-    return <div className={cn('h-9 w-40 rounded-lg bg-hero-foreground/10', className)} />
+    return <div className={cn('h-8 w-36 rounded-lg bg-hero-foreground/10', className)} />
   if (status.isError) return null
 
   const data = status.data
@@ -74,29 +74,29 @@ export function CheckInControl({ className }: { className?: string }) {
   return (
     <div
       data-testid='office-check-in'
-      className={cn('flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2', className)}
+      className={cn('flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5', className)}
     >
       {action && (
         <button
           type='button'
           onClick={run}
           disabled={busy}
-          className='inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-hero-foreground px-3.5 text-sm font-bold text-hero-ink shadow-sm transition-opacity outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-hero-foreground/50 disabled:opacity-70'
+          className='inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-hero-foreground px-3 text-xs font-bold text-hero-ink shadow-sm transition-opacity outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-hero-foreground/50 disabled:opacity-70'
         >
           {busy ? (
-            <Loader2 className='size-4 animate-spin' />
+            <Loader2 className='size-3.5 animate-spin' />
           ) : action === 'in' ? (
-            <Fingerprint className='size-4' />
+            <Fingerprint className='size-3.5' />
           ) : (
-            <LogOut className='size-4' />
+            <LogOut className='size-3.5' />
           )}
           {action === 'in' ? 'Check in' : 'Check out'}
         </button>
       )}
-      <span className='flex min-w-0 items-center gap-2 text-sm font-medium text-hero-foreground/85'>
+      <span className='flex min-w-0 items-center gap-1.5 text-xs font-medium text-hero-foreground/85'>
         <span
           className={cn(
-            'size-2 shrink-0 rounded-full',
+            'size-1.5 shrink-0 rounded-full',
             data.check_in_at && !data.check_out_at ? 'bg-hero-foreground' : 'bg-hero-foreground/40'
           )}
         />

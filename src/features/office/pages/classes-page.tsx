@@ -150,7 +150,7 @@ function WingsLevel({
         />
       )}
       {unassigned_classes.length > 0 && (
-        <div className='flex flex-wrap items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm'>
+        <div className='flex flex-wrap items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-[12.5px]'>
           <span className='font-semibold text-warning'>Classes in no wing:</span>
           {unassigned_classes.map((item) => (
             <Badge key={item.id} tone='warning'>
@@ -220,7 +220,12 @@ function NotInView({ error, onBack }: { error: ApiError; onBack: () => void }) {
       title='Not in your view'
       description={error.message}
       action={
-        <Button variant='outline' onClick={onBack}>
+        <Button
+          variant='secondary'
+          size='sm'
+          className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+          onClick={onBack}
+        >
           Back to wings
         </Button>
       }

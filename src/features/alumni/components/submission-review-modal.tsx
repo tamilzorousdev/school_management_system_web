@@ -270,7 +270,8 @@ function Review({
               Back
             </Button>
             <Button
-              variant='destructive'
+              variant='outline'
+              className='border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 font-medium'
               loading={busy}
               onClick={() => {
                 if (note.trim().length < 3) {
@@ -280,18 +281,31 @@ function Review({
                 void attempt(() => onReject(note.trim()))
               }}
             >
-              <X />
+              <X className='size-4 stroke-[1.75]' />
               Reject
             </Button>
           </>
         ) : (
           <>
-            <Button variant='outline' disabled={busy} onClick={() => setRejecting(true)}>
-              <X />
+            <Button
+              variant='outline'
+              className='border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 font-medium'
+              disabled={busy}
+              onClick={() => setRejecting(true)}
+            >
+              <X className='size-4 stroke-[1.75]' />
               Reject
             </Button>
-            <Button loading={busy} onClick={() => void attempt(() => onApprove(target))}>
-              {target === null && submission.type === 'registration' ? <UserPlus /> : <Check />}
+            <Button
+              className='bg-[#127D48] text-white hover:bg-[#0E6339] font-medium'
+              loading={busy}
+              onClick={() => void attempt(() => onApprove(target))}
+            >
+              {target === null && submission.type === 'registration' ? (
+                <UserPlus className='size-4 stroke-[1.75]' />
+              ) : (
+                <Check className='size-4 stroke-[1.75]' />
+              )}
               {submission.type === 'update'
                 ? 'Approve changes'
                 : target === null

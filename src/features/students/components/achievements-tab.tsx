@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { EyeOff, FileText, Medal, Paperclip, PenLine, Plus, Trash, Trophy } from 'lucide-react'
+import { EyeOff, FileText, Medal, Paperclip, Pencil, Plus, Trash, Trophy } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -130,43 +130,48 @@ export function AchievementsTab({
                     {formatDate(item.achieved_on)}
                     {item.added_by ? ` · ${item.added_by.name}` : ''}
                   </span>
-                  <span className='flex gap-1'>
-                    {item.file && (
-                      <Button
-                        size='icon-sm'
-                        variant='ghost'
-                        aria-label={`Open certificate of ${item.title}`}
-                        onClick={() =>
-                          void openFile(`/files/${item.file!.id}/content`).catch((error: unknown) =>
-                            alerts.error(toApiError(error).message)
-                          )
-                        }
-                      >
-                        <FileText />
-                      </Button>
-                    )}
-                    {canManage && (
-                      <>
+                    <span className='flex gap-1.5'>
+                      {item.file && (
                         <Button
                           size='icon-sm'
-                          variant='ghost'
-                          aria-label={`Edit ${item.title}`}
-                          onClick={() => setEditing(item)}
+                          variant='outline'
+                          aria-label={`Open certificate of ${item.title}`}
+                          title='Open certificate'
+                          className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                          onClick={() =>
+                            void openFile(`/files/${item.file!.id}/content`).catch((error: unknown) =>
+                              alerts.error(toApiError(error).message)
+                            )
+                          }
                         >
-                          <PenLine className='size-4 stroke-[1.75]' />
+                          <FileText className='size-4 stroke-[1.75]' />
                         </Button>
-                        <Button
-                          size='icon-sm'
-                          variant='ghost'
-                          aria-label={`Delete ${item.title}`}
-                          className='text-destructive hover:bg-destructive/10'
-                          onClick={() => setRemoving(item)}
-                        >
-                          <Trash className='size-4 stroke-[1.75]' />
-                        </Button>
-                      </>
-                    )}
-                  </span>
+                      )}
+                      {canManage && (
+                        <>
+                          <Button
+                            size='icon-sm'
+                            variant='outline'
+                            aria-label={`Edit ${item.title}`}
+                            title='Edit'
+                            className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                            onClick={() => setEditing(item)}
+                          >
+                            <Pencil className='size-4 stroke-[1.75]' />
+                          </Button>
+                          <Button
+                            size='icon-sm'
+                            variant='outline'
+                            aria-label={`Delete ${item.title}`}
+                            title='Delete'
+                            className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
+                            onClick={() => setRemoving(item)}
+                          >
+                            <Trash className='size-4 stroke-[1.75]' />
+                          </Button>
+                        </>
+                      )}
+                    </span>
                 </div>
               </div>
             </li>

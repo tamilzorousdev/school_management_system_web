@@ -8,23 +8,23 @@ import { Chips, Stat } from './shared'
 
 function PendingLine({ label, count }: { label: string; count: number }) {
   return (
-    <div className='grid min-w-0 rounded-md border px-2 py-1.5 text-center'>
-      <span className='text-[11px] leading-tight font-semibold text-muted-foreground'>{label}</span>
-      <span className={cn('tabular font-bold', count > 0 && 'text-warning')}>{count}</span>
+    <div className='grid min-w-0 rounded-md border border-[#DFE4E1] bg-muted/20 px-1.5 py-1 text-center'>
+      <span className='text-[10.5px] leading-tight font-semibold text-muted-foreground'>{label}</span>
+      <span className={cn('tabular text-xs font-bold', count > 0 && 'text-warning')}>{count}</span>
     </div>
   )
 }
 
 export function AoStats({ card }: { card: AoCard }) {
   return (
-    <div className='grid gap-3'>
-      <div className='grid grid-cols-2 gap-2'>
+    <div className='grid gap-2.5'>
+      <div className='grid grid-cols-2 gap-1.5'>
         <PendingLine label='Gate passes' count={card.pending.gate_passes} />
         <PendingLine label='Fee requests' count={card.pending.fee_requests} />
         <PendingLine label='Leave' count={card.pending.leave_requests} />
         <PendingLine label='Grievances' count={card.pending.grievances} />
       </div>
-      <div className='grid grid-cols-2 gap-3'>
+      <div className='grid grid-cols-2 gap-2'>
         <Stat
           icon={Clock}
           label='Pending approvals'
@@ -87,38 +87,39 @@ export function AoCardView({
   reminding: boolean
 }) {
   return (
-    <div className='grid min-w-0 content-start gap-3 rounded-xl border bg-card p-4 shadow-xs'>
+    <div className='grid min-w-0 content-start gap-2.5 rounded-lg border border-[#DFE4E1] bg-white p-3.5 shadow-xs dark:bg-card dark:border-border'>
       <button
         type='button'
         onClick={onOpen}
         aria-label={`Open ${card.user.name}`}
         className='grid min-w-0 gap-0.5 rounded text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40'
       >
-        <span className='truncate text-base font-extrabold tracking-tight hover:text-primary'>
+        <span className='truncate text-sm sm:text-[15px] font-bold tracking-tight hover:text-primary'>
           {card.user.name}
         </span>
-        <span className='truncate text-xs text-muted-foreground'>
+        <span className='truncate text-[11px] text-muted-foreground'>
           {card.is_head ? 'Head AO · whole school' : card.wings.map((wing) => wing.name).join(', ')}
         </span>
         <span
-          className={cn('text-xs', card.inactive ? 'text-destructive' : 'text-muted-foreground')}
+          className={cn('text-[11px]', card.inactive ? 'text-destructive font-medium' : 'text-muted-foreground')}
         >
           Last active {card.last_active_at ? timeAgo(card.last_active_at, now) : 'never'}
         </span>
       </button>
       <AoStats card={card} />
       <div className='flex flex-wrap gap-2'>
-        <Button size='sm' variant='outline' onClick={onOpen}>
+        <Button size='sm' variant='outline' className='h-7.5 px-2.5 text-xs' onClick={onOpen}>
           Open
         </Button>
         <Button
           size='sm'
           variant='ghost'
+          className='h-7.5 px-2.5 text-xs'
           disabled={!card.pending.total}
           loading={reminding}
           onClick={onRemind}
         >
-          <BellRing />
+          <BellRing className='size-3.5' />
           Remind
         </Button>
       </div>

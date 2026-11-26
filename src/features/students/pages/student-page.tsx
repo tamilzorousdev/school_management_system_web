@@ -17,7 +17,7 @@ import {
   Link2,
   LogOut,
   NotebookPen,
-  PenLine,
+  Pencil,
   Phone,
   Plus,
   RefreshCw,
@@ -279,7 +279,7 @@ export function StudentPage() {
               <Button
                 variant='secondary'
                 size='md'
-                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 loading={printing}
                 onClick={() => void printCard()}
               >
@@ -291,10 +291,10 @@ export function StudentPage() {
               <Button
                 variant='secondary'
                 size='md'
-                className='w-[85px] border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                className='w-[85px] h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={() => setModal('edit')}
               >
-                <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Edit
               </Button>
             )}
@@ -304,7 +304,7 @@ export function StudentPage() {
                   <Button
                     variant='secondary'
                     size='md'
-                    className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                    className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                   >
                     More
                     <ChevronDown className='size-4 stroke-[1.75]' />
@@ -505,7 +505,12 @@ function LeftBanner({ student }: { student: StudentDetail }) {
       </div>
       <div className='flex flex-wrap gap-2'>
         {student.alumni_id && (
-          <Button variant='secondary' size='sm' className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium' asChild>
+          <Button
+            variant='secondary'
+            size='sm'
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+            asChild
+          >
             <Link to='/alumni/$id' params={{ id: String(student.alumni_id) }}>
               <GraduationCap className='size-3.5 stroke-[1.75]' />
               View alumni record
@@ -516,7 +521,7 @@ function LeftBanner({ student }: { student: StudentDetail }) {
           <Button
             variant='secondary'
             size='sm'
-            className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
             onClick={() =>
               void openFile(studentFiles.tc(student.id)).catch((error: unknown) =>
                 alerts.error(toApiError(error).message)
@@ -551,10 +556,10 @@ function ProfileTab({
               <Button
                 variant='secondary'
                 size='sm'
-                className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
+                className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={onChangeClass}
               >
-                <PenLine className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                <Pencil className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Change
               </Button>
             )
@@ -649,9 +654,9 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
           action={
             canManage && (
               <Button
-                variant='outline'
+                variant='secondary'
                 size='sm'
-                className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={() => setLinking(true)}
               >
                 <Plus className='size-4 stroke-[1.75]' />
@@ -662,25 +667,25 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
         >
           <ul className='grid gap-2'>
             {student.guardian_details.map((guardian) => (
-              <li key={guardian.id} className='flex items-start gap-3 rounded-lg border p-3'>
+              <li key={guardian.id} className='flex items-start gap-3 rounded-lg border border-[#EDF0EE] bg-white p-3 dark:border-slate-800 dark:bg-card'>
                 <Avatar name={guardian.name} size='sm' />
                 <div className='grid min-w-0 flex-1 gap-1'>
                   <div className='flex flex-wrap items-center gap-1.5'>
-                    <span className='font-semibold'>{guardian.name}</span>
+                    <span className='text-[13px] font-semibold text-slate-900 dark:text-slate-100'>{guardian.name}</span>
                     <Badge tone='neutral'>{RELATION_LABELS[guardian.relation]}</Badge>
                     {guardian.is_primary && <Badge tone='success'>Main contact</Badge>}
                     {guardian.can_pickup && <Badge tone='info'>Can pick up</Badge>}
                   </div>
-                  <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground'>
+                  <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-slate-500 dark:text-slate-400'>
                     <a
                       href={`tel:+91${guardian.mobile}`}
-                      className='tabular inline-flex items-center gap-1 hover:text-foreground'
+                      className='tabular inline-flex items-center gap-1 hover:text-foreground font-medium'
                     >
-                      <Phone className='size-3' />
+                      <Phone className='size-3 stroke-[1.75]' />
                       +91 {guardian.mobile}
                     </a>
                     <span className='inline-flex items-center gap-1'>
-                      <Smartphone className='size-3' />
+                      <Smartphone className='size-3 stroke-[1.75]' />
                       {guardian.on_app
                         ? 'Uses the app'
                         : guardian.receives_alerts
@@ -691,14 +696,14 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                   </div>
                 </div>
                 {canManage && (
-                  <div className='flex shrink-0 gap-1'>
+                  <div className='flex shrink-0 gap-1.5'>
                     {!guardian.is_primary && (
                       <Button
                         variant='outline'
                         size='icon-sm'
                         aria-label={`Make ${guardian.name} the main contact`}
                         title='Make main contact'
-                        className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                        className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                         onClick={() => makeMain.mutate(guardian.id)}
                       >
                         <Star className='size-4 stroke-[1.75]' />
@@ -706,13 +711,14 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                     )}
                     {student.guardian_details.length > 1 && (
                       <Button
-                        variant='ghost'
+                        variant='outline'
                         size='icon-sm'
                         aria-label={`Unlink ${guardian.name}`}
-                        className='text-destructive hover:bg-destructive/10'
+                        title='Unlink parent'
+                        className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                         onClick={() => setUnlinking({ id: guardian.id, name: guardian.name })}
                       >
-                        <X />
+                        <X className='size-4 stroke-[1.75]' />
                       </Button>
                     )}
                   </div>

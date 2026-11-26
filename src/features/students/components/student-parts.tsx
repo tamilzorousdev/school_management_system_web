@@ -32,7 +32,7 @@ export function Block({
   return (
     <section className='grid gap-3'>
       <div className='flex items-center justify-between gap-2'>
-        <h3 className='text-xs font-bold tracking-wider text-muted-foreground uppercase'>
+        <h3 className='text-[11.5px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase'>
           {title}
         </h3>
         {action}
@@ -44,13 +44,13 @@ export function Block({
 
 export function Facts({ items }: { items: [string, ReactNode][] }) {
   return (
-    <dl className='grid gap-x-6 gap-y-3 rounded-lg border p-3 sm:grid-cols-2'>
+    <dl className='grid gap-x-6 gap-y-3 rounded-lg border border-[#EDF0EE] bg-white p-3.5 sm:grid-cols-2 dark:border-slate-800 dark:bg-card'>
       {items.map(([label, value]) => (
         <div key={label} className='grid gap-0.5'>
-          <dt className='text-[11px] font-bold tracking-wider text-muted-foreground uppercase'>
+          <dt className='text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase'>
             {label}
           </dt>
-          <dd className='text-sm font-semibold break-words'>{value}</dd>
+          <dd className='text-[13px] font-semibold text-slate-900 dark:text-slate-100 break-words'>{value}</dd>
         </div>
       ))}
     </dl>

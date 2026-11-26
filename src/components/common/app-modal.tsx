@@ -32,6 +32,7 @@ interface AppModalProps {
   size?: keyof typeof sizes
   footer?: React.ReactNode
   showSubmitShortcut?: boolean
+  className?: string
 }
 
 export function AppModal({
@@ -47,6 +48,7 @@ export function AppModal({
   size = 'md',
   footer,
   showSubmitShortcut = false,
+  className,
 }: AppModalProps) {
   const [lastOpenChildren, setLastOpenChildren] = React.useState(children)
   if (open && lastOpenChildren !== children) setLastOpenChildren(children)
@@ -63,7 +65,7 @@ export function AppModal({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
-      <DialogContent className={cn(sizes[size])}>
+      <DialogContent className={cn(sizes[size], className)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

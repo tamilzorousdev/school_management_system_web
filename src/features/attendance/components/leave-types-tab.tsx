@@ -102,7 +102,7 @@ export function LeaveTypesTab({ canManage }: { canManage: boolean }) {
 
   const newButton = canManage && (
     <Button size='sm' onClick={() => setEditing({ type: null })}>
-      <Plus />
+      <Plus className='size-3.5' />
       New leave type
     </Button>
   )

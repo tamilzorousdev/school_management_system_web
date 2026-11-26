@@ -154,7 +154,7 @@ function DecisionButtons({
           onApprove()
         }}
       >
-        <Check />
+        <Check className='size-3.5' />
         Approve
       </Button>
       <Button
@@ -168,7 +168,7 @@ function DecisionButtons({
           onReject()
         }}
       >
-        <X />
+        <X className='size-3.5' />
         Reject
       </Button>
     </span>

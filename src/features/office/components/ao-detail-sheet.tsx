@@ -54,14 +54,14 @@ export function AoDetailSheet({
             <div className='grid gap-3'>
               <AoStats card={card} />
               <Button
-                className='justify-self-start'
+                className='justify-self-start h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 size='sm'
-                variant='outline'
+                variant='secondary'
                 disabled={!card.pending.total}
                 loading={reminding}
                 onClick={() => onRemind(card)}
               >
-                <BellRing />
+                <BellRing className='size-3.5 stroke-[1.75]' />
                 Remind about {card.pending.total} pending
               </Button>
             </div>
@@ -77,22 +77,22 @@ export function AoDetailSheet({
           ) : (
             <>
               <section className='grid gap-2'>
-                <h3 className='text-sm font-bold'>Pending ({detail.data.pending.length})</h3>
+                <h3 className='text-[13.5px] font-bold text-slate-900 dark:text-slate-100'>Pending ({detail.data.pending.length})</h3>
                 {detail.data.pending.length ? (
                   <ul className='grid gap-2'>
                     {detail.data.pending.map((item) => (
                       <li
                         key={`${item.kind}-${item.id}`}
-                        className='grid gap-1 rounded-lg border p-3'
+                        className='grid gap-1 rounded-lg border border-[#EDF0EE] bg-white p-3 dark:border-slate-800 dark:bg-card'
                       >
                         <div className='flex flex-wrap items-center gap-2'>
                           <Badge tone='neutral'>{PENDING_LABEL[item.kind]}</Badge>
-                          <span className='min-w-0 flex-1 text-sm font-semibold break-words'>
+                          <span className='min-w-0 flex-1 text-[13px] font-semibold text-slate-900 dark:text-slate-100 break-words'>
                             {item.title}
                           </span>
                           {item.overdue && <Badge tone='danger'>Overdue</Badge>}
                         </div>
-                        <div className='flex flex-wrap gap-x-3 text-xs text-muted-foreground'>
+                        <div className='flex flex-wrap gap-x-3 text-[12px] text-slate-500 dark:text-slate-400'>
                           {item.student && (
                             <span>
                               {item.student}
@@ -112,12 +112,12 @@ export function AoDetailSheet({
                 )}
               </section>
               <section className='grid gap-2'>
-                <h3 className='text-sm font-bold'>Activity</h3>
+                <h3 className='text-[13.5px] font-bold text-slate-900 dark:text-slate-100'>Activity</h3>
                 {detail.data.activity.length ? (
                   <ol className='grid gap-3 border-l pl-4'>
                     {detail.data.activity.map((item, index) => (
                       <li key={`${item.at}-${index}`} className='grid gap-0.5'>
-                        <span className='text-sm font-semibold break-words'>{item.title}</span>
+                        <span className='text-[13px] font-medium text-slate-800 dark:text-slate-200 break-words'>{item.title}</span>
                         {item.detail && (
                           <span className='text-xs break-words text-muted-foreground'>
                             {item.detail}

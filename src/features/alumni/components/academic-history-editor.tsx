@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Plus, Trash2 } from 'lucide-react'
+import { Book, Plus, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
@@ -151,7 +151,7 @@ function HistoryForm({
       <RootError message={errors.root ?? errors.rows} />
       {rows.length === 0 && (
         <p className='flex items-center gap-2 rounded-lg border border-dashed px-3 py-4 text-sm text-muted-foreground'>
-          <BookOpen className='size-4' />
+          <Book className='size-4' />
           No years entered by staff. Saving now removes any you had added.
         </p>
       )}
@@ -165,12 +165,12 @@ function HistoryForm({
               <Button
                 type='button'
                 size='icon-sm'
-                variant='ghost'
+                variant='outline'
                 aria-label={`Remove year ${index + 1}`}
-                className='text-destructive hover:bg-destructive/10'
+                className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50'
                 onClick={() => setRows((current) => current.filter((_row, at) => at !== index))}
               >
-                <Trash2 />
+                <Trash className='size-4 stroke-[1.75]' />
               </Button>
             </div>
             <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
@@ -255,12 +255,12 @@ function HistoryForm({
       })}
       <Button
         type='button'
-        variant='outline'
-        className='justify-self-start'
+        variant='secondary'
+        className='justify-self-start border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium h-9 px-4 gap-2'
         disabled={rows.length >= MAX_ROWS}
         onClick={() => setRows((current) => [...current, toDraft()])}
       >
-        <Plus />
+        <Plus className='size-4 stroke-[1.75]' />
         Add a year
       </Button>
     </form>

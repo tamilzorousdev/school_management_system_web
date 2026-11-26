@@ -43,6 +43,9 @@ const MOBILE = /^[6-9]\d{9}$/
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const EMPLOYEE_NO = /^[A-Za-z0-9/_-]{1,30}$/
 
+const FIELD_CLASS =
+  'h-8 w-full sm:w-[320px] border-[#9AA49F] bg-white px-3 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
+
 interface Draft {
   name: string
   mobile: string
@@ -120,6 +123,7 @@ export function StaffFormModal({
       formId={FORM_ID}
       submitText={editing ? 'Save changes' : 'Add staff'}
       size='lg'
+      className='sm:max-w-[704px]'
       loading={create.isPending || update.isPending}
     >
       {open && (
@@ -315,8 +319,8 @@ function StaffForm({
               className='size-16 text-lg'
             />
             <div className='flex flex-wrap items-center gap-2'>
-              <label className='inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold hover:bg-accent hover:text-accent-foreground'>
-                <Camera className='size-3.5' />
+              <label className='inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[#C6CEC9] bg-white px-3 py-1.5 text-xs font-semibold text-[#171B19] hover:bg-[#F9FAFB]'>
+                <Camera className='size-3.5 stroke-[1.75]' />
                 {uploadingPhoto ? 'Uploading…' : draft.photo_url ? 'Change photo' : 'Upload photo'}
                 <input
                   type='file'
@@ -336,7 +340,7 @@ function StaffForm({
                   onClick={() =>
                     setDraft((current) => ({ ...current, photo_file_id: null, photo_url: null }))
                   }
-                  className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
+                  className='inline-flex items-center gap-1.5 rounded-md border border-[#FDA29B] bg-white px-3 py-1.5 text-xs font-semibold text-[#D92D20] hover:bg-rose-50'
                 >
                   <Trash className='size-3.5 stroke-[1.75]' />
                   Remove
@@ -348,7 +352,10 @@ function StaffForm({
             <Input
               id='name'
               autoFocus
+              size='sm'
               maxLength={120}
+              placeholder='Full name'
+              className={FIELD_CLASS}
               value={draft.name}
               onChange={(event) => set('name', event.target.value)}
             />
@@ -370,7 +377,10 @@ function StaffForm({
             <Input
               id='email'
               type='email'
+              size='sm'
               maxLength={150}
+              placeholder='email@example.com'
+              className={FIELD_CLASS}
               value={draft.email}
               onChange={(event) => set('email', event.target.value)}
             />
@@ -384,7 +394,8 @@ function StaffForm({
               options={LANGUAGE_OPTIONS}
               onChange={(value) => set('language', (value ?? 'en') as Language)}
               highlightSelected={false}
-              className='sm:w-full'
+              size='sm'
+              className={FIELD_CLASS}
             />
           </FormField>
           <FormField id='gender' label='Gender' error={errors.gender}>
@@ -397,14 +408,17 @@ function StaffForm({
               options={toOptions(GENDER_LABELS)}
               onChange={(value) => set('gender', (value ?? '') as StaffGender | '')}
               highlightSelected={false}
-              className='sm:w-full'
+              size='sm'
+              className={FIELD_CLASS}
             />
           </FormField>
           <FormField id='dob' label='Date of birth' error={errors.dob}>
             <Input
               id='dob'
               type='date'
+              size='sm'
               max={today}
+              className={FIELD_CLASS}
               value={draft.dob}
               onChange={(event) => set('dob', event.target.value)}
             />
@@ -452,7 +466,7 @@ function StaffForm({
             </p>
           )}
         </fieldset>
-        <div className='grid gap-3 sm:grid-cols-2'>
+        <div className='grid gap-4 sm:grid-cols-2'>
           <FormField id='staff_type' label='Staff type' required error={errors.staff_type}>
             <Combobox
               id='staff_type'
@@ -463,7 +477,8 @@ function StaffForm({
               onChange={(value) => set('staff_type', (value ?? '') as StaffType | '')}
               invalid={Boolean(errors.staff_type)}
               highlightSelected={false}
-              className='sm:w-full'
+              size='sm'
+              className={FIELD_CLASS}
             />
           </FormField>
           <FormField id='designation' label='Designation' required error={errors.designation}>
@@ -471,6 +486,8 @@ function StaffForm({
               id='designation'
               placeholder='PG Assistant'
               maxLength={80}
+              size='sm'
+              className={FIELD_CLASS}
               value={draft.designation}
               onChange={(event) => set('designation', event.target.value)}
             />
@@ -480,6 +497,8 @@ function StaffForm({
               id='department'
               placeholder='Mathematics'
               maxLength={60}
+              size='sm'
+              className={FIELD_CLASS}
               value={draft.department}
               onChange={(event) => set('department', event.target.value)}
             />
@@ -493,7 +512,9 @@ function StaffForm({
             <Input
               id='employee_no'
               maxLength={30}
-              className='font-mono'
+              placeholder='TZMS-EMP-0001'
+              size='sm'
+              className={cn(FIELD_CLASS, 'font-mono')}
               value={draft.employee_no}
               onChange={(event) => set('employee_no', event.target.value)}
             />
@@ -507,6 +528,8 @@ function StaffForm({
             <Input
               id='joining_date'
               type='date'
+              size='sm'
+              className={FIELD_CLASS}
               value={draft.joining_date}
               onChange={(event) => set('joining_date', event.target.value)}
             />
@@ -523,7 +546,9 @@ function StaffForm({
               inputMode='numeric'
               min={0}
               max={50}
-              className='tabular'
+              size='sm'
+              placeholder='0'
+              className={cn(FIELD_CLASS, 'tabular')}
               value={draft.prior_experience_years}
               onChange={(event) => set('prior_experience_years', event.target.value)}
             />
@@ -541,8 +566,9 @@ function StaffForm({
                 inputMode='numeric'
                 min={1}
                 max={60}
+                size='sm'
                 placeholder='30'
-                className='tabular'
+                className={cn(FIELD_CLASS, 'tabular')}
                 value={draft.max_periods_per_week}
                 onChange={(event) => set('max_periods_per_week', event.target.value)}
               />
@@ -553,11 +579,14 @@ function StaffForm({
 
       <section className='grid gap-3'>
         <h3 className={heading}>Contact</h3>
-        <div className='grid gap-3 sm:grid-cols-2'>
+        <div className='grid gap-4 sm:grid-cols-2'>
           <FormField id='address' label='Address' error={errors.address} className='sm:col-span-2'>
             <Input
               id='address'
               maxLength={255}
+              size='sm'
+              placeholder='Street address'
+              className='w-full border-[#9AA49F] bg-white px-3 h-8 text-[13px] rounded-md focus-visible:border-[#127D48] focus-visible:ring-2 focus-visible:ring-[#127D48]/20'
               value={draft.address}
               onChange={(event) => set('address', event.target.value)}
             />
@@ -570,6 +599,9 @@ function StaffForm({
             <Input
               id='emergency_contact_name'
               maxLength={120}
+              size='sm'
+              placeholder='Contact person name'
+              className={FIELD_CLASS}
               value={draft.emergency_contact_name}
               onChange={(event) => set('emergency_contact_name', event.target.value)}
             />
@@ -637,16 +669,17 @@ function MobileInput({
   onChange: (value: string) => void
 }) {
   return (
-    <div className='flex'>
-      <span className='inline-flex h-9 items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-sm font-semibold text-muted-foreground'>
+    <div className='flex w-full sm:w-[320px]'>
+      <span className='inline-flex h-8 items-center rounded-l-md border border-r-0 border-[#9AA49F] bg-[#F9FAFB] px-3 text-xs font-semibold text-slate-600'>
         +91
       </span>
       <Input
         id={id}
         type='tel'
+        size='sm'
         inputMode='numeric'
         maxLength={10}
-        className='tabular rounded-l-none'
+        className='tabular rounded-l-none h-8 border-[#9AA49F] bg-white px-3 text-[13px]'
         value={value}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(-10))}
       />

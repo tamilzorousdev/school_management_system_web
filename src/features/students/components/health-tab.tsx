@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, PenLine, Plus, Syringe, Trash } from 'lucide-react'
+import { CheckCircle2, Pencil, Plus, Syringe, Trash } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -52,14 +52,14 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
             canManage && (
               <Button
                 variant='secondary'
-                className={empty ? undefined : 'w-[85px]'}
-                size={empty ? 'sm' : undefined}
+                className={empty ? 'h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium' : 'w-[85px] h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'}
+                size={empty ? 'sm' : 'md'}
                 onClick={() => setEditing(true)}
               >
                 {empty ? (
                   <Plus className='size-4 stroke-[1.75]' />
                 ) : (
-                  <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                  <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 )}
                 {empty ? 'Add' : 'Edit'}
               </Button>
@@ -179,17 +179,20 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                       )}
                       <Button
                         size='icon-sm'
-                        variant='ghost'
+                        variant='outline'
                         aria-label={`Edit ${item.vaccine}`}
+                        title='Edit'
+                        className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                         onClick={() => setVaccine(item)}
                       >
-                        <PenLine className='size-4 stroke-[1.75]' />
+                        <Pencil className='size-4 stroke-[1.75]' />
                       </Button>
                       <Button
                         size='icon-sm'
-                        variant='ghost'
+                        variant='outline'
                         aria-label={`Delete ${item.vaccine}`}
-                        className='text-destructive hover:bg-destructive/10'
+                        title='Delete'
+                        className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                         onClick={() => setRemoving(item)}
                       >
                         <Trash className='size-4 stroke-[1.75]' />

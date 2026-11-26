@@ -29,18 +29,22 @@ function TodayBadge({ today }: { today: string | null }) {
 }
 
 function FeeCell({ student }: { student: SectionStudent }) {
-  if (student.fee_status === 'none') return <span className='text-muted-foreground'>No fees</span>
+  if (student.fee_status === 'none') return <span className='text-[12px] text-slate-400'>No fees</span>
   if (student.fee_status === 'paid') return <Badge tone='success'>Paid</Badge>
-  return <span className='tabular font-semibold text-warning'>{rupees(student.fee_due)}</span>
+  return (
+    <span className='tabular text-[13px] leading-[18px] font-semibold text-amber-600 dark:text-amber-400'>
+      {rupees(student.fee_due)}
+    </span>
+  )
 }
 
 function ExamCell({ student }: { student: SectionStudent }) {
-  if (student.last_exam_percent === null) return <span className='text-muted-foreground'>—</span>
+  if (student.last_exam_percent === null) return <span className='text-[12px] text-slate-400'>—</span>
   return (
-    <span className='tabular'>
+    <span className='tabular text-[13px] leading-[18px] font-semibold text-slate-700 dark:text-slate-300'>
       {percent(student.last_exam_percent)}
       {student.rank !== null && (
-        <span className='text-xs text-muted-foreground'> · rank {student.rank}</span>
+        <span className='text-[12px] font-normal text-slate-500 dark:text-slate-400'> · rank {student.rank}</span>
       )}
     </span>
   )
@@ -68,64 +72,78 @@ export function SectionStudents({ sectionId, search, onSearch, onOpen }: Section
   const columns: Column<SectionStudent>[] = [
     {
       key: 'name',
-      header: 'Student',
+      header: 'STUDENT',
       sortKey: 'name',
       cell: (student) => (
         <div className='flex items-center gap-3'>
           <Avatar name={student.name} src={student.photo_url} />
           <div className='grid min-w-0'>
-            <span className='truncate font-bold'>{student.name}</span>
-            <span className='truncate text-xs text-muted-foreground'>{student.admission_no}</span>
+            <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {student.name}
+            </span>
+            <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400 font-mono'>
+              {student.admission_no}
+            </span>
           </div>
         </div>
       ),
     },
     {
       key: 'roll_no',
-      header: 'Roll',
+      header: 'ROLL',
       sortKey: 'roll_no',
-      cell: (student) => <span className='tabular'>{student.roll_no ?? '—'}</span>,
+      cell: (student) => (
+        <span className='tabular text-[13px] leading-[18px] font-semibold text-slate-700 dark:text-slate-300'>
+          {student.roll_no ?? '—'}
+        </span>
+      ),
     },
-    { key: 'today', header: 'Today', cell: (student) => <TodayBadge today={student.today} /> },
+    { key: 'today', header: 'TODAY', cell: (student) => <TodayBadge today={student.today} /> },
     {
       key: 'attendance',
-      header: 'Attendance',
+      header: 'ATTENDANCE',
       sortKey: 'attendance',
-      cell: (student) => <span className='tabular'>{percent(student.attendance_percent)}</span>,
+      cell: (student) => (
+        <span className='tabular text-[13px] leading-[18px] font-semibold text-slate-700 dark:text-slate-300'>
+          {percent(student.attendance_percent)}
+        </span>
+      ),
     },
     {
       key: 'fee_due',
-      header: 'Fee due',
+      header: 'FEE DUE',
       sortKey: 'fee_due',
       cell: (student) => <FeeCell student={student} />,
     },
     {
       key: 'last_exam',
-      header: 'Last exam',
+      header: 'LAST EXAM',
       sortKey: 'last_exam',
       cell: (student) => <ExamCell student={student} />,
     },
     {
       key: 'bus',
-      header: 'Bus',
+      header: 'BUS',
       hideBelow: 'xl',
       cell: (student) =>
         student.transport ? (
           <span className='grid max-w-48 min-w-0'>
-            <span className='truncate text-sm'>{student.transport.route}</span>
+            <span className='truncate text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+              {student.transport.route}
+            </span>
             {student.transport.stop && (
-              <span className='truncate text-xs text-muted-foreground'>
+              <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                 {student.transport.stop}
               </span>
             )}
           </span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-[12px] text-slate-400'>—</span>
         ),
     },
     {
       key: 'flags',
-      header: 'Flags',
+      header: 'FLAGS',
       hideBelow: 'lg',
       cell: (student) => <Chips items={flagChips(student)} />,
     },
@@ -176,14 +194,16 @@ export function SectionStudents({ sectionId, search, onSearch, onOpen }: Section
             <div className='flex items-center gap-3'>
               <Avatar name={student.name} src={student.photo_url} />
               <div className='grid min-w-0 flex-1'>
-                <span className='truncate font-bold'>{student.name}</span>
-                <span className='truncate text-xs text-muted-foreground'>
+                <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                  {student.name}
+                </span>
+                <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400 font-mono'>
                   {student.admission_no} · Roll {student.roll_no ?? '—'}
                 </span>
               </div>
               <TodayBadge today={student.today} />
             </div>
-            <div className='flex flex-wrap gap-x-4 gap-y-1 text-xs'>
+            <div className='flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-slate-600 dark:text-slate-400'>
               <span>Attendance {percent(student.attendance_percent)}</span>
               <span className='flex items-center gap-1'>
                 Fee <FeeCell student={student} />

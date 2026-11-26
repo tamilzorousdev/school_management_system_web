@@ -22,7 +22,7 @@ export function FormField({
   children,
 }: FormFieldProps) {
   return (
-    <div className={cn('grid content-start gap-1.5', className)}>
+    <div className={cn('grid content-start gap-2', className)}>
       <Label htmlFor={id}>
         {label}
         {required && <span className='ml-0.5 text-destructive'>*</span>}

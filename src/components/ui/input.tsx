@@ -6,7 +6,11 @@ import { TimePicker } from '@/components/common/time-picker'
 const fieldBase =
   'w-full min-w-0 rounded-md border border-input bg-card px-3 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20'
 
-export function Input({ className, type = 'text', ...props }: React.ComponentProps<'input'>) {
+export interface InputProps extends Omit<React.ComponentProps<'input'>, 'size'> {
+  size?: 'default' | 'sm'
+}
+
+export function Input({ className, type = 'text', size = 'default', ...props }: InputProps) {
   if (type === 'date') {
     return (
       <DatePicker
@@ -32,6 +36,7 @@ export function Input({ className, type = 'text', ...props }: React.ComponentPro
         disabled={props.disabled}
         required={props.required}
         invalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+        size={size}
         className={className}
         onChange={(_val, event) => {
           if (props.onChange && event) {
@@ -62,7 +67,12 @@ export function Input({ className, type = 'text', ...props }: React.ComponentPro
   }
 
   return (
-    <input type={type} data-slot='input' className={cn(fieldBase, 'h-9', className)} {...props} />
+    <input
+      type={type}
+      data-slot='input'
+      className={cn(fieldBase, size === 'sm' ? 'h-8 text-[13px]' : 'h-9 text-sm', className)}
+      {...props}
+    />
   )
 }
 

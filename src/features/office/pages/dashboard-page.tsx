@@ -95,20 +95,20 @@ export function OfficeDashboardPage() {
     )
 
   return (
-    <Page className='gap-5 lg:gap-6'>
+    <Page className='gap-4 lg:gap-4.5'>
       <Hero data={data} name={me?.name} />
       <TodayStrip data={data} />
-      <div className='grid gap-5 lg:grid-cols-2 lg:gap-6'>
+      <div className='grid gap-4 lg:grid-cols-2 lg:gap-4.5'>
         <TeachersCard teachers={data.teachers} />
         <BusesCard buses={data.buses} />
       </div>
-      <div className='grid gap-5 lg:grid-cols-2 lg:gap-6'>
+      <div className='grid gap-4 lg:grid-cols-2 lg:gap-4.5'>
         <PendingCard items={data.pending_items} total={data.pending.total} />
         <DefaultersCard items={data.fees.top_defaulters} count={data.fees.defaulters} />
       </div>
-      <div className='grid gap-5 lg:grid-cols-2 lg:gap-6'>
+      <div className='grid gap-4 lg:grid-cols-2 lg:gap-4.5'>
         <ExamsCard exams={data.exams} />
-        <div className='grid content-start gap-5 lg:gap-6'>
+        <div className='grid content-start gap-4 lg:gap-4.5'>
           <OdCard od={data.od_today} />
           <AlertsCard data={data} />
         </div>
@@ -133,30 +133,30 @@ function Hero({ data, name }: { data: OfficeDashboard; name: string | undefined 
   return (
     <section
       aria-label='Today at a glance'
-      className='relative isolate overflow-hidden rounded-2xl bg-gradient-to-br from-hero-from to-hero-to p-5 text-hero-foreground shadow-sm sm:p-7'
+      className='relative isolate overflow-hidden rounded-xl bg-gradient-to-br from-hero-from to-hero-to p-4 text-hero-foreground shadow-sm sm:px-5 sm:py-4.5'
     >
-      <div className='pointer-events-none absolute -top-24 -right-16 -z-10 size-72 rounded-full bg-hero-foreground/[0.07]' />
-      <div className='pointer-events-none absolute -bottom-28 left-1/3 -z-10 size-64 rounded-full bg-hero-foreground/[0.05]' />
-      <div className='grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end'>
-        <div className='grid min-w-0 gap-4'>
-          <div className='grid min-w-0 gap-1.5'>
-            <p className='text-xs font-bold tracking-[0.14em] text-hero-foreground/70 uppercase'>
+      <div className='pointer-events-none absolute -top-20 -right-12 -z-10 size-48 rounded-full bg-hero-foreground/[0.07]' />
+      <div className='pointer-events-none absolute -bottom-20 left-1/3 -z-10 size-44 rounded-full bg-hero-foreground/[0.05]' />
+      <div className='grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center'>
+        <div className='grid min-w-0 gap-3'>
+          <div className='grid min-w-0 gap-1'>
+            <p className='text-[11px] font-bold tracking-[0.12em] text-hero-foreground/70 uppercase'>
               {longDate(data.me.today)}
             </p>
-            <h1 className='text-2xl font-extrabold tracking-tight text-balance sm:text-3xl'>
+            <h1 className='text-xl font-bold tracking-tight text-balance sm:text-2xl'>
               {greeting(now)}
               {displayName ? `, ${displayName}` : ''}
             </h1>
             <p
               data-testid='office-scope'
-              className='min-w-0 text-sm font-semibold break-words text-hero-foreground/85'
+              className='min-w-0 text-xs font-medium break-words text-hero-foreground/85'
             >
               {roleLine(data.me)}
             </p>
           </div>
           <CheckInControl />
         </div>
-        <div className='grid gap-2 sm:grid-cols-3 sm:gap-3 xl:w-[560px]'>
+        <div className='grid gap-2 sm:grid-cols-3 sm:gap-2.5 xl:w-[480px]'>
           <HeroFigure
             label='Students'
             value={formatNumber(data.students)}
@@ -204,17 +204,17 @@ function HeroFigure({
   link: ReactNode
 }) {
   return (
-    <div className='relative flex min-w-0 items-center justify-between gap-3 rounded-xl bg-hero-foreground/10 px-4 py-3 ring-1 ring-hero-foreground/15 transition-colors ring-inset hover:bg-hero-foreground/15 sm:grid sm:content-start sm:justify-normal sm:gap-1 sm:p-4 [&>a]:absolute [&>a]:inset-0 [&>a]:rounded-xl [&>a]:outline-none [&>a:focus-visible]:ring-[3px] [&>a:focus-visible]:ring-hero-foreground/60'>
+    <div className='relative flex min-w-0 items-center justify-between gap-2.5 rounded-lg bg-hero-foreground/10 px-3 py-2.5 ring-1 ring-hero-foreground/15 transition-colors ring-inset hover:bg-hero-foreground/15 sm:grid sm:content-start sm:justify-normal sm:gap-1 sm:p-3 [&>a]:absolute [&>a]:inset-0 [&>a]:rounded-lg [&>a]:outline-none [&>a:focus-visible]:ring-[3px] [&>a:focus-visible]:ring-hero-foreground/60'>
       <span className='grid min-w-0 gap-0.5 sm:contents'>
-        <span className='truncate text-xs font-semibold text-hero-foreground/75 sm:order-1'>
+        <span className='truncate text-[11px] font-medium text-hero-foreground/80 sm:order-1'>
           {label}
         </span>
-        <span className='truncate text-xs text-hero-foreground/75 sm:order-3'>{hint}</span>
+        <span className='truncate text-[11px] text-hero-foreground/70 sm:order-3'>{hint}</span>
       </span>
       <span
         className={cn(
-          'tabular shrink-0 truncate font-extrabold tracking-tight sm:order-2',
-          small ? 'text-lg sm:leading-9' : 'text-2xl sm:text-3xl'
+          'tabular shrink-0 truncate font-bold tracking-tight sm:order-2',
+          small ? 'text-sm sm:text-base sm:leading-6' : 'text-lg sm:text-xl'
         )}
       >
         {value}
@@ -230,7 +230,7 @@ function TodayStrip({ data }: { data: OfficeDashboard }) {
     document.getElementById(PENDING_ID)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   return (
-    <section aria-label='Today' className='grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4'>
+    <section aria-label='Today' className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
       <Tile
         icon={IndianRupee}
         tone='success'
@@ -298,10 +298,10 @@ function Tile({
 }) {
   const body = (
     <>
-      <span className='flex min-w-0 items-center gap-1.5 sm:gap-2'>
+      <span className='flex min-w-0 items-center gap-2'>
         <span
           className={cn(
-            'grid size-6 shrink-0 place-items-center rounded-md sm:size-7 sm:rounded-lg',
+            'grid size-6 shrink-0 place-items-center rounded-md',
             TONE_ICON[tone]
           )}
         >
@@ -309,14 +309,16 @@ function Tile({
         </span>
         <span className='truncate text-xs font-semibold text-muted-foreground'>{label}</span>
       </span>
-      <span className='tabular truncate text-xl font-extrabold tracking-tight sm:text-2xl'>
-        {value}
-      </span>
-      <span className='truncate text-xs text-muted-foreground'>{hint}</span>
+      <div className='grid min-w-0 gap-0.5'>
+        <span className='tabular truncate text-2xl font-extrabold tracking-tight leading-none'>
+          {value}
+        </span>
+        <span className='truncate text-xs text-muted-foreground'>{hint}</span>
+      </div>
     </>
   )
   const base =
-    'grid min-w-0 content-start gap-2 rounded-xl border bg-card p-3.5 text-left sm:p-4 text-card-foreground shadow-xs'
+    'flex flex-col justify-between min-w-0 h-[106px] w-full p-4 gap-3 rounded-lg border border-[#DFE4E1] bg-white text-left text-card-foreground shadow-xs dark:bg-card dark:border-border'
   if (onClick)
     return (
       <button
@@ -348,10 +350,10 @@ function Section({
   'data-testid'?: string
 }) {
   return (
-    <Card className={cn('min-w-0 gap-4 p-5', extra)} {...props}>
-      <div className='flex min-h-7 flex-wrap items-center justify-between gap-2'>
-        <h2 className='text-sm font-bold tracking-tight'>{title}</h2>
-        {aside && <div className='flex items-center gap-2'>{aside}</div>}
+    <Card className={cn('min-w-0 gap-3 p-4 border border-[#DFE4E1] bg-white dark:bg-card', extra)} {...props}>
+      <div className='flex min-h-6 flex-wrap items-center justify-between gap-2'>
+        <h2 className='text-xs sm:text-[13px] font-bold tracking-tight'>{title}</h2>
+        {aside && <div className='flex items-center gap-1.5'>{aside}</div>}
       </div>
       {children}
     </Card>
@@ -361,18 +363,18 @@ function Section({
 function Figure({ label, value, dot }: { label: string; value: number; dot: string }) {
   return (
     <div className='grid min-w-0 gap-0.5'>
-      <span className='flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground'>
-        <span className={cn('size-2 shrink-0 rounded-full', dot)} />
+      <span className='flex min-w-0 items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground'>
+        <span className={cn('size-1.5 shrink-0 rounded-full', dot)} />
         <span className='truncate'>{label}</span>
       </span>
-      <span className='tabular text-2xl font-extrabold tracking-tight'>{formatNumber(value)}</span>
+      <span className='tabular text-lg sm:text-xl font-bold tracking-tight'>{formatNumber(value)}</span>
     </div>
   )
 }
 
 function SplitBar({ parts, total }: { parts: { value: number; color: string }[]; total: number }) {
   return (
-    <div className='flex h-2 w-full overflow-hidden rounded-full bg-muted' aria-hidden>
+    <div className='flex h-1.5 w-full overflow-hidden rounded-full bg-muted' aria-hidden>
       {total > 0 &&
         parts.map((part) =>
           part.value > 0 ? (
@@ -392,10 +394,10 @@ function TeachersCard({ teachers }: { teachers: TeachersToday }) {
     <Section
       title='Teachers today'
       data-testid='office-teachers'
-      aside={<Badge tone='neutral'>{plural(teachers.total, 'teacher')}</Badge>}
+      aside={<Badge tone='neutral' className='text-[11px] h-5 px-1.5'>{plural(teachers.total, 'teacher')}</Badge>}
     >
       {teachers.total ? (
-        <div className='grid gap-4'>
+        <div className='grid gap-3'>
           <SplitBar
             total={teachers.total}
             parts={[
@@ -404,7 +406,7 @@ function TeachersCard({ teachers }: { teachers: TeachersToday }) {
               { value: teachers.on_leave, color: 'bg-info' },
             ]}
           />
-          <div className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
+          <div className='grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3'>
             <Figure label='Present' value={teachers.present} dot='bg-success' />
             <Figure label='Late' value={teachers.late} dot='bg-warning' />
             <Figure label='On leave' value={teachers.on_leave} dot='bg-info' />
@@ -416,7 +418,7 @@ function TeachersCard({ teachers }: { teachers: TeachersToday }) {
           </div>
         </div>
       ) : (
-        <p className='text-sm text-muted-foreground'>No teachers in your wings yet</p>
+        <p className='text-xs text-muted-foreground'>No teachers in your wings yet</p>
       )}
     </Section>
   )
@@ -427,9 +429,9 @@ function BusesCard({ buses }: { buses: BusesToday }) {
     return (
       <div
         data-testid='office-buses'
-        className='flex min-h-24 items-center justify-center gap-2 rounded-xl border border-dashed p-5 text-sm text-muted-foreground'
+        className='flex min-h-20 items-center justify-center gap-2 rounded-lg border border-dashed border-[#DFE4E1] p-4 text-xs text-muted-foreground'
       >
-        <Bus className='size-4' />
+        <Bus className='size-3.5' />
         No school buses for your wings
       </div>
     )
@@ -440,12 +442,12 @@ function BusesCard({ buses }: { buses: BusesToday }) {
       data-testid='office-buses'
       aside={
         <>
-          {buses.late > 0 && <Badge tone='danger'>{buses.late} late</Badge>}
-          <Badge tone='neutral'>{plural(buses.students, 'student')} by bus</Badge>
+          {buses.late > 0 && <Badge tone='danger' className='text-[11px] h-5 px-1.5'>{buses.late} late</Badge>}
+          <Badge tone='neutral' className='text-[11px] h-5 px-1.5'>{plural(buses.students, 'student')} by bus</Badge>
         </>
       }
     >
-      <div className='grid gap-4'>
+      <div className='grid gap-3'>
         <SplitBar
           total={buses.buses}
           parts={[
@@ -453,7 +455,7 @@ function BusesCard({ buses }: { buses: BusesToday }) {
             { value: buses.running, color: 'bg-info' },
           ]}
         />
-        <div className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
+        <div className='grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3'>
           <Figure label='Buses' value={buses.buses} dot='bg-primary' />
           <Figure label='Reached' value={buses.reached} dot='bg-success' />
           <Figure label='Running' value={buses.running} dot='bg-info' />
@@ -547,22 +549,22 @@ function PendingCard({ items, total }: { items: PendingItem[]; total: number }) 
       id={PENDING_ID}
       data-testid='office-pending'
       className='scroll-mt-20'
-      aside={total > 0 && <Badge tone='neutral'>{formatNumber(total)} pending</Badge>}
+      aside={total > 0 && <Badge tone='neutral' className='text-[11px] h-5 px-1.5'>{formatNumber(total)} pending</Badge>}
     >
       {shown.length ? (
-        <div className='grid gap-2'>
-          <ul className='-mx-2 -my-2.5 grid divide-y'>
+        <div className='grid gap-1.5'>
+          <ul className='-mx-2 -my-2 grid divide-y'>
             {shown.map((item) => {
               const Icon = PENDING_ICON[item.kind]
               return (
                 <li key={`${item.kind}-${item.id}`}>
                   <PendingLink item={item}>
-                    <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground'>
-                      <Icon className='size-4' />
+                    <span className='grid size-7.5 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground'>
+                      <Icon className='size-3.5' />
                     </span>
                     <span className='grid min-w-0 flex-1 gap-0.5'>
-                      <span className='truncate text-sm font-semibold'>{item.title}</span>
-                      <span className='truncate text-xs text-muted-foreground'>
+                      <span className='truncate text-xs sm:text-[13px] font-semibold'>{item.title}</span>
+                      <span className='truncate text-[11px] text-muted-foreground'>
                         {[item.student ?? PENDING_LABEL[item.kind], item.class_section]
                           .filter(Boolean)
                           .join(' · ')}
@@ -570,8 +572,8 @@ function PendingCard({ items, total }: { items: PendingItem[]; total: number }) 
                     </span>
                     <span
                       className={cn(
-                        'shrink-0 text-right text-xs font-semibold',
-                        item.age_hours >= 24 ? 'text-destructive' : 'text-muted-foreground'
+                        'shrink-0 text-right text-[11.5px] font-medium',
+                        item.age_hours >= 24 ? 'text-destructive font-semibold' : 'text-muted-foreground'
                       )}
                     >
                       {pendingAge(item.age_hours)}
@@ -582,14 +584,14 @@ function PendingCard({ items, total }: { items: PendingItem[]; total: number }) 
             })}
           </ul>
           {total > shown.length && (
-            <p className='pt-2 text-xs text-muted-foreground'>
+            <p className='pt-1 text-[11px] text-muted-foreground'>
               Oldest {shown.length} of {formatNumber(total)} shown
             </p>
           )}
         </div>
       ) : (
         <EmptyState
-          className='py-8'
+          className='py-5'
           icon={CircleCheck}
           title='No pending approvals'
           description='You are all caught up.'
@@ -607,30 +609,30 @@ function DefaultersCard({ items, count }: { items: Defaulter[]; count: number })
       data-testid='office-defaulters'
       aside={
         count > 0 && (
-          <Button variant='ghost' size='sm' className='-my-1 -mr-2' asChild>
+          <Button variant='ghost' size='sm' className='-my-1 -mr-2 h-7 px-2 text-xs' asChild>
             <Link to='/fees' search={{ tab: 'dues', overdue: true }}>
               All {formatNumber(count)}
-              <ArrowRight />
+              <ArrowRight className='size-3' />
             </Link>
           </Button>
         )
       }
     >
       {shown.length ? (
-        <ul className='-mx-2 -my-2.5 grid divide-y'>
+        <ul className='-mx-2 -my-2 grid divide-y'>
           {shown.map((item, index) => (
             <li key={item.student_id}>
               <Link {...studentLink(item.student_id)} className={ROW_LINK}>
-                <span className='tabular grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-xs font-bold text-muted-foreground'>
+                <span className='tabular grid size-7.5 shrink-0 place-items-center rounded-md bg-muted text-[11px] font-bold text-muted-foreground'>
                   {index + 1}
                 </span>
                 <span className='grid min-w-0 flex-1 gap-0.5'>
-                  <span className='truncate text-sm font-semibold'>{item.name}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='truncate text-xs sm:text-[13px] font-semibold'>{item.name}</span>
+                  <span className='truncate text-[11px] text-muted-foreground'>
                     {item.class_section ?? 'Not placed'}
                   </span>
                 </span>
-                <span className='tabular shrink-0 text-right text-sm font-bold'>
+                <span className='tabular shrink-0 text-right text-xs sm:text-[13px] font-bold'>
                   {rupees(item.due)}
                 </span>
               </Link>
@@ -639,7 +641,7 @@ function DefaultersCard({ items, count }: { items: Defaulter[]; count: number })
         </ul>
       ) : (
         <EmptyState
-          className='py-8'
+          className='py-5'
           icon={IndianRupee}
           title='No fee dues'
           description='Every student is paid up.'
@@ -655,7 +657,7 @@ function ExamsCard({ exams }: { exams: ClassExam[] }) {
       title='Latest exams'
       data-testid='office-exams'
       aside={
-        exams.length > 0 && <Badge tone='neutral'>{plural(exams.length, 'class', 'classes')}</Badge>
+        exams.length > 0 && <Badge tone='neutral' className='text-[11px] h-5 px-1.5'>{plural(exams.length, 'class', 'classes')}</Badge>
       }
     >
       {exams.length ? (
@@ -665,18 +667,18 @@ function ExamsCard({ exams }: { exams: ClassExam[] }) {
             return (
               <li
                 key={exam.class_id}
-                className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_auto]'
+                className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 py-2 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_auto]'
               >
                 <span className='grid min-w-0'>
-                  <span className='truncate text-sm font-bold'>{className(exam.class_name)}</span>
-                  <span className='truncate text-xs text-muted-foreground'>{exam.exam.name}</span>
+                  <span className='truncate text-xs sm:text-[13px] font-bold'>{className(exam.class_name)}</span>
+                  <span className='truncate text-[11px] text-muted-foreground'>{exam.exam.name}</span>
                 </span>
                 <span className='tabular text-right sm:order-last'>
-                  <span className='block text-sm font-bold'>{percent(exam.average)}</span>
-                  <span className='block text-[11px] text-muted-foreground'>average</span>
+                  <span className='block text-xs sm:text-[13px] font-bold'>{percent(exam.average)}</span>
+                  <span className='block text-[10.5px] text-muted-foreground'>average</span>
                 </span>
                 {top ? (
-                  <span className='col-span-2 flex min-w-0 items-center gap-1.5 text-xs sm:col-span-1 sm:text-sm'>
+                  <span className='col-span-2 flex min-w-0 items-center gap-1.5 text-xs sm:col-span-1'>
                     <Trophy className='size-3.5 shrink-0 text-warning' />
                     <Link
                       {...studentLink(top.student_id)}
@@ -698,7 +700,7 @@ function ExamsCard({ exams }: { exams: ClassExam[] }) {
           })}
         </ul>
       ) : (
-        <EmptyState className='py-8' icon={GraduationCap} title='No published exam yet' />
+        <EmptyState className='py-5' icon={GraduationCap} title='No published exam yet' />
       )}
     </Section>
   )
@@ -709,33 +711,33 @@ function OdCard({ od }: { od: OdToday }) {
     <Section
       title='On sports OD today'
       data-testid='office-od'
-      aside={<Badge tone={od.count ? 'info' : 'neutral'}>{plural(od.count, 'student')}</Badge>}
+      aside={<Badge tone={od.count ? 'info' : 'neutral'} className='text-[11px] h-5 px-1.5'>{plural(od.count, 'student')}</Badge>}
     >
       {od.students.length ? (
         <ul className='grid divide-y'>
           {od.students.slice(0, 3).map((student) => (
             <li
               key={`${student.id}-${student.student_id}`}
-              className='flex min-w-0 items-center gap-3 py-2 first:pt-0 last:pb-0'
+              className='flex min-w-0 items-center gap-2.5 py-1.5 first:pt-0 last:pb-0'
             >
-              <span className='grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground'>
-                <Medal className='size-4' />
+              <span className='grid size-7.5 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground'>
+                <Medal className='size-3.5' />
               </span>
               <span className='grid min-w-0 flex-1'>
                 <Link
                   {...studentLink(student.student_id)}
-                  className='truncate text-sm font-semibold hover:underline'
+                  className='truncate text-xs sm:text-[13px] font-semibold hover:underline'
                 >
                   {student.name}
                 </Link>
-                <span className='truncate text-xs text-muted-foreground'>
+                <span className='truncate text-[11px] text-muted-foreground'>
                   {[student.class_section, student.sport_name, student.venue]
                     .filter(Boolean)
                     .join(' · ')}
                 </span>
               </span>
               {student.session && (
-                <Badge tone='neutral' className='capitalize'>
+                <Badge tone='neutral' className='capitalize text-[11px] h-5 px-1.5'>
                   {student.session}
                 </Badge>
               )}
@@ -743,12 +745,12 @@ function OdCard({ od }: { od: OdToday }) {
           ))}
         </ul>
       ) : (
-        <p className='flex items-center gap-2 text-sm text-muted-foreground'>
-          <Medal className='size-4' />
+        <p className='flex items-center gap-2 text-xs text-muted-foreground'>
+          <Medal className='size-3.5' />
           No students on OD today
         </p>
       )}
-      {od.count > 3 && <p className='text-xs text-muted-foreground'>and {od.count - 3} more</p>}
+      {od.count > 3 && <p className='text-[11px] text-muted-foreground'>and {od.count - 3} more</p>}
     </Section>
   )
 }
@@ -766,24 +768,24 @@ function AlertsCard({ data }: { data: OfficeDashboard }) {
           <div
             key={pill.key}
             className={cn(
-              'grid min-w-0 content-start gap-1 rounded-lg border px-3 py-2.5',
+              'grid min-w-0 content-start gap-1 rounded-lg border px-2.5 py-2',
               pill.value
                 ? 'border-destructive/25 bg-destructive/5 text-destructive'
-                : 'bg-muted/40 text-muted-foreground'
+                : 'border-[#DFE4E1] bg-white text-muted-foreground dark:bg-muted/40 dark:border-border'
             )}
           >
-            <span className='flex items-center justify-between gap-2'>
-              <pill.icon className='size-4 shrink-0' />
+            <span className='flex items-center justify-between gap-1.5'>
+              <pill.icon className='size-3.5 shrink-0' />
               <span
                 className={cn(
-                  'tabular text-lg leading-6 font-extrabold',
+                  'tabular text-base leading-5 font-bold',
                   !pill.value && 'text-card-foreground'
                 )}
               >
                 {pill.value}
               </span>
             </span>
-            <span className='text-xs leading-tight font-semibold'>{pill.label}</span>
+            <span className='text-[11px] leading-tight font-semibold'>{pill.label}</span>
           </div>
         ))}
       </div>

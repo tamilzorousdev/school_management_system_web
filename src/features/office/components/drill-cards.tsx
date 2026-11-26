@@ -24,7 +24,7 @@ function AttendanceStat({ attendance }: { attendance: AttendanceToday }) {
         <>
           {attendanceLine(attendance)}
           {attendance.percent !== null && (
-            <span className='text-muted-foreground'> · {percent(attendance.percent)}</span>
+            <span className='font-normal text-slate-400 dark:text-slate-500'> · {percent(attendance.percent)}</span>
           )}
         </>
       }
@@ -37,18 +37,20 @@ export function WingCardView({ wing, onOpen }: { wing: WingCard; onOpen: () => v
     <ClickCard onClick={onOpen} label={`Open ${wing.name}`}>
       <div className='flex flex-wrap items-start justify-between gap-2'>
         <div className='grid min-w-0 gap-0.5'>
-          <span className='truncate text-base font-extrabold tracking-tight'>{wing.name}</span>
-          <span className='text-xs text-muted-foreground'>{wing.range_label}</span>
+          <span className='truncate text-[14px] sm:text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-100'>
+            {wing.name}
+          </span>
+          <span className='text-[12px] text-slate-500 dark:text-slate-400'>{wing.range_label}</span>
         </div>
         {wing.board && <Badge tone='info'>{BOARD_LABEL[wing.board]}</Badge>}
       </div>
-      <div className='flex min-w-0 items-center gap-2 text-xs'>
-        <UserRound className='size-4 shrink-0 text-muted-foreground' />
+      <div className='flex min-w-0 items-center gap-1.5 text-[12px] text-slate-600 dark:text-slate-300'>
+        <UserRound className='size-3.5 shrink-0 text-slate-400' />
         <span className='truncate'>
           {wing.aos.length ? (
             wing.aos.map((ao) => ao.name).join(', ')
           ) : (
-            <span className='text-muted-foreground'>No AO · the head AO covers it</span>
+            <span className='text-slate-400'>No AO · the head AO covers it</span>
           )}
         </span>
       </div>
@@ -85,10 +87,10 @@ export function ClassCardView({ item, onOpen }: { item: ClassCard; onOpen: () =>
   return (
     <ClickCard onClick={onOpen} label={`Open ${className(item.name)}`}>
       <div className='grid min-w-0 gap-0.5'>
-        <span className='truncate text-base font-extrabold tracking-tight'>
+        <span className='truncate text-[14px] sm:text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-100'>
           {className(item.name)}
         </span>
-        <span className='truncate text-xs text-muted-foreground'>
+        <span className='truncate text-[12px] text-slate-500 dark:text-slate-400'>
           {item.class_teachers.length
             ? `Class teachers: ${item.class_teachers.join(', ')}`
             : 'No class teacher yet'}
@@ -128,10 +130,10 @@ export function SectionCardView({ item, onOpen }: { item: SectionCard; onOpen: (
   return (
     <ClickCard onClick={onOpen} label={`Open ${item.class_section}`}>
       <div className='grid min-w-0 gap-0.5'>
-        <span className='truncate text-base font-extrabold tracking-tight'>
+        <span className='truncate text-[14px] sm:text-[15px] font-bold tracking-tight text-slate-900 dark:text-slate-100'>
           {item.class_section}
         </span>
-        <span className='truncate text-xs text-muted-foreground'>
+        <span className='truncate text-[12px] text-slate-500 dark:text-slate-400'>
           {item.class_teacher ? `Class teacher: ${item.class_teacher.name}` : 'No class teacher'}
         </span>
       </div>
@@ -155,26 +157,26 @@ export function SectionCardView({ item, onOpen }: { item: SectionCard; onOpen: (
         />
       </div>
       <div className='grid gap-1.5'>
-        <span className='flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground'>
-          <Trophy className='size-3.5' />
+        <span className='flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider'>
+          <Trophy className='size-3.5 stroke-[1.75]' />
           Toppers
         </span>
         {item.toppers.length ? (
           <ol className='grid gap-1'>
             {item.toppers.slice(0, 3).map((topper) => (
-              <li key={topper.student_id} className='flex min-w-0 items-center gap-2 text-sm'>
-                <span className='tabular grid size-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[11px] font-bold text-primary'>
+              <li key={topper.student_id} className='flex min-w-0 items-center gap-2 text-[12.5px]'>
+                <span className='tabular grid size-4.5 shrink-0 place-items-center rounded-full bg-primary/10 text-[10.5px] font-bold text-primary'>
                   {topper.rank}
                 </span>
-                <span className='truncate'>{topper.name}</span>
-                <span className='tabular ml-auto shrink-0 text-xs font-semibold'>
+                <span className='truncate text-slate-800 dark:text-slate-200 font-medium'>{topper.name}</span>
+                <span className='tabular ml-auto shrink-0 text-[11.5px] font-semibold text-slate-600 dark:text-slate-300'>
                   {percent(topper.percent)}
                 </span>
               </li>
             ))}
           </ol>
         ) : (
-          <span className='text-xs text-muted-foreground'>No published exam yet</span>
+          <span className='text-[12px] text-slate-400'>No published exam yet</span>
         )}
       </div>
     </ClickCard>

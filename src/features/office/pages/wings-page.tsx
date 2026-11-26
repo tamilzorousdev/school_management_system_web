@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Building2, Pencil, Plus, Trash2, UserRound, UsersRound } from 'lucide-react'
+import { Building2, PenLine, Plus, UserRound, UsersRound } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { EmptyState, ErrorState } from '@/components/common/display'
+import { TrashIcon } from '@/components/common/icon'
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
@@ -63,43 +64,51 @@ export function OfficeWingsPage() {
   const wingColumns: Column<WingSetup>[] = [
     {
       key: 'name',
-      header: 'Wing',
+      header: 'WING',
       cell: (wing) => (
         <div className='grid min-w-0'>
-          <span className='font-bold'>{wing.name}</span>
-          <span className='text-xs text-muted-foreground'>{wing.range_label}</span>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {wing.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {wing.range_label}
+          </span>
         </div>
       ),
     },
     {
       key: 'board',
-      header: 'Board',
+      header: 'BOARD',
       cell: (wing) =>
         wing.board ? (
           <Badge tone='info'>{BOARD_LABEL[wing.board]}</Badge>
         ) : (
-          <span className='text-muted-foreground'>Any</span>
+          <span className='text-[12px] text-slate-400'>Any</span>
         ),
     },
     {
       key: 'classes',
-      header: 'Classes',
+      header: 'CLASSES',
       cell: (wing) => (
-        <span className='text-sm'>
+        <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300 font-medium'>
           {wing.classes.length ? wing.classes.map((item) => className(item.name)).join(', ') : '—'}
         </span>
       ),
     },
     {
       key: 'aos',
-      header: 'AOs',
+      header: 'AOS',
       cell: (wing) => <WingAos wing={wing} />,
     },
     {
       key: 'order',
-      header: 'Order',
+      header: 'ORDER',
       hideBelow: 'lg',
-      cell: (wing) => <span className='tabular'>{wing.sort_order}</span>,
+      cell: (wing) => (
+        <span className='tabular text-[13px] leading-[18px] font-semibold text-slate-700 dark:text-slate-300'>
+          {wing.sort_order}
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -117,12 +126,16 @@ export function OfficeWingsPage() {
       header: 'AO',
       cell: (row) => (
         <div className='grid min-w-0'>
-          <span className='font-bold'>{row.name}</span>
-          <span className='tabular text-xs text-muted-foreground'>+91 {row.mobile}</span>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.name}
+          </span>
+          <span className='tabular text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            +91 {row.mobile}
+          </span>
         </div>
       ),
     },
-    { key: 'wings', header: 'Wings', cell: (row) => <AoWingList ao={row} /> },
+    { key: 'wings', header: 'WINGS', cell: (row) => <AoWingList ao={row} /> },
     {
       key: 'actions',
       header: <span className='sr-only'>Actions</span>,
@@ -131,14 +144,15 @@ export function OfficeWingsPage() {
       cell: (row) =>
         canEdit && (
           <Button
-            variant='outline'
+            variant='secondary'
             size='sm'
+            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
             onClick={(event) => {
               event.stopPropagation()
               openAo(row)
             }}
           >
-            <Pencil />
+            <PenLine className='size-3.5 stroke-[1.75] text-[#3C4440]' />
             Edit wings
           </Button>
         ),
@@ -153,8 +167,12 @@ export function OfficeWingsPage() {
         description='Split the school into wings and give each wing its AO. An AO with no wing is the head AO and sees the whole school.'
         actions={
           canEdit && (
-            <Button onClick={() => openWing(null)}>
-              <Plus />
+            <Button
+              size='sm'
+              className='h-8 px-3 gap-1.5 font-medium'
+              onClick={() => openWing(null)}
+            >
+              <Plus className='size-3.5 stroke-[1.75]' />
               Add wing
             </Button>
           )
@@ -168,7 +186,7 @@ export function OfficeWingsPage() {
       ) : (
         <>
           {unassigned.length > 0 && (
-            <div className='flex flex-wrap items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm'>
+            <div className='flex flex-wrap items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-[12.5px]'>
               <span className='font-semibold text-warning'>Classes in no wing:</span>
               {unassigned.map((item) => (
                 <Badge key={item.id} tone='warning'>
@@ -180,8 +198,8 @@ export function OfficeWingsPage() {
           <Card className='overflow-hidden'>
             <CardHeader className='pb-4'>
               <div className='grid gap-0.5'>
-                <CardTitle>Wings</CardTitle>
-                <CardDescription>
+                <CardTitle className='text-[15px] font-bold text-slate-900 dark:text-slate-100'>Wings</CardTitle>
+                <CardDescription className='text-[12.5px] text-slate-500 dark:text-slate-400'>
                   {canEdit
                     ? 'Click a wing to edit it.'
                     : 'Only admin and principal can change wings.'}
@@ -199,8 +217,12 @@ export function OfficeWingsPage() {
                 title: 'No wings yet',
                 description: 'Add Pre-primary, Primary, Secondary and Higher Secondary.',
                 action: canEdit && (
-                  <Button onClick={() => openWing(null)}>
-                    <Plus />
+                  <Button
+                    size='sm'
+                    className='h-8 px-3 gap-1.5 font-medium'
+                    onClick={() => openWing(null)}
+                  >
+                    <Plus className='size-3.5 stroke-[1.75]' />
                     Add wing
                   </Button>
                 ),
@@ -209,8 +231,8 @@ export function OfficeWingsPage() {
                 <div className='grid gap-2'>
                   <div className='flex items-start gap-2'>
                     <div className='grid min-w-0 flex-1'>
-                      <span className='font-bold'>{wing.name}</span>
-                      <span className='text-xs text-muted-foreground'>
+                      <span className='truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100'>{wing.name}</span>
+                      <span className='truncate text-[12px] text-slate-500 dark:text-slate-400'>
                         {wing.range_label}
                         {wing.board && ` · ${BOARD_LABEL[wing.board]}`}
                       </span>
@@ -227,8 +249,8 @@ export function OfficeWingsPage() {
           <Card className='overflow-hidden'>
             <CardHeader className='pb-4'>
               <div className='grid gap-0.5'>
-                <CardTitle>AOs</CardTitle>
-                <CardDescription>
+                <CardTitle className='text-[15px] font-bold text-slate-900 dark:text-slate-100'>AOs</CardTitle>
+                <CardDescription className='text-[12.5px] text-slate-500 dark:text-slate-400'>
                   Everyone with the AO role. Give each one their wings, or none for the head AO.
                 </CardDescription>
               </div>
@@ -247,8 +269,8 @@ export function OfficeWingsPage() {
               card={(row) => (
                 <div className='grid gap-2'>
                   <div className='grid min-w-0'>
-                    <span className='font-bold'>{row.name}</span>
-                    <span className='tabular text-xs text-muted-foreground'>+91 {row.mobile}</span>
+                    <span className='truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100'>{row.name}</span>
+                    <span className='tabular text-[12px] text-slate-500 dark:text-slate-400'>+91 {row.mobile}</span>
                   </div>
                   <AoWingList ao={row} />
                 </div>
@@ -290,29 +312,32 @@ function WingActions({
   onDelete: (wing: WingSetup) => void
 }) {
   return (
-    <div className='inline-flex gap-1'>
+    <div className='inline-flex gap-1.5'>
       <Button
-        variant='ghost'
+        variant='outline'
         size='icon-sm'
+        title={`Edit ${wing.name}`}
         aria-label={`Edit ${wing.name}`}
+        className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
         onClick={(event) => {
           event.stopPropagation()
           onEdit(wing)
         }}
       >
-        <Pencil />
+        <PenLine className='size-4 stroke-[1.75]' />
       </Button>
       <Button
-        variant='ghost'
+        variant='outline'
         size='icon-sm'
+        title={`Remove ${wing.name}`}
         aria-label={`Remove ${wing.name}`}
-        className='text-destructive hover:bg-destructive/10'
+        className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
         onClick={(event) => {
           event.stopPropagation()
           onDelete(wing)
         }}
       >
-        <Trash2 />
+        <TrashIcon className='size-4 stroke-[1.75]' />
       </Button>
     </div>
   )
@@ -320,7 +345,7 @@ function WingActions({
 
 function WingAos({ wing }: { wing: WingSetup }) {
   if (!wing.aos.length)
-    return <span className='text-xs text-muted-foreground'>No AO · head AO covers it</span>
+    return <span className='text-[12px] text-slate-400'>No AO · head AO covers it</span>
   return (
     <span className='flex flex-wrap gap-1'>
       {wing.aos.map((ao) => {
@@ -331,7 +356,7 @@ function WingAos({ wing }: { wing: WingSetup }) {
             tone={cover ? 'warning' : 'neutral'}
             className='whitespace-normal'
           >
-            <UserRound className='size-3' />
+            <UserRound className='size-3 stroke-[1.75]' />
             {ao.name}
             {cover && ` · ${cover}`}
           </Badge>
