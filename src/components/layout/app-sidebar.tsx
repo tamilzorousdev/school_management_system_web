@@ -2,7 +2,7 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { X } from 'lucide-react'
 import { BrandLogo, BrandMark } from '@/components/common/brand-logo'
 import { Button } from '@/components/ui/button'
-import { currentNav, NAV_GROUPS } from '@/config/nav'
+import { NAV_GROUPS, sidebarActive } from '@/config/nav'
 import { can, type Me } from '@/features/auth/api'
 import { useOfficeMe } from '@/features/office/api'
 import { cn } from '@/lib/utils'
@@ -20,7 +20,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSidebarProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const activeTo = currentNav(pathname).item.to
+  const activeTo = sidebarActive(pathname)
   const chosenSchool = useSelectedSchool()
   const selectedSchool = can(me, 'platform.schools') ? chosenSchool : null
   const navRef = useSteadyScroll<HTMLElement>()
@@ -31,6 +31,7 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) => {
+      if (item.under) return false
       if (item.to === '/parent-preview' && me.apps.includes('parent')) return true
       if (item.to === '/teacher-preview' && me.apps.includes('staff')) return true
       if (item.to === '/exams' && me.apps.includes('staff')) return true
@@ -133,7 +134,7 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
                         onClick={onMobileClose}
                         activeOptions={{ exact: true }}
                         data-current={item.to === activeTo ? 'true' : undefined}
-                        title={collapsed ? item.label : undefined}
+                        title={collapsed ? (item.sidebarLabel ?? item.label) : undefined}
                         className={cn(
                           'group relative flex h-9 min-w-0 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-colors outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-primary',
                           'data-[current=true]:bg-sidebar-accent data-[current=true]:text-sidebar-accent-foreground',
@@ -154,7 +155,7 @@ export function AppSidebar({ me, collapsed, mobileOpen, onMobileClose }: AppSide
                             <span
                               className={cn('min-w-0 flex-1 truncate', collapsed && 'md:hidden')}
                             >
-                              {item.label}
+                              {item.sidebarLabel ?? item.label}
                             </span>
                           </>
                         )}

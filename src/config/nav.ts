@@ -153,6 +153,8 @@ export interface NavItem {
   icon: LucideIcon
   shortcut: ShortcutId
   permission?: string
+  under?: NavPath
+  sidebarLabel?: string
 }
 
 export interface NavGroup {
@@ -566,6 +568,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: '/hostel',
         label: 'Hostel dashboard',
+        sidebarLabel: 'Hostel',
         description: 'Beds, residents, roll call, leave, complaints and fees at a glance',
         icon: BedDouble,
         shortcut: 'nav.hostel',
@@ -573,6 +576,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/residents',
+        under: '/hostel',
         label: 'Residents',
         description: 'Applications, admission, bed allocation, transfers and checkout',
         icon: UsersRound,
@@ -581,6 +585,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/rooms',
+        under: '/hostel',
         label: 'Rooms & beds',
         description: 'Every room and bed, who sleeps where and what is vacant',
         icon: DoorClosed,
@@ -589,6 +594,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/roll-call',
+        under: '/hostel',
         label: 'Hostel roll call',
         description: 'Morning, evening and night roll call with absent alerts to parents',
         icon: ListChecks,
@@ -597,6 +603,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/leaves',
+        under: '/hostel',
         label: 'Leave & passes',
         description: 'Home leave and outings, parent consent, hostel gate out and in, late returns',
         icon: LogOut,
@@ -605,6 +612,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/visitors',
+        under: '/hostel',
         label: 'Hostel visitors',
         description: 'Visitor log, who is inside now and the blocked list',
         icon: DoorOpen,
@@ -613,6 +621,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/fees',
+        under: '/hostel',
         label: 'Hostel fees',
         description: 'Fee instalments, billing, dues and caution deposits',
         icon: IndianRupee,
@@ -621,6 +630,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/discipline',
+        under: '/hostel',
         label: 'Hostel discipline',
         description: 'Conduct cases, actions, fines and strikes',
         icon: Gavel,
@@ -629,6 +639,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/complaints',
+        under: '/hostel',
         label: 'Complaints & repairs',
         description: 'Resident complaints with parent rating and maintenance tickets',
         icon: Wrench,
@@ -637,6 +648,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/safety',
+        under: '/hostel',
         label: 'Hostel safety',
         description:
           'Emergency alerts and drills with live headcount, and parents who agreed to the rules',
@@ -646,6 +658,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/reports',
+        under: '/hostel',
         label: 'Hostel reports',
         description:
           'Occupancy, attendance, leave, fees, discipline, complaints, mess and health reports',
@@ -655,6 +668,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/setup',
+        under: '/hostel',
         label: 'Hostel setup',
         description: 'Hostels, blocks, floors, room types, timings and optional modules',
         icon: Settings2,
@@ -663,6 +677,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/audit',
+        under: '/hostel',
         label: 'Hostel audit log',
         description: 'Who admitted, moved, billed or checked out whom',
         icon: ScrollText,
@@ -677,6 +692,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         to: '/hostel/mess',
         label: 'Mess',
+        sidebarLabel: 'Hostel life',
         description: 'Weekly menu, meal headcount by diet, meal attendance, skips and feedback',
         icon: UtensilsCrossed,
         shortcut: 'nav.hostelMess',
@@ -684,6 +700,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/health',
+        under: '/hostel/mess',
         label: 'Health & sick bay',
         description: 'Health log, students in the sick bay and medication rounds',
         icon: HeartPulse,
@@ -692,6 +709,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/study',
+        under: '/hostel/mess',
         label: 'Study hours',
         description: 'Study schedules, study attendance, study halls and seats',
         icon: BookOpen,
@@ -700,6 +718,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/duty',
+        under: '/hostel/mess',
         label: 'Staff duty',
         description: 'Hostel staff shifts, duty roster, check-in, swaps and night rounds',
         icon: CalendarClock,
@@ -708,6 +727,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/lockers',
+        under: '/hostel/mess',
         label: 'Lockers',
         description: 'Student lockers, keys and returns',
         icon: Lock,
@@ -716,6 +736,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/inspections',
+        under: '/hostel/mess',
         label: 'Inspections & assets',
         description: 'Room inspections, rooms due for a check and room furniture',
         icon: ClipboardCheck,
@@ -724,6 +745,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/hostel/laundry',
+        under: '/hostel/mess',
         label: 'Laundry',
         description: 'Laundry batches, returns and missing clothes',
         icon: Shirt,
@@ -856,6 +878,11 @@ const isPlayback = (pathname: string) =>
 
 const matches = (pathname: string, to: string) =>
   to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`)
+
+export function sidebarActive(pathname: string): NavPath {
+  const { item } = currentNav(pathname)
+  return item.under ?? item.to
+}
 
 export function currentNav(pathname: string): { group: string; item: NavItem } {
   const target: string = isPlayback(pathname) ? '/fleet/history' : pathname
