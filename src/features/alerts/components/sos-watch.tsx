@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { can, useMe } from '@/features/auth/api'
 import { useLiveEvent } from '@/lib/live/socket'
 import { useActiveSos } from '../api'
-import { askNotificationPermission, showSosNotification, useSosAlarm } from '../sos-alarm'
+import {
+  askNotificationPermission,
+  showSosNotification,
+  unlockSosSound,
+  useSosAlarm,
+  useSosSoundUnlock,
+} from '../sos-alarm'
 import { AlertSheet } from './alert-sheet'
 import { SosBanner } from './sos-banner'
 
@@ -18,7 +24,16 @@ function SosWatcher() {
   const sos = useActiveSos(true, false)
   const ringing = (sos.data?.items ?? []).some((alert) => alert.status === 'open')
 
-  useSosAlarm(ringing && !muted)
+  useSosSoundUnlock()
+  const { blocked } = useSosAlarm(ringing && !muted)
+
+  const toggleSound = () => {
+    if (blocked) {
+      unlockSosSound()
+      return
+    }
+    setMuted(!muted)
+  }
 
   useEffect(() => {
     askNotificationPermission()
@@ -37,7 +52,7 @@ function SosWatcher() {
     <div className='mx-auto w-full max-w-[1600px] px-4 pt-6 empty:hidden sm:px-6 lg:px-8'>
       <SosBanner
         onOpen={setOpenId}
-        sound={ringing ? { muted, toggle: () => setMuted(!muted) } : undefined}
+        sound={ringing ? { muted, blocked, toggle: toggleSound } : undefined}
       />
       <AlertSheet alertId={openId} onOpenChange={(open) => !open && setOpenId(null)} />
     </div>

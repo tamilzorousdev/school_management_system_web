@@ -24,6 +24,7 @@ import { TRIP_TRACKING, clock } from '@/features/fleet/labels'
 import { cn } from '@/lib/utils'
 import { useOperationsBoard, type BoardException, type BoardStatus, type BoardTrip } from '../api'
 import { OpsDayBar } from '../components/ops-day'
+import { StudentsTodayPanel } from '../components/students-today-panel'
 import { BOARD_STATUS, EXCEPTION_KIND, opsDay } from '../labels'
 import type { OpsDaySearch } from '../search'
 
@@ -412,6 +413,8 @@ export function OperationsPage() {
       ) : (
         <>
           <ExceptionsPanel items={data?.exceptions} loading={board.isPending} />
+
+          <StudentsTodayPanel day={day} live={live} />
 
           <InsightCards items={cards} loading={board.isPending} />
 

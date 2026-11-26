@@ -165,10 +165,61 @@ export interface IncidentListParams {
   order?: 'asc' | 'desc'
 }
 
+export type AwayReason = 'leave' | 'half_day' | 'od' | 'absent' | 'no_bus' | 'early_leave'
+
+export interface TodayAway {
+  reason: AwayReason
+  note: string
+}
+
+export interface TodayRider {
+  student: OpsRef
+  admission_no: string | null
+  class_section: string | null
+  route: OpsRef
+  bus: OpsRef | null
+  stop: string | null
+}
+
+export interface TodayEarlyLeave extends TodayRider {
+  status: 'approved' | 'released'
+  pickup_name: string | null
+  pickup_relation: string | null
+  reason: string
+  released_at: string | null
+}
+
+export interface TodayNotComing extends TodayRider {
+  pickup: TodayAway | null
+  drop: TodayAway | null
+}
+
+export interface TodayOnHold extends TodayRider {
+  hold_kind: 'fee' | 'office' | null
+  pass_note: string | null
+}
+
+export interface StudentsToday {
+  date: string
+  summary: {
+    riders: number
+    coming: number
+    away_pickup: number
+    away_drop: number
+    early_leave: number
+    early_leave_waiting: number
+    passes_on_hold: number
+  }
+  early_leaves: TodayEarlyLeave[]
+  away: TodayNotComing[]
+  on_hold: TodayOnHold[]
+}
+
 export const opsKeys = {
   all: ['transport-ops'] as const,
   board: (date: string) => [...opsKeys.all, 'board', date] as const,
   drivers: (date: string) => [...opsKeys.all, 'drivers', date] as const,
+  studentsToday: (date: string) => [...opsKeys.all, 'students-today', date] as const,
   bus: (date: string, routeId?: number) => [...opsKeys.all, 'bus', date, routeId ?? 0] as const,
   incidents: (params: IncidentListParams) => [...opsKeys.all, 'incidents', params] as const,
   incidentInsights: () => [...opsKeys.all, 'incident-insights'] as const,
@@ -180,6 +231,7 @@ const base = '/admin/transport'
 export const opsApi = {
   board: (date: string) => api.get<OperationsBoard>(`${base}/operations`, { date }),
   drivers: (date: string) => api.get<DriverDay[]>(`${base}/driver-attendance`, { date }),
+  studentsToday: (date: string) => api.get<StudentsToday>(`${base}/students-today`, { date }),
   bus: (date: string, routeId?: number) =>
     api.get<BusAttendanceRow[]>(`${base}/bus-attendance`, { date, route_id: routeId }),
   incidents: (params: IncidentListParams) =>
@@ -196,6 +248,15 @@ export function useOperationsBoard(date: string, live: boolean) {
   return useQuery({
     queryKey: opsKeys.board(date),
     queryFn: () => opsApi.board(date),
+    placeholderData: keepPreviousData,
+    refetchInterval: pollWhen(live),
+  })
+}
+
+export function useStudentsToday(date: string, live: boolean) {
+  return useQuery({
+    queryKey: opsKeys.studentsToday(date),
+    queryFn: () => opsApi.studentsToday(date),
     placeholderData: keepPreviousData,
     refetchInterval: pollWhen(live),
   })

@@ -11,10 +11,16 @@ import { useAcknowledgeAlert, useActiveSos, type FleetAlert } from '../api'
 import { mapLink, telLink } from '../labels'
 import { useAlertsLive } from '../live'
 
+interface SosSound {
+  muted: boolean
+  blocked: boolean
+  toggle: () => void
+}
+
 interface SosBannerProps {
   className?: string
   onOpen?: (id: number) => void
-  sound?: { muted: boolean; toggle: () => void }
+  sound?: SosSound
 }
 
 export function SosBanner({ className, onOpen, sound }: SosBannerProps) {
@@ -53,7 +59,7 @@ function SosRow({
   alert: FleetAlert
   canManage: boolean
   onOpen?: (id: number) => void
-  sound?: { muted: boolean; toggle: () => void }
+  sound?: SosSound
 }) {
   const now = useNow(15_000)
   const acknowledge = useAcknowledgeAlert()
@@ -105,10 +111,16 @@ function SosRow({
             size='sm'
             variant='secondary'
             onClick={sound.toggle}
-            aria-label={sound.muted ? 'Turn the alarm sound on' : 'Mute the alarm sound'}
+            aria-label={
+              sound.blocked
+                ? 'Turn the alarm sound on (the browser blocked it)'
+                : sound.muted
+                  ? 'Turn the alarm sound on'
+                  : 'Mute the alarm sound'
+            }
           >
-            {sound.muted ? <VolumeX /> : <Volume2 />}
-            {sound.muted ? 'Sound off' : 'Mute'}
+            {sound.blocked || sound.muted ? <VolumeX /> : <Volume2 />}
+            {sound.blocked ? 'Turn on sound' : sound.muted ? 'Sound off' : 'Mute'}
           </Button>
         )}
         {call && (
