@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { NewDocument, VerifiableDoc } from '@/components/common/document-list'
 import { api, type Paginated } from '@/lib/api/client'
 import type { Language } from '@/features/auth/api'
+import type { AadhaarReveal, IdentityDetail, IdentityInput } from '@/lib/identity'
 
 export type StaffType = 'teaching' | 'non_teaching'
 export type StaffStatus = 'active' | 'on_leave' | 'resigned'
@@ -94,7 +95,7 @@ export interface TeachingAssignment {
   periods_per_week: number
 }
 
-export interface StaffDetail extends StaffListItem {
+export interface StaffDetail extends StaffListItem, IdentityDetail {
   language: Language
   gender: StaffGender | null
   dob: string | null
@@ -126,7 +127,7 @@ export interface QualificationInput {
   year_completed?: number | null
 }
 
-export interface StaffProfileInput {
+export interface StaffProfileInput extends IdentityInput {
   name: string
   mobile: string
   email?: string | null
@@ -260,6 +261,7 @@ export const staffKeys = {
   insights: () => [...staffKeys.all, 'insights'] as const,
   detail: (id: number) => [...staffKeys.all, 'detail', id] as const,
   bank: (id: number) => [...staffKeys.all, 'bank', id] as const,
+  aadhaar: (id: number) => [...staffKeys.all, 'aadhaar', id] as const,
   assignments: (params: AssignmentParams) => [...staffKeys.all, 'assignments', params] as const,
   assignmentChanges: (week: string) => [...staffKeys.all, 'assignment-changes', week] as const,
 }
@@ -294,6 +296,7 @@ export const staffApi = {
   removeDocument: (id: number, documentId: number) =>
     api.delete<StaffDetail>(`/admin/staff/${id}/documents/${documentId}`),
   bank: (id: number) => api.get<BankDetails[]>(`/admin/staff/${id}/bank`),
+  aadhaar: (id: number) => api.get<AadhaarReveal>(`/admin/staff/${id}/aadhaar`),
   saveBank: (id: number, input: BankInput | BankInput[] | { accounts: BankInput[] }) =>
     api.put<StaffDetail>(
       `/admin/staff/${id}/bank`,
@@ -339,6 +342,16 @@ export function useStaffBank(id: number, enabled: boolean) {
   return useQuery({
     queryKey: staffKeys.bank(id),
     queryFn: () => staffApi.bank(id),
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+  })
+}
+
+export function useStaffAadhaar(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: staffKeys.aadhaar(id),
+    queryFn: () => staffApi.aadhaar(id),
     enabled,
     staleTime: 0,
     gcTime: 0,

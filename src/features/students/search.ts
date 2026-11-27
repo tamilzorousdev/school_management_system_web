@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { COMMUNITIES, RELIGIONS } from '@/lib/identity'
 
 const page = z.coerce.number().int().min(1).catch(1)
 const text = z.string().trim().max(100).optional().catch(undefined)
@@ -15,6 +16,8 @@ export const studentsSearchSchema = z.object({
   no_section: flag,
   has_siblings: flag,
   new_this_month: flag,
+  community: z.enum(COMMUNITIES).optional().catch(undefined),
+  religion: z.enum(RELIGIONS).optional().catch(undefined),
   sort: z
     .enum(['name', 'admission_no', 'admission_date', 'roll_no', 'class'])
     .optional()

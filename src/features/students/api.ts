@@ -1,6 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginated } from '@/lib/api/client'
 import type { Language } from '@/features/auth/api'
+import type {
+  AadhaarReveal,
+  Community,
+  IdentityDetail,
+  IdentityInput,
+  Religion,
+} from '@/lib/identity'
 
 export type Gender = 'male' | 'female' | 'other'
 export type Relation = 'father' | 'mother' | 'guardian' | 'grandparent' | 'sibling' | 'other'
@@ -44,7 +51,7 @@ export interface StudentListItem {
   sibling_count: number
 }
 
-export interface StudentDetail extends StudentListItem {
+export interface StudentDetail extends StudentListItem, IdentityDetail {
   left_on: string | null
   alumni_id: number | null
   noc_status: 'open' | 'cleared' | null
@@ -96,7 +103,7 @@ export interface GuardianInput {
   language?: Language
 }
 
-export interface StudentInput {
+export interface StudentInput extends IdentityInput {
   emis_number?: string | null
   first_name: string
   last_name?: string | null
@@ -132,8 +139,24 @@ export interface StudentListParams {
   no_section?: boolean
   has_siblings?: boolean
   new_this_month?: boolean
+  community?: Community
+  religion?: Religion
   sort?: string
   order?: 'asc' | 'desc'
+}
+
+export interface CommunitySummaryRow {
+  community: Community
+  label: string
+  total: number
+  boys: number
+  girls: number
+}
+
+export interface CommunitySummary {
+  total: number
+  not_recorded: number
+  items: CommunitySummaryRow[]
 }
 
 export interface GuardianChild {
@@ -248,6 +271,9 @@ export const studentKeys = {
   all: ['students'] as const,
   list: (params: StudentListParams) => [...studentKeys.all, 'list', params] as const,
   insights: () => [...studentKeys.all, 'insights'] as const,
+  communitySummary: (classId?: number) =>
+    [...studentKeys.all, 'community-summary', classId ?? null] as const,
+  aadhaar: (id: number) => [...studentKeys.all, 'aadhaar', id] as const,
   detail: (id: number) => [...studentKeys.all, 'detail', id] as const,
   guardians: (params: GuardianListParams) => [...studentKeys.all, 'guardians', params] as const,
   guardianInsights: () => [...studentKeys.all, 'guardian-insights'] as const,
@@ -260,7 +286,10 @@ export const studentsApi = {
   list: (params: StudentListParams) =>
     api.get<Paginated<StudentListItem>>('/admin/students', { ...params }),
   insights: () => api.get<StudentInsights>('/admin/students/insights'),
+  communitySummary: (classId?: number) =>
+    api.get<CommunitySummary>('/admin/students/community-summary', { class_id: classId }),
   get: (id: number) => api.get<StudentDetail>(`/admin/students/${id}`),
+  aadhaar: (id: number) => api.get<AadhaarReveal>(`/admin/students/${id}/aadhaar`),
   create: (input: StudentInput) => api.post<StudentDetail>('/admin/students', input),
   update: (id: number, input: Partial<StudentInput> & { status?: StudentStatus }) =>
     api.patch<StudentDetail>(`/admin/students/${id}`, input),
@@ -322,6 +351,24 @@ export function useStudents(params: StudentListParams, enabled = true) {
 
 export function useStudentInsights() {
   return useQuery({ queryKey: studentKeys.insights(), queryFn: studentsApi.insights })
+}
+
+export function useCommunitySummary(classId: number | undefined, enabled = true) {
+  return useQuery({
+    queryKey: studentKeys.communitySummary(classId),
+    queryFn: () => studentsApi.communitySummary(classId),
+    enabled,
+  })
+}
+
+export function useStudentAadhaar(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: studentKeys.aadhaar(id),
+    queryFn: () => studentsApi.aadhaar(id),
+    enabled,
+    staleTime: 0,
+    gcTime: 0,
+  })
 }
 
 export function useStudent(id: number | null) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   ArrowUpCircle,
+  ChartPie,
   ChevronDown,
   CircleOff,
   Eye,
@@ -35,6 +36,7 @@ import { useClasses, useSections } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { openFile } from '@/lib/files'
+import { COMMUNITY_OPTIONS, RELIGION_OPTIONS } from '@/lib/identity'
 import {
   studentsApi,
   useStudentInsights,
@@ -42,6 +44,7 @@ import {
   useStudents,
   type StudentListItem,
 } from '../api'
+import { CommunitySummaryModal } from '../components/community-summary-modal'
 import { ImportWizard } from '../components/import-wizard'
 import { PromotionModal } from '../components/promotion-modal'
 import { StudentFormModal } from '../components/student-form-modal'
@@ -62,6 +65,7 @@ export function StudentsPage() {
   const [numbering, setNumbering] = useState(false)
   const [tool, setTool] = useState<'import' | 'promote' | null>(null)
   const [printing, setPrinting] = useState(false)
+  const [byCommunity, setByCommunity] = useState(false)
 
   const students = useStudents({ ...search, limit: LIMIT })
   const insights = useStudentInsights()
@@ -289,6 +293,8 @@ export function StudentsPage() {
     search.class_id ||
     search.section_id ||
     search.gender ||
+    search.community ||
+    search.religion ||
     search.no_section ||
     search.has_siblings ||
     search.new_this_month
@@ -303,6 +309,10 @@ export function StudentsPage() {
         description='Every student this academic year with their class, roll number and parents. Open a student for documents, health and behaviour.'
         actions={
           <>
+            <Button variant='secondary' size='sm' onClick={() => setByCommunity(true)}>
+              <ChartPie className='size-4' />
+              By community
+            </Button>
             {search.class_id && (
               <Button
                 variant='secondary'
@@ -399,6 +409,22 @@ export function StudentsPage() {
             options={toOptions(GENDER_LABELS)}
             onChange={(value) => setSearch({ gender: value as StudentsSearch['gender'] })}
           />
+          <FilterSelect
+            id='community-filter'
+            label='Filter by community'
+            allLabel='All communities'
+            value={search.community}
+            options={COMMUNITY_OPTIONS}
+            onChange={(value) => setSearch({ community: value as StudentsSearch['community'] })}
+          />
+          <FilterSelect
+            id='religion-filter'
+            label='Filter by religion'
+            allLabel='All religions'
+            value={search.religion}
+            options={RELIGION_OPTIONS}
+            onChange={(value) => setSearch({ religion: value as StudentsSearch['religion'] })}
+          />
         </ListToolbar>
 
         <DataTable
@@ -485,6 +511,17 @@ export function StudentsPage() {
         open={adding}
         onOpenChange={setAdding}
         onCreated={(id) => openStudent(id)}
+      />
+      <CommunitySummaryModal
+        open={byCommunity}
+        onOpenChange={setByCommunity}
+        classId={search.class_id}
+        classLabel={classes.data?.find((item) => item.id === search.class_id)?.name}
+        active={search.community}
+        onPick={(community) => {
+          setSearch({ community })
+          setByCommunity(false)
+        }}
       />
       {tool === 'import' && <ImportWizard onClose={() => setTool(null)} />}
       {tool === 'promote' && <PromotionModal onClose={() => setTool(null)} />}

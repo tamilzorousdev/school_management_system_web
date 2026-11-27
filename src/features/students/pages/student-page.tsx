@@ -78,6 +78,7 @@ import {
   EnrollmentModal,
   Facts,
   LinkGuardianModal,
+  StudentIdentityBlock,
 } from '../components/student-parts'
 import {
   DOCUMENT_TYPE_LABELS,
@@ -592,6 +593,7 @@ function ProfileTab({
             ]}
           />
         </Block>
+        <StudentIdentityBlock student={student} />
       </Card>
       <Card className='grid content-start gap-6 p-4 sm:p-5'>
         <Block title='Class history'>

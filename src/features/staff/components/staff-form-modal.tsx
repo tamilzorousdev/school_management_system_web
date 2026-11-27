@@ -4,6 +4,7 @@ import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
+import { IdentityFields } from '@/components/common/identity-fields'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { can, useMe, type Language, type Me } from '@/features/auth/api'
@@ -11,6 +12,12 @@ import { RootError } from '@/features/setup/components/setup-shared'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
+import {
+  toIdentityDraft,
+  toIdentityInput,
+  validateIdentity,
+  type IdentityDraft,
+} from '@/lib/identity'
 import { cn } from '@/lib/utils'
 import {
   staffApi,
@@ -153,6 +160,7 @@ function StaffForm({
 }) {
   const me = useMe().data
   const [draft, setDraft] = useState<Draft>(() => toDraft(staff))
+  const [identity, setIdentity] = useState<IdentityDraft>(() => toIdentityDraft(staff))
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [qualifications, setQualifications] = useState<QualificationDraft[]>([])
   const [sendInvite, setSendInvite] = useState(true)
@@ -165,6 +173,11 @@ function StaffForm({
 
   const set = <K extends keyof Draft>(field: K, value: Draft[K]) => {
     setDraft((current) => ({ ...current, [field]: value }))
+    setErrors((current) => ({ ...current, [field]: '' }))
+  }
+
+  const setIdentityField = <K extends keyof IdentityDraft>(field: K, value: IdentityDraft[K]) => {
+    setIdentity((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: '' }))
   }
 
@@ -184,7 +197,7 @@ function StaffForm({
   }
 
   const validate = () => {
-    const next: Record<string, string> = {}
+    const next: Record<string, string> = validateIdentity(identity)
     if (draft.name.trim().length < 2) next.name = 'Enter the full name'
     if (!MOBILE.test(draft.mobile)) next.mobile = 'Enter a valid 10-digit mobile number'
     if (draft.email.trim() && !EMAIL.test(draft.email.trim()))
@@ -235,6 +248,7 @@ function StaffForm({
       emergency_contact_mobile: draft.emergency_contact_mobile || null,
       employee_no: draft.employee_no.trim() || undefined,
       photo_file_id: draft.photo_file_id,
+      ...toIdentityInput(identity),
     }
     try {
       const { role_codes: _roles, ...withoutRoles } = profile
@@ -618,6 +632,19 @@ function StaffForm({
             />
           </FormField>
         </div>
+      </section>
+
+      <section className='grid gap-3'>
+        <h3 className={heading}>Community and identity</h3>
+        <IdentityFields
+          idPrefix='staff'
+          value={identity}
+          onChange={setIdentityField}
+          errors={errors}
+          savedAadhaar={staff?.aadhaar_masked}
+          size='sm'
+          inputClassName={FIELD_CLASS}
+        />
       </section>
 
       {!staff && (

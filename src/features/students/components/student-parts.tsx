@@ -1,16 +1,28 @@
 import { useState, type ReactNode } from 'react'
 import { Camera, Trash } from 'lucide-react'
+import { AadhaarValue } from '@/components/common/aadhaar-value'
 import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
+import { IdentityFields } from '@/components/common/identity-fields'
 import { Input } from '@/components/ui/input'
+import { can, useMe } from '@/features/auth/api'
 import { useClasses, useSections } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
 import {
+  communityLabel,
+  religionLabel,
+  toIdentityDraft,
+  toIdentityInput,
+  validateIdentity,
+  type IdentityDraft,
+} from '@/lib/identity'
+import {
   studentsApi,
+  useStudentAadhaar,
   useStudentMutation,
   type BloodGroup,
   type Gender,
@@ -54,6 +66,37 @@ export function Facts({ items }: { items: [string, ReactNode][] }) {
         </div>
       ))}
     </dl>
+  )
+}
+
+export function StudentIdentityBlock({ student }: { student: StudentDetail }) {
+  const canReveal = can(useMe().data, 'identity.aadhaar')
+  const [shown, setShown] = useState(false)
+  const aadhaar = useStudentAadhaar(student.id, shown && canReveal)
+  return (
+    <Block title='Community and identity'>
+      <Facts
+        items={[
+          ['Community', communityLabel(student.community)],
+          ['Caste', student.caste ?? '—'],
+          ['Religion', religionLabel(student.religion)],
+          ['Community certificate', student.community_certificate_no ?? '—'],
+          ['Nationality', student.nationality ?? '—'],
+          ['Mother tongue', student.mother_tongue ?? '—'],
+          [
+            'Aadhaar',
+            <AadhaarValue
+              masked={student.aadhaar_masked}
+              canReveal={canReveal}
+              shown={shown}
+              loading={aadhaar.isFetching}
+              revealed={aadhaar.data?.aadhaar_no}
+              onToggle={() => setShown((value) => !value)}
+            />,
+          ],
+        ]}
+      />
+    </Block>
   )
 }
 
@@ -255,6 +298,7 @@ export function EditStudentModal({
     photo_file_id: student.photo_file_id,
     photo_url: student.photo_url ?? null,
   })
+  const [identity, setIdentity] = useState<IdentityDraft>(() => toIdentityDraft(student))
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const save = useStudentMutation(() =>
@@ -272,10 +316,15 @@ export function EditStudentModal({
       previous_school: draft.previous_school.trim() || null,
       identification_marks: draft.identification_marks.trim() || null,
       photo_file_id: draft.photo_file_id,
+      ...toIdentityInput(identity),
     })
   )
   const set = (field: keyof typeof draft, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }))
+    setErrors((current) => ({ ...current, [field]: '' }))
+  }
+  const setIdentityField = <K extends keyof IdentityDraft>(field: K, value: IdentityDraft[K]) => {
+    setIdentity((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: '' }))
   }
 
@@ -296,7 +345,7 @@ export function EditStudentModal({
         className='grid gap-4 sm:grid-cols-2'
         onSubmit={async (event) => {
           event.preventDefault()
-          const next: Record<string, string> = {}
+          const next: Record<string, string> = validateIdentity(identity)
           if (!draft.first_name.trim()) next.first_name = 'Enter the first name'
           if (!draft.dob) next.dob = 'Choose the date of birth'
           if (draft.pincode && !/^\d{6}$/.test(draft.pincode)) next.pincode = 'Pincode has 6 digits'
@@ -501,6 +550,18 @@ export function EditStudentModal({
             onChange={(event) => set('identification_marks', event.target.value)}
           />
         </FormField>
+        <section className='grid gap-3 sm:col-span-2'>
+          <h3 className='text-xs font-bold tracking-wider text-muted-foreground uppercase'>
+            Community and identity
+          </h3>
+          <IdentityFields
+            idPrefix='edit-student'
+            value={identity}
+            onChange={setIdentityField}
+            errors={errors}
+            savedAadhaar={student.aadhaar_masked}
+          />
+        </section>
       </form>
     </AppModal>
   )
