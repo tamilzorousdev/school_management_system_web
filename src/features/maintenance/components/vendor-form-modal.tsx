@@ -17,7 +17,7 @@ import {
 } from '../api'
 import { VENDOR_KIND_OPTIONS } from '../labels'
 import { applyFieldErrors } from '../helpers'
-import { FormAlert } from './shared'
+import { FormAlert, MAINTENANCE_INPUT_CLASS } from './shared'
 
 const FORM_ID = 'vendor-form'
 const GSTIN = /^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/
@@ -32,7 +32,7 @@ const schema = z.object({
   phone: z
     .string()
     .trim()
-    .refine((value) => value === '' || /^[0-9+\- ]{6,15}$/.test(value), 'Enter 6 to 15 digits'),
+    .refine((value) => value === '' || /^\d{10}$/.test(value), 'Enter a 10-digit phone number'),
   gst_no: z
     .string()
     .trim()
@@ -138,6 +138,7 @@ function VendorForm({
               <Input
                 id='vendor-kind'
                 value={VENDOR_KIND_OPTIONS.find((option) => option.value === vendor.kind)?.label}
+                className={MAINTENANCE_INPUT_CLASS}
                 disabled
                 readOnly
               />
@@ -150,7 +151,7 @@ function VendorForm({
                 placeholder='Choose the kind'
                 searchPlaceholder='Search kinds'
                 highlightSelected={false}
-                className='sm:w-full'
+                className={MAINTENANCE_INPUT_CLASS}
                 invalid={Boolean(errors.kind)}
                 onChange={(value) => field.onChange(value ?? '')}
               />
@@ -164,18 +165,30 @@ function VendorForm({
           autoFocus
           maxLength={100}
           placeholder='Sri Murugan Motors'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.name) || undefined}
           {...register('name')}
         />
       </FormField>
       <FormField id='vendor-phone' label='Phone' error={errors.phone?.message}>
-        <Input
-          id='vendor-phone'
-          inputMode='tel'
-          maxLength={15}
-          placeholder='9876500011'
-          aria-invalid={Boolean(errors.phone) || undefined}
-          {...register('phone')}
+        <Controller
+          control={control}
+          name='phone'
+          render={({ field }) => (
+            <Input
+              id='vendor-phone'
+              inputMode='numeric'
+              maxLength={10}
+              placeholder='9876500011'
+              className={MAINTENANCE_INPUT_CLASS}
+              aria-invalid={Boolean(errors.phone) || undefined}
+              value={field.value}
+              onChange={(event) =>
+                field.onChange(event.target.value.replace(/\D/g, '').slice(0, 10))
+              }
+              onBlur={field.onBlur}
+            />
+          )}
         />
       </FormField>
       <FormField id='vendor-gst' label='GSTIN' error={errors.gst_no?.message}>
@@ -183,7 +196,7 @@ function VendorForm({
           id='vendor-gst'
           maxLength={15}
           placeholder='33ABCDE1234F1Z5'
-          className='font-mono uppercase'
+          className={`font-mono uppercase ${MAINTENANCE_INPUT_CLASS}`}
           aria-invalid={Boolean(errors.gst_no) || undefined}
           {...register('gst_no')}
         />

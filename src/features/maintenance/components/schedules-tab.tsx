@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { CalendarClock, CircleOff, ListChecks, Pencil, Plus, Power, Trash2 } from 'lucide-react'
+import { CalendarClock, CircleOff, ListChecks, PenLine, Plus, Power } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { TrashIcon } from '@/components/common/icon'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,10 +33,15 @@ import { BusCell } from './shared'
 const LIMIT = 20
 
 export function DueBadge({ schedule }: { schedule: Schedule }) {
-  if (!schedule.is_active) return <Badge tone='neutral'>Switched off</Badge>
+  if (!schedule.is_active)
+    return (
+      <Badge tone='neutral' className='font-medium'>
+        Switched off
+      </Badge>
+    )
   const status = DUE_STATUS[schedule.status]
   return (
-    <Badge tone={status.tone} dot>
+    <Badge tone={status.tone} dot className='font-medium'>
       {status.label}
     </Badge>
   )
@@ -44,7 +50,7 @@ export function DueBadge({ schedule }: { schedule: Schedule }) {
 export function DueLeft({ schedule }: { schedule: Schedule }) {
   const parts = [daysText(schedule.days_left), kmText(schedule.km_left)].filter(Boolean)
   return (
-    <span className='tabular text-xs text-muted-foreground'>
+    <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
       {parts.length ? parts.join(' · ') : 'Not enough readings yet'}
     </span>
   )
@@ -72,6 +78,7 @@ export function SchedulesTab({
   search,
   setSearch,
   onPageChange,
+  onLimitChange,
   onClear,
   canManage,
   adding,
@@ -92,9 +99,10 @@ export function SchedulesTab({
     maintenanceApi.applyStandard(vehicleIds)
   )
 
+  const limit = search.limit ?? LIMIT
   const params: ScheduleListParams = {
     page: search.page,
-    limit: LIMIT,
+    limit,
     search: search.search,
     vehicle_id: search.vehicle_id,
     status: search.due,
@@ -125,36 +133,43 @@ export function SchedulesTab({
           size='icon-sm'
           aria-label={`${schedule.is_active ? 'Switch off' : 'Switch on'} ${schedule.title} for ${schedule.vehicle.name}`}
           title={schedule.is_active ? 'Switch off' : 'Switch on'}
-          className={schedule.is_active ? undefined : 'text-success hover:bg-success/10'}
+          className={
+            schedule.is_active
+              ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              : 'text-[#127D48] hover:bg-[#EAF7F0] dark:text-emerald-400 dark:hover:bg-emerald-950/50'
+          }
           onClick={(event) => {
             event.stopPropagation()
             void switchActive(schedule)
           }}
         >
-          <Power />
+          <Power className='size-4' />
         </Button>
         <Button
           variant='ghost'
           size='icon-sm'
           aria-label={`Edit ${schedule.title} for ${schedule.vehicle.name}`}
+          title='Edit'
+          className='text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
           onClick={(event) => {
             event.stopPropagation()
             openEdit(schedule)
           }}
         >
-          <Pencil />
+          <PenLine className='size-4' />
         </Button>
         <Button
           variant='ghost'
           size='icon-sm'
           aria-label={`Delete ${schedule.title} for ${schedule.vehicle.name}`}
-          className='text-destructive hover:bg-destructive/10'
+          title='Delete'
+          className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] dark:text-red-400 dark:hover:bg-destructive/10 dark:hover:text-red-300'
           onClick={(event) => {
             event.stopPropagation()
             setDeleting(schedule)
           }}
         >
-          <Trash2 />
+          <TrashIcon className='size-4' />
         </Button>
       </div>
     )
@@ -162,20 +177,22 @@ export function SchedulesTab({
   const columns: Column<Schedule>[] = [
     {
       key: 'title',
-      header: 'Service',
+      header: 'SERVICE',
       cell: (schedule) => (
         <div className='grid min-w-0'>
-          <span className='font-bold'>{schedule.title}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {schedule.title}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {SERVICE_CATEGORY[schedule.category]} · every {every(schedule)}
           </span>
         </div>
       ),
     },
-    { key: 'bus', header: 'Bus', cell: (schedule) => <BusCell vehicle={schedule.vehicle} /> },
+    { key: 'bus', header: 'BUS', cell: (schedule) => <BusCell vehicle={schedule.vehicle} /> },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (schedule) => (
         <div className='grid justify-items-start gap-1'>
           <DueBadge schedule={schedule} />
@@ -185,18 +202,24 @@ export function SchedulesTab({
     },
     {
       key: 'next',
-      header: 'Next due',
+      header: 'NEXT DUE',
       hideBelow: 'lg',
-      cell: (schedule) => <span className='tabular'>{nextDue(schedule)}</span>,
+      cell: (schedule) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {nextDue(schedule)}
+        </span>
+      ),
     },
     {
       key: 'last',
-      header: 'Last done',
+      header: 'LAST DONE',
       hideBelow: 'xl',
       cell: (schedule) => (
         <div className='grid'>
-          <span className='tabular'>{formatDate(schedule.last_done_on)}</span>
-          <span className='tabular text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+            {formatDate(schedule.last_done_on)}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
             {formatNumber(schedule.last_done_km, 0, 'km')}
           </span>
         </div>
@@ -204,16 +227,18 @@ export function SchedulesTab({
     },
     {
       key: 'current',
-      header: 'Bus now',
+      header: 'BUS NOW',
       hideBelow: 'xl',
       align: 'right',
       cell: (schedule) => (
-        <span className='tabular'>{formatNumber(schedule.current_km, 0, 'km')}</span>
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatNumber(schedule.current_km, 0, 'km')}
+        </span>
       ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-28',
       cell: actions,
@@ -229,15 +254,17 @@ export function SchedulesTab({
     <>
       <Card className='flex flex-wrap items-center justify-between gap-3 p-4'>
         <div className='grid min-w-0 flex-1 gap-0.5'>
-          <span className='font-semibold'>Standard service plan</span>
+          <span className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+            Standard service plan
+          </span>
           <span className='text-sm text-muted-foreground'>
             Engine oil every 10,000 km or 6 months, tyre rotation every 15,000 km, brake check every
             3 months and a general service every 6 months. Buses keep any rule they already have.
           </span>
         </div>
         {canManage && (
-          <Button variant='outline' onClick={() => setApplying(true)}>
-            <ListChecks />
+          <Button variant='outline' size='sm' onClick={() => setApplying(true)}>
+            <ListChecks className='size-3.5' />
             Apply standard plan
           </Button>
         )}
@@ -256,6 +283,8 @@ export function SchedulesTab({
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Search service or bus'
             label='Search service rules'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='schedule-status-filter'
@@ -297,8 +326,8 @@ export function SchedulesTab({
               ? 'Try another bus, service or status, or clear the filters.'
               : 'Apply the standard plan to every bus in one click, or add your own rule.',
             action: !filtered && canManage && (
-              <Button onClick={() => onAddingChange(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => onAddingChange(true)}>
+                <Plus className='size-3.5' />
                 Add rule
               </Button>
             ),
@@ -307,8 +336,10 @@ export function SchedulesTab({
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
                 <div className='grid min-w-0'>
-                  <span className='font-bold'>{schedule.title}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                    {schedule.title}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {schedule.vehicle.name} · {schedule.vehicle.registration_no}
                   </span>
                 </div>
@@ -322,10 +353,11 @@ export function SchedulesTab({
           )}
           pagination={{
             page: search.page,
-            limit: LIMIT,
+            limit,
             total: schedules.data?.total ?? 0,
             label: 'rules',
             onPageChange,
+            onLimitChange,
           }}
         />
       </Card>

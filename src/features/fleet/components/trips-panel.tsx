@@ -29,7 +29,7 @@ interface TripsPanelProps {
 export function TripStatusBadge({ trip }: { trip: Pick<Trip, 'status'> }) {
   const status = TRIP_STATUS[trip.status]
   return (
-    <Badge tone={status.tone} dot pulse={trip.status === 'active'}>
+    <Badge tone={status.tone} dot pulse={trip.status === 'active'} className='font-medium'>
       {status.label}
     </Badge>
   )
@@ -39,7 +39,7 @@ export function TrackingBadge({ trip }: { trip: Pick<Trip, 'tracking'> }) {
   if (!trip.tracking) return null
   const tracking = TRIP_TRACKING[trip.tracking]
   return (
-    <Badge tone={tracking.tone} title={tracking.hint}>
+    <Badge tone={tracking.tone} title={tracking.hint} className='font-medium'>
       {tracking.label}
     </Badge>
   )

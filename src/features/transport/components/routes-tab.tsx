@@ -3,16 +3,16 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeftRight,
   Map as MapIcon,
-  Pencil,
+  PenLine,
   Plus,
   Radio,
   Route as RouteIcon,
-  Trash2,
   Undo2,
   UsersRound,
 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { TrashIcon } from '@/components/common/icon'
 import { ListToolbar } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -98,12 +98,12 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
               navigate({ to: '/fleet/trips/$tripId', params: { tripId: liveTrip.id } })
             }
           >
-            <Radio className='text-success' />
+            <Radio className='size-3.5 text-success' />
             Open live trip
           </Button>
         )}
         <Button size='sm' variant='outline' onClick={() => openBuilder(route.id)}>
-          <MapIcon />
+          <MapIcon className='size-3.5' />
           Open builder
         </Button>
         <Button
@@ -114,12 +114,12 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
             navigate({ to: '/transport/routes/$routeId/students', params: { routeId: route.id } })
           }
         >
-          <UsersRound />
+          <UsersRound className='size-3.5' />
           Students
         </Button>
         {canManage && route.is_active && route.vehicle && !route.swap_today && (
           <Button size='sm' variant='outline' onClick={() => setSwapping(route)}>
-            <ArrowLeftRight />
+            <ArrowLeftRight className='size-3.5' />
             Bus for a day
           </Button>
         )}
@@ -132,7 +132,7 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
               void run(() => undoSwap.mutateAsync(route.id), `${route.code} back to its usual bus`)
             }
           >
-            <Undo2 />
+            <Undo2 className='size-3.5' />
             Usual bus today
           </Button>
         )}
@@ -142,18 +142,21 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
               size='icon-sm'
               variant='ghost'
               aria-label={`Edit route ${route.code}`}
+              title='Edit'
+              className='text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
               onClick={() => setEditing(route)}
             >
-              <Pencil />
+              <PenLine className='size-4' />
             </Button>
             <Button
               size='icon-sm'
               variant='ghost'
               aria-label={`Delete route ${route.code}`}
-              className='text-destructive hover:bg-destructive/10'
+              title='Delete'
+              className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] dark:text-red-400 dark:hover:bg-destructive/10 dark:hover:text-red-300'
               onClick={() => setRemoving(route)}
             >
-              <Trash2 />
+              <TrashIcon className='size-4' />
             </Button>
           </>
         )}
@@ -163,13 +166,15 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
 
   const title = (route: BusRoute) => (
     <span className='flex min-w-0 items-center gap-2'>
-      <Badge tone='info' className='font-mono'>
+      <Badge tone='info' className='font-mono font-medium'>
         {route.code}
       </Badge>
-      <span className='truncate font-bold'>{route.name}</span>
-      {!route.is_active && <Badge>Not running</Badge>}
+      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+        {route.name}
+      </span>
+      {!route.is_active && <Badge className='font-medium'>Not running</Badge>}
       {route.problems > 0 && (
-        <Badge tone='danger'>
+        <Badge tone='danger' className='font-medium'>
           {route.problems} time {route.problems === 1 ? 'problem' : 'problems'}
         </Badge>
       )}
@@ -177,26 +182,26 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
   )
 
   const columns: Column<BusRoute>[] = [
-    { key: 'route', header: 'Route', cell: title },
+    { key: 'route', header: 'ROUTE', cell: title },
     {
       key: 'bus',
-      header: 'Bus',
+      header: 'BUS',
       cell: (route) => (
         <span className='grid gap-1'>
           {route.vehicle ? (
             <span
               className={cn(
-                'font-mono text-xs font-semibold',
-                route.swap_today && 'text-muted-foreground line-through'
+                'font-mono text-[12px] leading-[16px] font-semibold text-slate-900 dark:text-slate-100',
+                route.swap_today && 'text-slate-400 line-through'
               )}
             >
               {route.vehicle.registration_no}
             </span>
           ) : (
-            <span className='text-muted-foreground'>No bus</span>
+            <span className='text-[13px] leading-[18px] text-slate-400'>No bus</span>
           )}
           {route.swap_today && (
-            <Badge tone='warning' title={route.swap_today.reason ?? undefined}>
+            <Badge tone='warning' className='font-medium' title={route.swap_today.reason ?? undefined}>
               Today: {route.swap_today.vehicle.name}
             </Badge>
           )}
@@ -205,17 +210,25 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
     },
     {
       key: 'stops',
-      header: 'Stops',
-      cell: (route) => <span className='tabular'>{route.stops}</span>,
+      header: 'STOPS',
+      cell: (route) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {route.stops}
+        </span>
+      ),
     },
-    { key: 'students', header: 'Students', cell: (route) => <Riders route={route} /> },
+    { key: 'students', header: 'STUDENTS', cell: (route) => <Riders route={route} /> },
     {
       key: 'first',
-      header: 'Morning · Evening',
+      header: 'MORNING · EVENING',
       hideBelow: 'lg',
-      cell: (route) => <span className='tabular text-xs'>{routeWindow(route.timings)}</span>,
+      cell: (route) => (
+        <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
+          {routeWindow(route.timings)}
+        </span>
+      ),
     },
-    { key: 'actions', header: '', align: 'right', cell: actions },
+    { key: 'actions', header: 'ACTION', align: 'right', cell: actions },
   ]
 
   return (
@@ -231,8 +244,8 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
           onChange={(value) => setFlag(value as RouteFlag | undefined)}
         />
         {canManage && (
-          <Button onClick={() => setEditing('new')}>
-            <Plus />
+          <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+            <Plus className='size-3.5' />
             New route
           </Button>
         )}
@@ -249,8 +262,8 @@ export function RoutesTab({ canManage }: { canManage: boolean }) {
           title: 'No routes yet',
           description: 'Create a route, then add its stops on the map.',
           action: canManage && (
-            <Button onClick={() => setEditing('new')}>
-              <Plus />
+            <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+              <Plus className='size-3.5' />
               New route
             </Button>
           ),

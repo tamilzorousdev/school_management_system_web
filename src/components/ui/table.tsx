@@ -13,7 +13,7 @@ export function TableHeader({ className, ...props }: React.ComponentProps<'thead
   return (
     <thead
       className={cn(
-        'bg-[#F8FAFC] border-b border-[#EDF0EE] dark:bg-slate-900/60 dark:border-slate-800 [&_tr]:border-0',
+        'bg-[#F5F7F6] border-b border-[#EDF0EE] dark:bg-slate-900/60 dark:border-slate-800 [&_tr]:border-0',
         className
       )}
       {...props}
@@ -41,7 +41,7 @@ export function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
       className={cn(
-        'h-[52px] px-4 text-left align-middle text-[11px] font-semibold tracking-wider whitespace-nowrap text-[#64748B] uppercase dark:text-slate-400 select-none border-b border-[#EDF0EE] dark:border-slate-800',
+        'h-10 px-4 text-left align-middle text-[11px] font-semibold tracking-wider whitespace-nowrap text-[#64748B] uppercase dark:text-slate-400 select-none border-b border-[#EDF0EE] dark:border-slate-800',
         className
       )}
       {...props}

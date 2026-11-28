@@ -4,13 +4,12 @@ import {
   Ban,
   Clock,
   IdCard,
-  PauseCircle,
-  PlayCircle,
+  Pause,
+  Play,
   Printer,
-  Settings2,
+  Settings,
   TicketX,
   Wallet,
-  X,
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { DataTable, type Column } from '@/components/common/data-table'
@@ -21,6 +20,8 @@ import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input, Textarea } from '@/components/ui/input'
+import { BulkActionBar } from '@/features/attendance/components/bulk-action-bar'
+import { TableCheckbox } from '@/features/attendance/components/students-tab'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { useMe } from '@/features/auth/api'
@@ -64,11 +65,12 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
   const [fee, setFee] = useState<FeeStanding>()
   const [routeId, setRouteId] = useState<number>()
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(LIMIT)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [holding, setHolding] = useState<number[] | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [viewing, setViewing] = useState<BusPass | null>(null)
-  const params = { page, limit: LIMIT, search: search || undefined, state, fee, route_id: routeId }
+  const params = { page, limit, search: search || undefined, state, fee, route_id: routeId }
   const passes = useBusPasses(params)
   const insights = useBusPassInsights()
   const routes = useBusRoutes()
@@ -80,6 +82,18 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
     setPage(1)
     setSelected(new Set())
   }
+  const pageIds = rows.map((row) => row.student.id)
+  const allOnPage = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
+  const isIndeterminate = !allOnPage && pageIds.some((id) => selected.has(id))
+  const togglePage = () =>
+    setSelected((current) => {
+      const next = new Set(current)
+      for (const id of pageIds) {
+        if (allOnPage) next.delete(id)
+        else next.add(id)
+      }
+      return next
+    })
   const toggle = (id: number) =>
     setSelected((current) => {
       const next = new Set(current)
@@ -150,16 +164,20 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
       ? [
           {
             key: 'select',
-            header: <span className='sr-only'>Select</span>,
-            className: 'w-10',
+            header: (
+              <TableCheckbox
+                ariaLabel='Select all passes on this page'
+                checked={allOnPage}
+                indeterminate={isIndeterminate}
+                onChange={togglePage}
+              />
+            ),
+            className: 'w-12 text-center',
             cell: (row: BusPass) => (
-              <input
-                type='checkbox'
-                aria-label={`Select ${row.student.full_name}`}
-                className='size-4 cursor-pointer accent-primary'
+              <TableCheckbox
+                ariaLabel={`Select ${row.student.full_name}`}
                 checked={selected.has(row.student.id)}
                 onChange={() => toggle(row.student.id)}
-                onClick={(event) => event.stopPropagation()}
               />
             ),
           },
@@ -167,11 +185,13 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
       : []),
     {
       key: 'student',
-      header: 'Student',
+      header: 'STUDENT',
       cell: (row) => (
         <span className='grid min-w-0'>
-          <span className='truncate font-semibold'>{row.student.full_name}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.student.full_name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {row.student.class_section ?? row.student.admission_no} ·{' '}
             <span className='font-mono'>{row.pass_no}</span>
           </span>
@@ -180,12 +200,14 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
     },
     {
       key: 'route',
-      header: 'Route',
+      header: 'ROUTE',
       hideBelow: 'lg',
       cell: (row) => (
         <span className='grid min-w-0'>
-          <span className='truncate'>{row.route.name}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {row.route.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {row.pickup?.name ?? row.drop?.name}
             {row.bus ? ` · ${row.bus.name}` : ''}
           </span>
@@ -194,27 +216,33 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
     },
     {
       key: 'pass',
-      header: 'Pass',
+      header: 'PASS',
       cell: (row) => (
         <span className='grid justify-items-start gap-1'>
-          <Badge tone={PASS_STATE[row.state].tone} dot>
+          <Badge tone={PASS_STATE[row.state].tone} dot className='font-medium'>
             {PASS_STATE[row.state].label}
           </Badge>
           {row.state === 'on_hold' && row.hold_kind === 'fee' && (
-            <span className='text-xs text-muted-foreground'>Lifts when the fee is paid</span>
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              Lifts when the fee is paid
+            </span>
           )}
-          <span className='text-xs text-muted-foreground'>Until {formatDate(row.valid_until)}</span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            Until {formatDate(row.valid_until)}
+          </span>
         </span>
       ),
     },
     {
       key: 'fee',
-      header: 'Bus fee',
+      header: 'BUS FEE',
       cell: (row) => (
         <span className='grid justify-items-start gap-1'>
-          <Badge tone={feeBadge(row).tone}>{feeBadge(row).label}</Badge>
+          <Badge tone={feeBadge(row).tone} className='font-medium'>
+            {feeBadge(row).label}
+          </Badge>
           {row.fee.standing !== 'clear' && (
-            <span className='tabular text-xs text-muted-foreground'>
+            <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
               {rupees(row.fee.pending_amount)} · grace till{' '}
               {row.fee.grace_ends ? formatDate(row.fee.grace_ends) : '—'}
             </span>
@@ -249,6 +277,8 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
             onChange={(value) => reset(() => setSearch(value))}
             placeholder='Name, admission no or pass no'
             label='Search passes'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='pass-state'
@@ -286,38 +316,12 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
             onChange={(value) => reset(() => setRouteId(value ? Number(value) : undefined))}
           />
           {canManage && (
-            <Button variant='outline' onClick={() => setShowSettings(true)}>
-              <Settings2 />
+            <Button variant='outline' size='sm' onClick={() => setShowSettings(true)}>
+              <Settings className='size-3.5' />
               Pass settings
             </Button>
           )}
         </ListToolbar>
-        {canManage && selected.size > 0 && (
-          <div className='flex flex-wrap items-center justify-between gap-2 border-b bg-primary/5 px-4 py-2'>
-            <span className='text-sm font-semibold'>
-              {selected.size} {selected.size === 1 ? 'student' : 'students'} selected
-            </span>
-            <div className='flex flex-wrap gap-2'>
-              <Button size='sm' variant='ghost' onClick={() => setSelected(new Set())}>
-                <X />
-                Clear
-              </Button>
-              <Button
-                size='sm'
-                variant='outline'
-                loading={activate.isPending}
-                onClick={() => void runActivate([...selected])}
-              >
-                <PlayCircle />
-                Activate
-              </Button>
-              <Button size='sm' variant='destructive' onClick={() => setHolding([...selected])}>
-                <PauseCircle />
-                Restrict pass
-              </Button>
-            </div>
-          </div>
-        )}
         <DataTable
           rows={rows}
           columns={columns}
@@ -325,6 +329,7 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
           loading={passes.isFetching}
           error={passes.isError ? passes.error.message : null}
           onRetry={() => passes.refetch()}
+          isSelected={(row) => selected.has(row.student.id)}
           onRowClick={(row) => setViewing(row)}
           empty={{
             icon: IdCard,
@@ -351,10 +356,14 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
           )}
           pagination={{
             page,
-            limit: LIMIT,
+            limit,
             total: passes.data?.total ?? 0,
             label: 'passes',
             onPageChange: setPage,
+            onLimitChange: (next) => {
+              setLimit(next)
+              setPage(1)
+            },
           }}
         />
       </Card>
@@ -381,6 +390,27 @@ export function BusPassesTab({ canManage }: { canManage: boolean }) {
           onActivate={() => {
             void runActivate([viewing.student.id])
             setViewing(null)
+          }}
+        />
+      )}
+      {canManage && (
+        <BulkActionBar
+          count={selected.size}
+          label={selected.size === 1 ? 'student selected' : 'students selected'}
+          onClear={() => setSelected(new Set())}
+          actions={[
+            {
+              label: 'Activate',
+              icon: <Play className='size-3.5' />,
+              disabled: activate.isPending,
+              onClick: () => void runActivate([...selected]),
+            },
+          ]}
+          primaryAction={{
+            label: 'Restrict pass',
+            icon: <Pause className='size-3.5' />,
+            variant: 'danger',
+            onClick: () => setHolding([...selected]),
           }}
         />
       )}
@@ -631,8 +661,8 @@ function PassCardModal({
             </Button>
           )}
           {canManage && pass.state === 'on_hold' && (
-            <Button variant='outline' onClick={onActivate}>
-              <PlayCircle />
+            <Button variant='secondary' size='sm' onClick={onActivate}>
+              <Play className='size-3.5' />
               Activate
             </Button>
           )}

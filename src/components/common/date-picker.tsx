@@ -376,10 +376,10 @@ export function DatePicker({
       <PopoverContent
         align={align}
         sideOffset={6}
-        className='z-50 w-[260px] rounded-xl border border-[#DFE4E1] bg-[#FFFFFF] p-3 text-slate-800 shadow-[0px_4px_8px_-2px_#0F171414,0px_2px_4px_-2px_#0F17140A] outline-none select-none table-typography dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
+        className='z-50 flex min-h-[403px] w-[286px] flex-col justify-between gap-3 rounded-lg border border-[#DFE4E1] bg-[#FFFFFF] p-4 text-slate-800 shadow-[0px_4px_8px_-2px_#0F171414,0px_2px_4px_-2px_#0F17140A] outline-none select-none table-typography dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
       >
         {/* Top Header */}
-        <div className='mb-3 flex items-center justify-between'>
+        <div className='flex items-center justify-between'>
           {viewMode === 'days' && (
             <>
               <button
@@ -592,7 +592,7 @@ export function DatePicker({
         )}
 
         {/* Bottom Divider */}
-        <div className='my-3 border-t border-slate-100 dark:border-slate-800' />
+        <div className='border-t border-slate-100 dark:border-slate-800' />
 
         {/* Bottom Footer */}
         <div className='flex items-center justify-between text-[13px]'>

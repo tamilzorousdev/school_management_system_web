@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import {
-  BookOpenCheck,
+  Calendar,
   ClipboardCheck,
   ClipboardList,
   Ellipsis,
+  PenLine,
   Plus,
   Send,
-  SquarePen,
-  Trash2,
   Trophy,
 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { TrashIcon } from '@/components/common/icon'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
@@ -70,11 +70,13 @@ export function ExamsTab({
   const columns: Column<Exam>[] = [
     {
       key: 'name',
-      header: 'Exam',
+      header: 'EXAM',
       cell: (exam) => (
         <div className='grid min-w-0'>
-          <span className='truncate font-bold'>{exam.name}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {exam.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {[exam.academic_year.name, exam.term?.name].filter(Boolean).join(' · ')}
           </span>
         </div>
@@ -82,10 +84,10 @@ export function ExamsTab({
     },
     {
       key: 'dates',
-      header: 'Dates',
+      header: 'DATES',
       cell: (exam) => (
         <div className='grid min-w-0'>
-          <span className='tabular text-sm font-medium whitespace-nowrap'>
+          <span className='text-[13px] leading-[18px] font-medium text-slate-700 whitespace-nowrap tabular-nums dark:text-slate-300'>
             {formatDate(exam.start_date)} – {formatDate(exam.end_date)}
           </span>
           {canManage && (
@@ -102,25 +104,27 @@ export function ExamsTab({
     },
     {
       key: 'classes',
-      header: 'Classes',
+      header: 'CLASSES',
       hideBelow: 'lg',
       cell: (exam) => <ClassBadges exam={exam} />,
     },
     {
       key: 'marks',
-      header: 'Marks entered',
+      header: 'MARKS ENTERED',
       cell: (exam) => <MarksProgress entered={exam.marks_entered} expected={exam.marks_expected} />,
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (exam) => (
-        <Badge tone={EXAM_STATUS[exam.status].tone}>{EXAM_STATUS[exam.status].label}</Badge>
+        <Badge tone={EXAM_STATUS[exam.status].tone} className='font-medium'>
+          {EXAM_STATUS[exam.status].label}
+        </Badge>
       ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       cell: (exam) => (
         <RowActions exam={exam} canManage={canManage} onOpen={onOpen} onModal={setModal} />
@@ -132,10 +136,10 @@ export function ExamsTab({
     <div className='grid gap-4'>
       <Card className='overflow-hidden'>
         <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-          <h2 className='font-bold'>Exams</h2>
+          <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>Exams</h2>
           {canManage && (
-            <Button size='sm' onClick={() => setModal({ kind: 'create' })}>
-              <Plus className='size-3.5' />
+            <Button variant='primary' size='md' onClick={() => setModal({ kind: 'create' })}>
+              <Plus className='size-4' />
               New exam
             </Button>
           )}
@@ -151,6 +155,8 @@ export function ExamsTab({
             onChange={(value) => onSearchChange({ search: value || undefined })}
             placeholder='Search exams'
             label='Search exams'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='exam-status'
@@ -183,8 +189,8 @@ export function ExamsTab({
                 : 'Exams created by the office show here.',
             action:
               canManage && !filtered ? (
-                <Button size='sm' onClick={() => setModal({ kind: 'create' })}>
-                  <Plus className='size-3.5' />
+                <Button variant='primary' size='md' onClick={() => setModal({ kind: 'create' })}>
+                  <Plus className='size-4' />
                   New exam
                 </Button>
               ) : undefined,
@@ -314,22 +320,22 @@ function RowActions({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => onModal({ kind: 'edit', exam })}>
-              <SquarePen />
+              <PenLine className='size-4' />
               Edit exam
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onModal({ kind: 'papers', exam })}>
-              <BookOpenCheck />
+              <Calendar className='size-4' />
               Subject exam dates
             </DropdownMenuItem>
             {exam.status === 'draft' && (
               <>
                 <DropdownMenuItem onSelect={() => onModal({ kind: 'publish', exam })}>
-                  <Send />
+                  <Send className='size-4' />
                   Publish results
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem destructive onSelect={() => onModal({ kind: 'delete', exam })}>
-                  <Trash2 />
+                  <TrashIcon className='size-4 text-[#D92D20]' />
                   Delete
                 </DropdownMenuItem>
               </>

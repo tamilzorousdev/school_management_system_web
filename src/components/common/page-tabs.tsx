@@ -1,11 +1,10 @@
-import { useEffect, useRef } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import { useEffect, useRef, type ComponentType } from 'react'
 import { cn } from '@/lib/utils'
 
 export interface PageTab<T extends string> {
   value: T
   label: string
-  icon?: LucideIcon
+  icon?: ComponentType<{ className?: string }>
   count?: number
 }
 

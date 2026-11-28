@@ -229,7 +229,7 @@ export function WeekGrid({
 
       {/* Breaks & Lunch Bar */}
       {breaks.length > 0 && (
-        <div className='flex flex-wrap items-center gap-2 border-b bg-muted/30 px-4 py-2 text-xs'>
+        <div className='flex flex-wrap items-center gap-2 border-b border-[#C6CEC9] bg-muted/30 px-4 py-2 text-xs dark:border-slate-700'>
           <span className='inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-muted-foreground uppercase'>
             <Coffee className='size-3.5 text-amber-500' />
             Breaks & Lunch:
@@ -240,7 +240,7 @@ export function WeekGrid({
             return (
               <span
                 key={b.id}
-                className='inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-0.5 text-xs font-medium shadow-2xs'
+                className='inline-flex items-center gap-1.5 rounded-full border border-[#C6CEC9] bg-card px-3 py-0.5 text-xs font-medium shadow-2xs dark:border-slate-700'
               >
                 <span className='size-1.5 rounded-full bg-amber-500' />
                 <span className='font-bold text-foreground'>{b.name}</span>
@@ -268,7 +268,7 @@ export function WeekGrid({
             <tr>
               <th
                 scope='col'
-                className='sticky left-0 z-20 w-28 min-w-[6.5rem] border-r border-b bg-card px-3.5 py-2.5 text-left text-[11px] font-bold tracking-wider text-muted-foreground uppercase shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]'
+                className='sticky left-0 z-20 w-28 min-w-[6.5rem] border-r border-b border-[#C6CEC9] bg-card px-3.5 py-2.5 text-center text-[11px] font-bold tracking-wider text-muted-foreground uppercase shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] dark:border-slate-700'
               >
                 Day
               </th>
@@ -279,11 +279,11 @@ export function WeekGrid({
                     key={period.id}
                     scope='col'
                     className={cn(
-                      'border-b bg-card/60 px-2.5 py-2 text-left text-[11px] font-bold tracking-wider uppercase min-w-[6.75rem] md:min-w-[7.5rem]',
-                      nextBreak && 'border-r-2 border-r-amber-500/30'
+                      'border-b border-r border-[#C6CEC9] last:border-r-0 bg-card/60 px-2.5 py-2 text-center text-[11px] font-bold tracking-wider uppercase min-w-[6.75rem] md:min-w-[7.5rem] dark:border-slate-700',
+                      nextBreak && 'border-r-2 border-r-amber-500/60 dark:border-r-amber-500/50'
                     )}
                   >
-                    <div className='grid min-w-0 gap-0.5 overflow-hidden'>
+                    <div className='grid min-w-0 justify-items-center gap-0.5 overflow-hidden'>
                       <span className='truncate text-xs font-bold text-foreground'>
                         {period.name}
                       </span>
@@ -305,13 +305,13 @@ export function WeekGrid({
                   <th
                     scope='row'
                     className={cn(
-                      'sticky left-0 z-10 w-28 min-w-[6.5rem] border-r border-b px-3.5 py-2.5 text-left align-top transition-colors shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]',
+                      'sticky left-0 z-10 w-28 min-w-[6.5rem] border-r border-b border-[#C6CEC9] px-3.5 py-2.5 text-center align-middle transition-colors shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] dark:border-slate-700',
                       isToday
                         ? 'border-r-2 border-r-primary bg-primary/[0.06]'
                         : 'bg-card'
                     )}
                   >
-                    <div className='flex flex-col gap-1'>
+                    <div className='flex flex-col items-center justify-center gap-1'>
                       <div className='flex items-center gap-1.5'>
                         <span className='hidden text-xs font-bold text-foreground sm:inline'>
                           {day.label}
@@ -373,8 +373,8 @@ export function WeekGrid({
                       <td
                         key={period.id}
                         className={cn(
-                          'border-b p-1.5 align-top min-w-[6.75rem] md:min-w-[7.5rem]',
-                          nextBreak && 'border-r-2 border-r-amber-500/30'
+                          'border-b border-r border-[#C6CEC9] last:border-r-0 p-1.5 align-top min-w-[6.75rem] md:min-w-[7.5rem] dark:border-slate-700',
+                          nextBreak && 'border-r-2 border-r-amber-500/60 dark:border-r-amber-500/50'
                         )}
                       >
                         {onCellClick ? (
@@ -386,7 +386,7 @@ export function WeekGrid({
                               'group relative grid h-full min-h-[4.5rem] w-full content-start overflow-hidden rounded-xl border p-1.5 text-left transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40',
                               slot
                                 ? cn('border-l-[4px] shadow-2xs hover:shadow-xs hover:brightness-[0.98] dark:hover:brightness-[1.08]', tone?.border, tone?.bg)
-                                : 'border-dashed border-border/80 bg-card hover:border-primary/50 hover:bg-muted/40'
+                                : 'border-dashed border-[#9AA49F] bg-card hover:border-primary hover:bg-muted/40 dark:border-slate-600'
                             )}
                           >
                             {content}
@@ -397,7 +397,7 @@ export function WeekGrid({
                               'grid h-full min-h-[4.5rem] content-start overflow-hidden rounded-xl border p-1.5 shadow-2xs',
                               slot
                                 ? cn('border-l-[4px]', tone?.border, tone?.bg)
-                                : 'border-dashed border-border/80 bg-card'
+                                : 'border-dashed border-[#9AA49F] bg-card dark:border-slate-600'
                             )}
                           >
                             {content}
@@ -415,7 +415,7 @@ export function WeekGrid({
 
 
       {showExtra && (sundays.length > 0 || onAddSpecial) && (
-        <div className='flex flex-wrap items-center gap-2 border-t bg-muted/20 px-4 py-2.5'>
+        <div className='flex flex-wrap items-center gap-2 border-t border-[#C6CEC9] bg-muted/20 px-4 py-2.5 dark:border-slate-700'>
           <span className='text-[11px] font-bold tracking-wider text-muted-foreground uppercase'>
             Sunday:
           </span>
@@ -437,7 +437,7 @@ export function WeekGrid({
                   end_time: lastPeriod?.end_time ?? '16:00',
                 })
               }
-              className='inline-flex items-center gap-1 rounded-full border border-dashed px-3 py-1 text-xs text-muted-foreground hover:bg-muted'
+              className='inline-flex items-center gap-1 rounded-full border border-dashed border-[#9AA49F] px-3 py-1 text-xs text-muted-foreground hover:border-primary hover:bg-muted dark:border-slate-600'
             >
               <Plus className='size-3' />
               Sunday class

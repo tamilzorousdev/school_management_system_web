@@ -39,7 +39,7 @@ import {
 import type { MaintenanceSearch, TabProps } from '../search'
 import { DueBadge, DueLeft } from './schedules-tab'
 import { applyFieldErrors } from '../helpers'
-import { DateRangeInputs, FormAlert } from './shared'
+import { DateRangeInputs, FormAlert, MAINTENANCE_INPUT_CLASS } from './shared'
 
 const LIMIT = 20
 
@@ -87,16 +87,26 @@ function SummaryHeader({
     <Card className='grid gap-3 p-4'>
       <div className='flex flex-wrap items-center justify-between gap-2'>
         <div className='flex min-w-0 flex-wrap items-center gap-2'>
-          <span className='font-bold'>{summary.vehicle.name}</span>
-          <span className='font-mono text-xs text-muted-foreground'>
+          <span className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+            {summary.vehicle.name}
+          </span>
+          <span className='font-mono text-xs text-slate-500 dark:text-slate-400'>
             {summary.vehicle.registration_no}
           </span>
-          {summary.off_road && <Badge tone='danger'>Off road</Badge>}
-          {over && <Badge tone='danger'>Over budget</Badge>}
+          {summary.off_road && (
+            <Badge tone='danger' className='font-medium'>
+              Off road
+            </Badge>
+          )}
+          {over && (
+            <Badge tone='danger' className='font-medium'>
+              Over budget
+            </Badge>
+          )}
         </div>
         {canManage && (
           <Button variant='outline' size='sm' onClick={onEditPlan}>
-            <Settings2 />
+            <Settings2 className='size-3.5' />
             Edit tank and budget
           </Button>
         )}
@@ -156,7 +166,14 @@ function SummaryHeader({
   )
 }
 
-export function BusLogTab({ search, setSearch, onPageChange, onClear, canManage }: TabProps) {
+export function BusLogTab({
+  search,
+  setSearch,
+  onPageChange,
+  onLimitChange,
+  onClear,
+  canManage,
+}: TabProps) {
   const busOptions = useBusOptions()
   const [planOpen, setPlanOpen] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -168,7 +185,8 @@ export function BusLogTab({ search, setSearch, onPageChange, onClear, canManage 
     from: search.from,
     to: search.to,
   }
-  const log = useVehicleLog(vehicleId, { page: search.page, limit: LIMIT, ...filters })
+  const limit = search.limit ?? LIMIT
+  const log = useVehicleLog(vehicleId, { page: search.page, limit, ...filters })
   const rows = log.data?.items ?? []
 
   const download = async () => {
@@ -190,48 +208,68 @@ export function BusLogTab({ search, setSearch, onPageChange, onClear, canManage 
   const columns: Column<VehicleLogEntry>[] = [
     {
       key: 'on',
-      header: 'Date',
-      cell: (entry) => <span className='tabular font-semibold'>{formatDate(entry.on)}</span>,
+      header: 'DATE',
+      cell: (entry) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {formatDate(entry.on)}
+        </span>
+      ),
     },
     {
       key: 'type',
-      header: 'Type',
-      cell: (entry) => <Badge tone={LOG_TYPE[entry.type].tone}>{LOG_TYPE[entry.type].label}</Badge>,
+      header: 'TYPE',
+      cell: (entry) => (
+        <Badge tone={LOG_TYPE[entry.type].tone} className='font-medium'>
+          {LOG_TYPE[entry.type].label}
+        </Badge>
+      ),
     },
     {
       key: 'title',
-      header: 'What',
+      header: 'WHAT',
       cell: (entry) => (
         <div className='grid min-w-0'>
-          <span className='font-semibold'>{entry.title}</span>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {entry.title}
+          </span>
           {entry.detail && (
-            <span className='line-clamp-1 text-xs text-muted-foreground'>{entry.detail}</span>
+            <span className='line-clamp-1 text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              {entry.detail}
+            </span>
           )}
         </div>
       ),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       hideBelow: 'lg',
       cell: (entry) => (
-        <span className='text-muted-foreground capitalize'>
+        <span className='text-[13px] leading-[18px] text-slate-500 capitalize dark:text-slate-400'>
           {entry.status?.replace(/_/g, ' ') ?? '—'}
         </span>
       ),
     },
     {
       key: 'odometer',
-      header: 'Odometer',
+      header: 'ODOMETER',
       align: 'right',
       hideBelow: 'xl',
-      cell: (entry) => <span className='tabular'>{formatNumber(entry.odometer_km, 0, 'km')}</span>,
+      cell: (entry) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatNumber(entry.odometer_km, 0, 'km')}
+        </span>
+      ),
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: 'AMOUNT',
       align: 'right',
-      cell: (entry) => <span className='tabular font-semibold'>{rupees(entry.amount)}</span>,
+      cell: (entry) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {rupees(entry.amount)}
+        </span>
+      ),
     },
   ]
 
@@ -281,6 +319,8 @@ export function BusLogTab({ search, setSearch, onPageChange, onClear, canManage 
               onChange={(value) => setSearch({ search: value || undefined })}
               placeholder='Search the log'
               label='Search bus log'
+              compact
+              showShortcut={false}
             />
             <FilterSelect
               id='bus-log-type-filter'
@@ -291,8 +331,8 @@ export function BusLogTab({ search, setSearch, onPageChange, onClear, canManage 
               onChange={(value) => setSearch({ log_type: value as MaintenanceSearch['log_type'] })}
             />
             <DateRangeInputs from={search.from} to={search.to} onChange={setSearch} />
-            <Button variant='outline' onClick={download} loading={downloading}>
-              <Download />
+            <Button variant='outline' size='sm' onClick={download} loading={downloading}>
+              <Download className='size-3.5' />
               Excel
             </Button>
           </ListToolbar>
@@ -339,10 +379,11 @@ export function BusLogTab({ search, setSearch, onPageChange, onClear, canManage 
             )}
             pagination={{
               page: search.page,
-              limit: LIMIT,
+              limit,
               total: log.data?.total ?? 0,
               label: 'entries',
               onPageChange,
+              onLimitChange,
             }}
           />
         </Card>
@@ -445,6 +486,7 @@ function PlanForm({
           min={10}
           max={1000}
           placeholder='160'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.tank_litres) || undefined}
           {...register('tank_litres')}
         />
@@ -463,6 +505,7 @@ function PlanForm({
           max={1_000_000}
           step='0.01'
           placeholder='40000'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.monthly_budget) || undefined}
           {...register('monthly_budget')}
         />

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { Camera, Plus, Trash } from 'lucide-react'
+import { Camera } from 'lucide-react'
+import { PlusIcon, TrashIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
@@ -345,7 +346,7 @@ function StudentForm({
                   }
                   className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
                 >
-                  <Trash className='size-3.5 stroke-[1.75]' />
+                  <TrashIcon className='size-3.5 stroke-[1.75]' />
                   Remove
                 </button>
               )}
@@ -667,7 +668,7 @@ function StudentForm({
                 }
               }}
             >
-              <Plus className='size-4 stroke-[1.75]' />
+              <PlusIcon className='size-4 stroke-[1.75]' />
               Add another
             </Button>
           )}

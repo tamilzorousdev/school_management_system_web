@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { EyeOff, FileText, Medal, Paperclip, Pencil, Plus, Trash, Trophy } from 'lucide-react'
+import { Medal } from 'lucide-react'
+import { DocumentTextIcon, EditIcon, EyeOffIcon, PaperclipIcon, PlusIcon, TrashIcon, TrophyStarIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
@@ -67,14 +68,14 @@ export function AchievementsTab({
         </p>
         {canManage && (
           <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
-            <Plus className='size-4 stroke-[1.75]' />
+            <PlusIcon className='size-4 stroke-[1.75]' />
             Add achievement
           </Button>
         )}
       </div>
       {list.data.length === 0 ? (
         <EmptyState
-          icon={Trophy}
+          icon={TrophyStarIcon}
           title='No achievements yet'
           description='Add prizes, competition results and certificates. Teachers can add them from the Staff app too.'
           className='border-dashed'
@@ -103,7 +104,7 @@ export function AchievementsTab({
                   <Badge tone='warning'>{item.points} pts</Badge>
                   {!item.visible_to_parent && (
                     <Badge tone='neutral'>
-                      <EyeOff className='size-3' />
+                      <EyeOffIcon className='size-3' />
                       Staff only
                     </Badge>
                   )}
@@ -144,7 +145,7 @@ export function AchievementsTab({
                             )
                           }
                         >
-                          <FileText className='size-4 stroke-[1.75]' />
+                          <DocumentTextIcon className='size-4 stroke-[1.75]' />
                         </Button>
                       )}
                       {canManage && (
@@ -157,7 +158,7 @@ export function AchievementsTab({
                             className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                             onClick={() => setEditing(item)}
                           >
-                            <Pencil className='size-4 stroke-[1.75]' />
+                            <EditIcon className='size-4 stroke-[1.75]' />
                           </Button>
                           <Button
                             size='icon-sm'
@@ -167,7 +168,7 @@ export function AchievementsTab({
                             className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                             onClick={() => setRemoving(item)}
                           >
-                            <Trash className='size-4 stroke-[1.75]' />
+                            <TrashIcon className='size-4 stroke-[1.75]' />
                           </Button>
                         </>
                       )}
@@ -457,7 +458,7 @@ function AchievementModal({
           {file ? (
             <div className='flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm'>
               <span className='flex min-w-0 items-center gap-2'>
-                <Paperclip className='size-4 shrink-0' />
+                <PaperclipIcon className='size-4 shrink-0' />
                 <span className='truncate'>{file.name}</span>
               </span>
               <Button type='button' size='sm' variant='ghost' onClick={() => setFile(null)}>

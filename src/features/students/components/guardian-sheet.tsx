@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { GraduationCap, Pencil, Phone, Smartphone } from 'lucide-react'
+import { EditIcon, GraduationCapIcon, PhoneCallIcon, SmartphoneIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
@@ -85,7 +85,7 @@ export function GuardianSheet({
                       className='w-[85px] h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                       onClick={() => setEditing(true)}
                     >
-                      <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                      <EditIcon className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                       Edit
                     </Button>
                   )
@@ -130,7 +130,7 @@ export function GuardianSheet({
                         className='flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none'
                       >
                         <span className='grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary'>
-                          <GraduationCap className='size-4' />
+                          <GraduationCapIcon className='size-4' />
                         </span>
                         <span className='grid min-w-0 flex-1'>
                           <span className='truncate font-semibold'>{child.full_name}</span>
@@ -160,7 +160,7 @@ export function GuardianSheet({
                           </span>
                         </span>
                         <span className='tabular inline-flex items-center gap-1 text-xs text-muted-foreground'>
-                          <Phone className='size-3' />
+                          <PhoneCallIcon className='size-3' />
                           +91 {other.mobile}
                         </span>
                       </li>
@@ -180,7 +180,7 @@ export function GuardianSheet({
               )}
 
               <p className='flex items-center gap-2 text-xs text-muted-foreground'>
-                <Smartphone className='size-4' />
+                <SmartphoneIcon className='size-4' />
                 The login uses this mobile number. Changing it here also changes the login.
               </p>
             </SheetBody>

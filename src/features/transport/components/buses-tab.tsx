@@ -3,15 +3,15 @@ import {
   Bus as BusIcon,
   CircleOff,
   FileText,
-  Pencil,
+  PenLine,
   Plus,
   Radio,
   ShieldAlert,
-  Trash2,
 } from 'lucide-react'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { TrashIcon } from '@/components/common/icon'
 import { ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,23 +26,24 @@ import { BusDocumentsModal } from './bus-documents-modal'
 import { BusFormModal } from './bus-form-modal'
 import { ExpiryBadges } from './expiry-badges'
 
-const LIMIT = 20
-
 function Seats({ bus }: { bus: Bus }) {
   return (
     <span className='grid'>
       <span
         className={cn(
-          'tabular font-semibold',
-          bus.over_capacity && 'text-destructive',
-          bus.nearly_full && 'text-warning'
+          'text-[13px] leading-[18px] font-semibold tabular-nums',
+          bus.over_capacity
+            ? 'text-destructive'
+            : bus.nearly_full
+              ? 'text-warning'
+              : 'text-slate-900 dark:text-slate-100'
         )}
       >
         {bus.students}/{bus.capacity}
-        <span className='font-normal text-muted-foreground'> seats used</span>
+        <span className='font-normal text-slate-500 dark:text-slate-400'> seats used</span>
       </span>
       {(bus.nearly_full || bus.over_capacity) && (
-        <span className='text-xs text-muted-foreground'>
+        <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
           {bus.over_capacity ? 'More students than seats' : `${bus.occupancy_percent}% full`}
         </span>
       )}
@@ -55,12 +56,17 @@ export function RoadStatus({ bus }: { bus: Bus }) {
   return bus.allowed_today ? (
     <Badge
       tone='warning'
+      className='font-medium'
       title={`${bus.allowed_today.reason} · ${bus.allowed_today.by?.name ?? ''} · ${formatDateTime(bus.allowed_today.at)}`}
     >
       Allowed today
     </Badge>
   ) : (
-    <Badge tone='danger' title={`${bus.road_blockers?.join(', ') || 'Documents'} expired`}>
+    <Badge
+      tone='danger'
+      className='font-medium'
+      title={`${bus.road_blockers?.join(', ') || 'Documents'} expired`}
+    >
       Not road-worthy
     </Badge>
   )
@@ -68,43 +74,51 @@ export function RoadStatus({ bus }: { bus: Bus }) {
 
 function Tracker({ bus }: { bus: Bus }) {
   return bus.device ? (
-    <span className='flex items-center gap-1.5 font-mono text-xs'>
+    <span className='flex items-center gap-1.5 font-mono text-[12px] leading-[16px] text-slate-700 dark:text-slate-300'>
       <Radio className='size-3.5 text-success' />
       {bus.device.imei ?? `Tracker ${bus.device.id}`}
     </span>
   ) : (
-    <span className='text-xs text-muted-foreground'>No tracker</span>
+    <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>No tracker</span>
   )
 }
 
 const person = (value: Bus['driver']) =>
   value ? (
     <span className='grid'>
-      <span className='font-semibold'>{value.name}</span>
-      <span className='tabular text-xs text-muted-foreground'>{value.mobile}</span>
+      <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+        {value.name}
+      </span>
+      <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
+        {value.mobile}
+      </span>
     </span>
   ) : (
-    <span className='text-muted-foreground'>Not assigned</span>
+    <span className='text-[13px] leading-[18px] text-slate-400'>Not assigned</span>
   )
 
 export function BusesTab({
   search,
   page,
+  limit,
   flag,
   canManage,
   onSearch,
   onFlag,
   onPage,
+  onLimit,
 }: {
   search?: string
   page: number
+  limit: number
   flag?: BusFlag
   canManage: boolean
   onSearch: (search: string | undefined) => void
   onFlag: (flag: BusFlag | undefined) => void
   onPage: (page: number) => void
+  onLimit: (limit: number) => void
 }) {
-  const buses = useBuses({ page, limit: LIMIT, search, flag })
+  const buses = useBuses({ page, limit, search, flag })
   const [editing, setEditing] = useState<Bus | 'new' | null>(null)
   const [removing, setRemoving] = useState<Bus | null>(null)
   const [documents, setDocuments] = useState<Bus | null>(null)
@@ -117,7 +131,7 @@ export function BusesTab({
   const rows = buses.data?.items ?? []
 
   const actions = (bus: Bus) => (
-    <span className='flex justify-end'>
+    <span className='flex justify-end gap-1'>
       {canManage && !bus.road_worthy && !bus.allowed_today && (
         <Button
           size='icon-sm'
@@ -127,7 +141,7 @@ export function BusesTab({
           className='text-warning hover:bg-warning/10'
           onClick={() => setAllowing(bus)}
         >
-          <ShieldAlert />
+          <ShieldAlert className='size-4' />
         </Button>
       )}
       <Button
@@ -135,18 +149,21 @@ export function BusesTab({
         variant='ghost'
         aria-label={`Documents of ${bus.registration_no}`}
         title='Documents'
+        className='text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
         onClick={() => setDocuments(bus)}
       >
-        <FileText />
+        <FileText className='size-4' />
       </Button>
       {canManage && (
         <Button
           size='icon-sm'
           variant='ghost'
           aria-label={`Edit ${bus.registration_no}`}
+          title='Edit'
+          className='text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
           onClick={() => setEditing(bus)}
         >
-          <Pencil />
+          <PenLine className='size-4' />
         </Button>
       )}
       {canManage && (
@@ -154,10 +171,11 @@ export function BusesTab({
           size='icon-sm'
           variant='ghost'
           aria-label={`Delete ${bus.registration_no}`}
-          className='text-destructive hover:bg-destructive/10'
+          title='Delete'
+          className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] dark:text-red-400 dark:hover:bg-destructive/10 dark:hover:text-red-300'
           onClick={() => setRemoving(bus)}
         >
-          <Trash2 />
+          <TrashIcon className='size-4' />
         </Button>
       )}
     </span>
@@ -166,15 +184,15 @@ export function BusesTab({
   const columns: Column<Bus>[] = [
     {
       key: 'bus',
-      header: 'Bus',
+      header: 'BUS',
       cell: (bus) => (
         <span className='grid'>
-          <span className='flex flex-wrap items-center gap-1.5 font-mono font-bold'>
+          <span className='flex flex-wrap items-center gap-1.5 font-mono text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
             {bus.registration_no}
-            {bus.status === 'inactive' && <Badge>Off the road</Badge>}
+            {bus.status === 'inactive' && <Badge className='font-medium'>Off the road</Badge>}
             <RoadStatus bus={bus} />
           </span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {bus.name} · {VEHICLE_TYPE_LABELS[bus.vehicle_type]}
             {bus.make_model ? ` · ${bus.make_model}` : ''}
             {bus.ownership === 'contractor' ? ` · ${bus.contractor_name ?? 'Contractor'}` : ''}
@@ -182,22 +200,22 @@ export function BusesTab({
         </span>
       ),
     },
-    { key: 'seats', header: 'Students', cell: (bus) => <Seats bus={bus} /> },
-    { key: 'tracker', header: 'Tracker', cell: (bus) => <Tracker bus={bus} /> },
-    { key: 'driver', header: 'Driver', cell: (bus) => person(bus.driver), hideBelow: 'lg' },
+    { key: 'seats', header: 'STUDENTS', cell: (bus) => <Seats bus={bus} /> },
+    { key: 'tracker', header: 'TRACKER', cell: (bus) => <Tracker bus={bus} /> },
+    { key: 'driver', header: 'DRIVER', cell: (bus) => person(bus.driver), hideBelow: 'lg' },
     {
       key: 'attendant',
-      header: 'Attendant',
+      header: 'ATTENDANT',
       cell: (bus) => person(bus.attendant),
       hideBelow: 'xl',
     },
     {
       key: 'documents',
-      header: 'Documents',
+      header: 'DOCUMENTS',
       cell: (bus) => <ExpiryBadges items={bus.expiries} attentionOnly />,
       className: 'max-w-72',
     },
-    { key: 'actions', header: '', align: 'right', cell: actions },
+    { key: 'actions', header: 'ACTION', align: 'right', cell: actions },
   ]
 
   return (
@@ -208,6 +226,8 @@ export function BusesTab({
           onChange={(value) => onSearch(value || undefined)}
           placeholder='Registration, name or model'
           label='Search buses'
+          compact
+          showShortcut={false}
         />
         <Combobox
           id='bus-flag'
@@ -219,8 +239,8 @@ export function BusesTab({
           onChange={(value) => onFlag(value as BusFlag | undefined)}
         />
         {canManage && (
-          <Button onClick={() => setEditing('new')}>
-            <Plus />
+          <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+            <Plus className='size-3.5' />
             Add bus
           </Button>
         )}
@@ -239,8 +259,8 @@ export function BusesTab({
             ? 'Try another registration, name or filter.'
             : 'Add the school buses with their seats, tracker, driver and documents.',
           action: !filtered && canManage && (
-            <Button onClick={() => setEditing('new')}>
-              <Plus />
+            <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
+              <Plus className='size-3.5' />
               Add bus
             </Button>
           ),
@@ -279,10 +299,11 @@ export function BusesTab({
         )}
         pagination={{
           page,
-          limit: LIMIT,
+          limit,
           total: buses.data?.total ?? 0,
           label: 'buses',
           onPageChange: onPage,
+          onLimitChange: onLimit,
         }}
       />
       {documents && (

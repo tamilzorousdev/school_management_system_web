@@ -2,25 +2,33 @@ import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Phone } from 'lucide-react'
 import { Avatar } from '@/components/common/avatar'
-import { Badge } from '@/components/ui/badge'
+import type { BadgeTone } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { StatusPill } from '@/features/attendance/components/students-tab'
 import { cn } from '@/lib/utils'
 import type { CopyStatus, LoanState, MemberRef } from '../api'
 import { COPY_STATUS, LOAN_STATE, MEMBER_TYPE, badgeOf } from '../labels'
 
+type PillTone = 'success' | 'warning' | 'danger' | 'neutral' | 'info'
+
+const toPillTone = (tone: BadgeTone): PillTone => {
+  if (tone === 'success' || tone === 'warning' || tone === 'danger' || tone === 'info') return tone
+  return 'neutral'
+}
+
 export function LoanStateBadge({ state, days }: { state: LoanState; days?: number }) {
   const item = badgeOf(LOAN_STATE, state)
   return (
-    <Badge tone={item.tone} dot={state === 'overdue'}>
-      {item.label}
-      {state === 'overdue' && days ? ` · ${days}d` : ''}
-    </Badge>
+    <StatusPill
+      tone={toPillTone(item.tone)}
+      label={`${item.label}${state === 'overdue' && days ? ` · ${days}d` : ''}`}
+    />
   )
 }
 
 export function CopyStatusBadge({ status }: { status: CopyStatus }) {
   const item = badgeOf(COPY_STATUS, status)
-  return <Badge tone={item.tone}>{item.label}</Badge>
+  return <StatusPill tone={toPillTone(item.tone)} label={item.label} />
 }
 
 export function MemberLine({
@@ -39,19 +47,21 @@ export function MemberLine({
       to='/library/members/$memberId'
       params={{ memberId: String(member.id) }}
       onClick={(event) => event.stopPropagation()}
-      className='truncate font-bold hover:text-primary hover:underline'
+      className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 hover:text-primary hover:underline dark:text-slate-100'
     >
       {member.name}
     </Link>
   ) : (
-    <span className='truncate font-bold'>{member.name}</span>
+    <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+      {member.name}
+    </span>
   )
   return (
     <div className='flex min-w-0 items-center gap-2.5'>
       <Avatar name={member.name} src={member.photo_url} size={size === 'sm' ? 'sm' : 'md'} />
       <div className='grid min-w-0'>
         {name}
-        <span className='truncate text-xs text-muted-foreground'>
+        <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
           {[MEMBER_TYPE[member.member_type], member.detail, member.card_no]
             .filter(Boolean)
             .join(' · ')}
@@ -76,11 +86,15 @@ export function BookLine({
         to='/library/books/$bookId'
         params={{ bookId: String(bookId) }}
         onClick={(event) => event.stopPropagation()}
-        className='truncate font-semibold hover:text-primary hover:underline'
+        className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 hover:text-primary hover:underline dark:text-slate-100'
       >
         {title}
       </Link>
-      {sub && <span className='truncate text-xs text-muted-foreground'>{sub}</span>}
+      {sub && (
+        <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          {sub}
+        </span>
+      )}
     </div>
   )
 }

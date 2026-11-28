@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
-import { Camera, Trash } from 'lucide-react'
+import { Camera } from 'lucide-react'
 import { AadhaarValue } from '@/components/common/aadhaar-value'
+import { TrashIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
@@ -422,7 +423,7 @@ export function EditStudentModal({
                 }
                 className='inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10'
               >
-                <Trash className='size-3.5 stroke-[1.75]' />
+                <TrashIcon className='size-3.5 stroke-[1.75]' />
                 Remove
               </button>
             )}

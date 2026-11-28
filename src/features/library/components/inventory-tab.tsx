@@ -4,6 +4,7 @@ import { DataTable, type Column } from '@/components/common/data-table'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { TableCheckbox } from '@/features/attendance/components/students-tab'
 import { can, useMe } from '@/features/auth/api'
 import { formatDate } from '@/lib/format'
 import { COPY_CONDITIONS, COPY_STATUSES, useCategories, useCopies, type Copy } from '../api'
@@ -33,6 +34,7 @@ export function InventoryTab({ search, onChange }: LibraryTabProps) {
   const [byDate, setByDate] = useState(false)
   const rows = copies.data?.items ?? []
   const allOnPage = rows.length > 0 && rows.every((copy) => selected.includes(copy.id))
+  const isIndeterminate = !allOnPage && rows.some((copy) => selected.includes(copy.id))
 
   const toggle = (id: number) =>
     setSelected((current) =>
@@ -71,12 +73,10 @@ export function InventoryTab({ search, onChange }: LibraryTabProps) {
   )
 
   const checkbox = (copy: Copy) => (
-    <input
-      type='checkbox'
-      aria-label={`Select ${copy.accession_no}`}
+    <TableCheckbox
+      ariaLabel={`Select ${copy.accession_no}`}
       checked={selected.includes(copy.id)}
       onChange={() => toggle(copy.id)}
-      className='size-4 accent-primary'
     />
   )
 
@@ -84,10 +84,10 @@ export function InventoryTab({ search, onChange }: LibraryTabProps) {
     {
       key: 'select',
       header: (
-        <input
-          type='checkbox'
-          aria-label='Select every copy on this page'
+        <TableCheckbox
+          ariaLabel='Select every copy on this page'
           checked={allOnPage}
+          indeterminate={isIndeterminate}
           onChange={() =>
             setSelected((current) =>
               allOnPage
@@ -95,28 +95,31 @@ export function InventoryTab({ search, onChange }: LibraryTabProps) {
                 : [...new Set([...current, ...rows.map((copy) => copy.id)])]
             )
           }
-          className='size-4 accent-primary'
         />
       ),
-      className: 'w-10',
+      className: 'w-12 text-center',
       cell: checkbox,
     },
     {
       key: 'accession_no',
-      header: 'Accession',
+      header: 'ACCESSION',
       sortKey: 'accession_no',
       cell: (copy) => (
         <div className='grid'>
-          <span className='font-mono text-xs font-semibold'>{copy.accession_no}</span>
+          <span className='font-mono text-xs font-semibold text-slate-900 dark:text-slate-100'>
+            {copy.accession_no}
+          </span>
           {copy.barcode !== copy.accession_no && (
-            <span className='font-mono text-[11px] text-muted-foreground'>{copy.barcode}</span>
+            <span className='font-mono text-[11px] text-slate-400 dark:text-slate-500'>
+              {copy.barcode}
+            </span>
           )}
         </div>
       ),
     },
     {
       key: 'title',
-      header: 'Book',
+      header: 'BOOK',
       sortKey: 'title',
       cell: (copy) => (
         <BookLine
@@ -126,16 +129,16 @@ export function InventoryTab({ search, onChange }: LibraryTabProps) {
         />
       ),
     },
-    { key: 'status', header: 'Status', cell: (copy) => <CopyStatusBadge status={copy.status} /> },
+    { key: 'status', header: 'STATUS', cell: (copy) => <CopyStatusBadge status={copy.status} /> },
     {
       key: 'condition',
-      header: 'Condition',
+      header: 'CONDITION',
       hideBelow: 'lg',
       cell: (copy) => COPY_CONDITION[copy.condition],
     },
     {
       key: 'loan',
-      header: 'With',
+      header: 'WITH',
       hideBelow: 'lg',
       cell: (copy) =>
         copy.current_loan ? (
@@ -144,19 +147,19 @@ export function InventoryTab({ search, onChange }: LibraryTabProps) {
             <LoanStateBadge state={copy.current_loan.state} />
           </div>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
       key: 'created_at',
-      header: 'Added',
+      header: 'ADDED',
       sortKey: 'created_at',
       hideBelow: 'xl',
       cell: (copy) => formatDate(copy.acquired_on ?? copy.created_at),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-32',
       cell: actions,

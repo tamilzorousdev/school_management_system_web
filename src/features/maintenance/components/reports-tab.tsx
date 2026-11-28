@@ -133,8 +133,8 @@ export function ReportsTab({ search, setSearch, canManage }: TabProps) {
               ]}
             />
           )}
-          <Button variant='outline' onClick={download} loading={downloading}>
-            <Download />
+          <Button variant='outline' size='sm' onClick={download} loading={downloading}>
+            <Download className='size-3.5' />
             Excel
           </Button>
         </ListToolbar>
@@ -162,62 +162,88 @@ const emptyReport = {
 function CostsTable({ range }: { range: ReportRange }) {
   const report = useReport('costs', range, () => maintenanceApi.costs(range))
   const columns: Column<CostRow>[] = [
-    { key: 'bus', header: 'Bus', cell: (row) => <BusCell vehicle={row.vehicle} /> },
+    { key: 'bus', header: 'BUS', cell: (row) => <BusCell vehicle={row.vehicle} /> },
     {
       key: 'month',
-      header: 'Month',
-      cell: (row) => <span className='tabular'>{month(row.month)}</span>,
+      header: 'MONTH',
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {month(row.month)}
+        </span>
+      ),
     },
     {
       key: 'fuel',
-      header: 'Fuel',
+      header: 'FUEL',
       align: 'right',
       hideBelow: 'lg',
-      cell: (row) => <span className='tabular'>{rupees(row.fuel)}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {rupees(row.fuel)}
+        </span>
+      ),
     },
     {
       key: 'service',
-      header: 'Service',
+      header: 'SERVICE',
       align: 'right',
       hideBelow: 'lg',
-      cell: (row) => <span className='tabular'>{rupees(row.service)}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {rupees(row.service)}
+        </span>
+      ),
     },
     {
       key: 'repair',
-      header: 'Repair',
+      header: 'REPAIR',
       align: 'right',
       hideBelow: 'lg',
-      cell: (row) => <span className='tabular'>{rupees(row.repair)}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {rupees(row.repair)}
+        </span>
+      ),
     },
     {
       key: 'other',
-      header: 'Other',
+      header: 'OTHER',
       align: 'right',
       hideBelow: 'xl',
-      cell: (row) => <span className='tabular'>{rupees(row.other)}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {rupees(row.other)}
+        </span>
+      ),
     },
     {
       key: 'total',
-      header: 'Total',
+      header: 'TOTAL',
       align: 'right',
       cell: (row) => (
         <div className='grid justify-items-end gap-0.5'>
-          <span className='tabular font-bold'>{rupees(row.total)}</span>
-          {row.over_budget && <Badge tone='danger'>Over {rupees(row.budget)}</Badge>}
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+            {rupees(row.total)}
+          </span>
+          {row.over_budget && (
+            <Badge tone='danger' className='font-medium'>
+              Over {rupees(row.budget)}
+            </Badge>
+          )}
         </div>
       ),
     },
     {
       key: 'km',
-      header: 'Per km',
+      header: 'PER KM',
       align: 'right',
       hideBelow: 'xl',
       cell: (row) => (
         <div className='grid'>
-          <span className='tabular'>
+          <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
             {row.cost_per_km !== null ? `₹${formatNumber(row.cost_per_km, 2)}` : '—'}
           </span>
-          <span className='tabular text-xs text-muted-foreground'>
+          <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
             {formatNumber(row.km, 0, 'km')}
           </span>
         </div>
@@ -225,10 +251,14 @@ function CostsTable({ range }: { range: ReportRange }) {
     },
     {
       key: 'seat',
-      header: 'Per seat',
+      header: 'PER SEAT',
       align: 'right',
       hideBelow: 'xl',
-      cell: (row) => <span className='tabular'>{rupees(row.cost_per_seat)}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {rupees(row.cost_per_seat)}
+        </span>
+      ),
     },
   ]
   return (
@@ -473,23 +503,27 @@ function ReimbursementsTable({ canManage }: { canManage: boolean }) {
           setPaying(row)
         }}
       >
-        <HandCoins />
+        <HandCoins className='size-3.5' />
         Paid back
       </Button>
     )
   const columns: Column<ReimbursementRow>[] = [
     {
       key: 'on',
-      header: 'Date',
-      cell: (row) => <span className='tabular font-semibold'>{formatDate(row.on)}</span>,
+      header: 'DATE',
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {formatDate(row.on)}
+        </span>
+      ),
     },
-    { key: 'bus', header: 'Bus', cell: (row) => <BusCell vehicle={row.vehicle} /> },
+    { key: 'bus', header: 'BUS', cell: (row) => <BusCell vehicle={row.vehicle} /> },
     {
       key: 'title',
-      header: 'For',
+      header: 'FOR',
       cell: (row) => (
-        <span className='flex flex-wrap items-center gap-1.5'>
-          <Badge tone={row.type === 'fuel' ? 'info' : 'neutral'}>
+        <span className='flex flex-wrap items-center gap-1.5 text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          <Badge tone={row.type === 'fuel' ? 'info' : 'neutral'} className='font-medium'>
             {row.type === 'fuel' ? 'Fuel' : 'Expense'}
           </Badge>
           {row.title}
@@ -498,19 +532,27 @@ function ReimbursementsTable({ canManage }: { canManage: boolean }) {
     },
     {
       key: 'paid_by',
-      header: 'Paid by',
+      header: 'PAID BY',
       hideBelow: 'lg',
-      cell: (row) => <span>{row.paid_by?.name ?? '—'}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          {row.paid_by?.name ?? '—'}
+        </span>
+      ),
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: 'AMOUNT',
       align: 'right',
-      cell: (row) => <span className='tabular font-bold'>{rupees(row.amount)}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {rupees(row.amount)}
+        </span>
+      ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-32',
       cell: payButton,

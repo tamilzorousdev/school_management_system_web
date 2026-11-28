@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { AlertTriangle, Check, Copy, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, Check, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,7 +10,7 @@ interface StatCardProps {
   label: string
   value: React.ReactNode
   hint?: React.ReactNode
-  icon: LucideIcon
+  icon: React.ComponentType<{ className?: string }>
   tone?: 'primary' | 'success' | 'warning' | 'danger' | 'neutral'
   loading?: boolean
 }
@@ -50,7 +50,7 @@ export function StatCard({
 }
 
 interface EmptyStateProps {
-  icon: LucideIcon
+  icon: React.ComponentType<{ className?: string }>
   title: string
   description?: React.ReactNode
   action?: React.ReactNode

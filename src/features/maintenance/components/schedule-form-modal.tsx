@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
+import { DatePicker } from '@/components/common/date-picker'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,7 +30,7 @@ import {
   wholeText,
 } from '../labels'
 import { applyFieldErrors } from '../helpers'
-import { FormAlert } from './shared'
+import { FormAlert, MAINTENANCE_INPUT_CLASS } from './shared'
 
 const FORM_ID = 'schedule-form'
 
@@ -295,6 +296,7 @@ function ScheduleForm({
           id='schedule-title'
           maxLength={100}
           placeholder='Engine oil and filter change'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.title) || undefined}
           {...register('title')}
         />
@@ -308,6 +310,7 @@ function ScheduleForm({
           max={200_000}
           step='1'
           placeholder='10000'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.every_km) || undefined}
           {...register('every_km')}
         />
@@ -326,6 +329,7 @@ function ScheduleForm({
           max={60}
           step='1'
           placeholder='6'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.every_months) || undefined}
           {...register('every_months')}
         />
@@ -340,13 +344,13 @@ function ScheduleForm({
           control={control}
           name='last_done_on'
           render={({ field }) => (
-            <Input
+            <DatePicker
               id='schedule-last-on'
-              type='date'
               max={today()}
-              aria-invalid={Boolean(errors.last_done_on) || undefined}
+              className={MAINTENANCE_INPUT_CLASS}
+              invalid={Boolean(errors.last_done_on)}
               value={field.value}
-              onChange={(event) => field.onChange(event.target.value)}
+              onChange={(value: string) => field.onChange(value)}
             />
           )}
         />
@@ -365,6 +369,7 @@ function ScheduleForm({
           max={2_000_000}
           step='0.1'
           placeholder='40000'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.last_done_km) || undefined}
           {...register('last_done_km')}
         />

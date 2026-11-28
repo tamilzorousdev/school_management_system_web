@@ -55,6 +55,7 @@ const EXPENSE_CATEGORIES = [
 export const maintenanceSearchSchema = z.object({
   tab: z.enum(MAINTENANCE_TABS).catch('overview'),
   page: z.coerce.number().int().min(1).catch(1),
+  limit: z.coerce.number().int().min(10).max(50).optional().catch(undefined),
   search: z.string().trim().max(100).optional().catch(undefined),
   vehicle_id: z.coerce.number().int().min(1).optional().catch(undefined),
   status: z.enum(['open', 'in_progress', 'done']).optional().catch(undefined),
@@ -90,6 +91,7 @@ export interface TabProps {
   search: MaintenanceSearch
   setSearch: (patch: Partial<MaintenanceSearch>) => void
   onPageChange: (page: number) => void
+  onLimitChange: (limit: number) => void
   onClear: () => void
   canManage: boolean
   adding: boolean

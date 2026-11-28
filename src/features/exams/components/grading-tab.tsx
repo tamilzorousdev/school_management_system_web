@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Calculator, Check, CheckCircle2, FileSpreadsheet, Plus, Sliders, Sparkles, Trash2 } from 'lucide-react'
+import { Calculator, Check, CheckCircle2, FileSpreadsheet, Plus, Sliders, Sparkles } from 'lucide-react'
+import { TrashIcon } from '@/components/common/icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -407,12 +408,12 @@ export function GradingTab({ canManage }: GradingTabProps) {
                       <td className='p-2 text-right'>
                         <Button
                           variant='ghost'
-                          size='icon'
-                          className='h-7 w-7 text-red-500 hover:bg-red-50'
+                          size='icon-sm'
+                          className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318]'
                           onClick={() => handleRemoveTier(idx)}
                           disabled={tiers.length <= 1}
                         >
-                          <Trash2 className='h-3.5 w-3.5' />
+                          <TrashIcon className='size-4' />
                         </Button>
                       </td>
                     )}

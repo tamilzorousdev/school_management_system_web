@@ -1,5 +1,6 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { CircleOff, Eye, HeartHandshake, Languages, Smartphone, UsersRound } from 'lucide-react'
+import { CircleOff, HeartHandshake, Languages } from 'lucide-react'
+import { EyeIcon, SmartphoneIcon, UsersIcon } from '@/components/common/icon'
 import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
@@ -57,7 +58,7 @@ export function GuardiansPage() {
       label: 'Not on the app yet',
       value: (data?.total ?? 0) - (data?.on_app ?? 0),
       hint: `${data?.on_app ?? 0} already use it`,
-      icon: Smartphone,
+      icon: SmartphoneIcon,
       tone: 'warning',
       active: search.on_app === false,
       onClick: () => setSearch({ on_app: search.on_app === false ? undefined : false }),
@@ -67,7 +68,7 @@ export function GuardiansPage() {
       label: 'More than one child here',
       value: data?.multiple_children ?? 0,
       hint: 'Families with siblings',
-      icon: UsersRound,
+      icon: UsersIcon,
       tone: 'info',
       active: Boolean(search.multiple_children),
       onClick: () => setSearch({ multiple_children: search.multiple_children ? undefined : true }),
@@ -165,7 +166,7 @@ export function GuardiansPage() {
             openParent(guardian.id)
           }}
         >
-          <Eye className='size-4 stroke-[1.75]' />
+          <EyeIcon className='size-4 stroke-[1.75]' />
         </Button>
       ),
     },

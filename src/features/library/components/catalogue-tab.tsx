@@ -20,6 +20,7 @@ import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-t
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { StatusPill } from '@/features/attendance/components/students-tab'
 import { can, useMe } from '@/features/auth/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
@@ -119,16 +120,18 @@ export function CatalogueTab({ search, onChange }: LibraryTabProps) {
   const columns: Column<Book>[] = [
     {
       key: 'title',
-      header: 'Book',
+      header: 'BOOK',
       sortKey: 'title',
       cell: (book) => (
         <div className='grid min-w-0'>
           <span className='flex items-center gap-1.5'>
-            <span className='truncate font-bold'>{book.title}</span>
+            <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {book.title}
+            </span>
             {book.is_reference && <Badge tone='info'>Reference</Badge>}
             {!book.is_active && <Badge>Hidden</Badge>}
           </span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {book.authors ?? 'Unknown author'}
           </span>
         </div>
@@ -136,37 +139,49 @@ export function CatalogueTab({ search, onChange }: LibraryTabProps) {
     },
     {
       key: 'category',
-      header: 'Category',
-      cell: (book) => book.category?.name ?? <span className='text-muted-foreground'>—</span>,
+      header: 'CATEGORY',
+      cell: (book) =>
+        book.category?.name ? (
+          <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {book.category.name}
+          </span>
+        ) : (
+          <span className='text-slate-400'>—</span>
+        ),
     },
     {
       key: 'isbn',
       header: 'ISBN',
       hideBelow: 'xl',
-      cell: (book) => <span className='font-mono text-xs'>{book.isbn ?? '—'}</span>,
+      cell: (book) => (
+        <span className='font-mono text-xs text-slate-600 dark:text-slate-400'>
+          {book.isbn ?? '—'}
+        </span>
+      ),
     },
     {
       key: 'available',
-      header: 'Available',
+      header: 'AVAILABLE',
       sortKey: 'available',
       cell: (book) => (
-        <Badge tone={book.copies.available ? 'success' : book.copies.total ? 'warning' : 'neutral'}>
-          {book.copies.available} / {book.copies.total}
-        </Badge>
+        <StatusPill
+          tone={book.copies.available ? 'success' : book.copies.total ? 'warning' : 'neutral'}
+          label={`${book.copies.available} / ${book.copies.total}`}
+        />
       ),
     },
     {
       key: 'location',
-      header: 'Shelf',
+      header: 'SHELF',
       hideBelow: 'lg',
       cell: (book) =>
         [book.rack, book.shelf].filter(Boolean).join(' / ') || (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-32',
       cell: (book) =>
@@ -387,36 +402,41 @@ function RowActions({
       <Button
         variant='ghost'
         size='icon-sm'
+        title='Add copies'
         aria-label={`Add copies of ${book.title}`}
+        className='text-slate-500 hover:bg-[#EAF7F0] hover:text-[#127D48] dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400'
         onClick={(event) => {
           event.stopPropagation()
           onAdd(book)
         }}
       >
-        <CopyPlus />
+        <CopyPlus className='size-4' />
       </Button>
       <Button
         variant='ghost'
         size='icon-sm'
+        title='Edit book'
         aria-label={`Edit ${book.title}`}
+        className='text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
         onClick={(event) => {
           event.stopPropagation()
           onEdit({ book, prefill: null })
         }}
       >
-        <Pencil />
+        <Pencil className='size-4' />
       </Button>
       <Button
         variant='ghost'
         size='icon-sm'
+        title='Delete book'
         aria-label={`Delete ${book.title}`}
-        className='text-destructive hover:bg-destructive/10'
+        className='text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400'
         onClick={(event) => {
           event.stopPropagation()
           onDelete(book)
         }}
       >
-        <Trash2 />
+        <Trash2 className='size-4' />
       </Button>
     </div>
   )

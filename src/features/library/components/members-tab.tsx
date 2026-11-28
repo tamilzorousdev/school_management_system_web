@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
-  Ban,
   CalendarX2,
   CircleOff,
   GraduationCap,
@@ -12,9 +11,9 @@ import {
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { StatusPill } from '@/features/attendance/components/students-tab'
 import { can, useMe } from '@/features/auth/api'
 import { rupees } from '@/features/fees/labels'
 import { formatDate } from '@/lib/format'
@@ -103,51 +102,60 @@ export function MembersTab({ search, onChange }: LibraryTabProps) {
   const columns: Column<Member>[] = [
     {
       key: 'name',
-      header: 'Member',
+      header: 'MEMBER',
       sortKey: 'name',
       cell: (member) => <MemberLine member={member} link={false} />,
     },
     {
       key: 'card_no',
-      header: 'Card',
+      header: 'CARD',
       sortKey: 'card_no',
       hideBelow: 'lg',
       cell: (member) => <span className='font-mono text-xs'>{member.card_no}</span>,
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (member) => {
         const item = badgeOf(MEMBER_STATUS, member.status)
-        return <Badge tone={item.tone}>{item.label}</Badge>
+        const tone =
+          item.tone === 'success' ||
+          item.tone === 'warning' ||
+          item.tone === 'danger' ||
+          item.tone === 'info'
+            ? item.tone
+            : 'neutral'
+        return <StatusPill tone={tone} label={item.label} />
       },
     },
     {
       key: 'loans',
-      header: 'Holding',
+      header: 'HOLDING',
       cell: (member) => (
         <span className='flex items-center gap-1.5'>
-          <span className='tabular'>
+          <span className='tabular text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
             {member.open_loans} / {member.max_books}
           </span>
-          {member.overdue_loans > 0 && <Badge tone='danger'>{member.overdue_loans} overdue</Badge>}
+          {member.overdue_loans > 0 && (
+            <StatusPill tone='danger' label={`${member.overdue_loans} overdue`} />
+          )}
         </span>
       ),
     },
     {
       key: 'fines',
-      header: 'Unpaid fines',
+      header: 'UNPAID FINES',
       align: 'right',
       cell: (member) =>
         member.unpaid_fines ? (
           <span className='tabular font-bold text-destructive'>{rupees(member.unpaid_fines)}</span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
       key: 'joined_on',
-      header: 'Joined',
+      header: 'JOINED',
       sortKey: 'joined_on',
       hideBelow: 'xl',
       cell: (member) => formatDate(member.joined_on),
@@ -259,17 +267,14 @@ export function MembersTab({ search, onChange }: LibraryTabProps) {
             ),
           }}
           card={(member) => (
-            <div className='grid gap-1.5'>
+            <div className='table-typography grid gap-2'>
               <div className='flex items-start justify-between gap-2'>
                 <MemberLine member={member} link={false} />
                 {member.status !== 'active' ? (
-                  <Badge tone='danger'>
-                    <Ban className='size-3' />
-                    {MEMBER_STATUS[member.status].label}
-                  </Badge>
+                  <StatusPill tone='danger' label={MEMBER_STATUS[member.status].label} />
                 ) : null}
               </div>
-              <span className='text-xs text-muted-foreground'>
+              <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                 Holding {member.open_loans} / {member.max_books}
                 {member.overdue_loans ? ` · ${member.overdue_loans} overdue` : ''}
                 {member.unpaid_fines ? ` · ${rupees(member.unpaid_fines)} unpaid` : ''}

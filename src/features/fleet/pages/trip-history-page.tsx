@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { CircleOff, ClipboardCheck, History, PlayCircle, Route as RouteIcon } from 'lucide-react'
+import { CircleOff, ClipboardCheck, History, Play, Route as RouteIcon } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { DatePicker } from '@/components/common/date-picker'
 import { FilterSelect, ListToolbar } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { today } from '@/features/attendance/labels'
 import { useBusOptions, useBusRoutes } from '@/features/transport/api'
 import { formatDate } from '@/lib/format'
@@ -34,13 +34,31 @@ const tripSeconds = (trip: Trip) =>
     : null
 
 function BoardingFlags({ trip }: { trip: Trip }) {
-  if (!trip.flags) return <span className='text-xs text-muted-foreground'>After the trip ends</span>
+  if (!trip.flags)
+    return (
+      <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+        After the trip ends
+      </span>
+    )
   const { not_alighted, not_boarded } = trip.flags
-  if (!not_alighted && !not_boarded) return <Badge tone='success'>All marked</Badge>
+  if (!not_alighted && !not_boarded)
+    return (
+      <Badge tone='success' className='font-medium'>
+        All marked
+      </Badge>
+    )
   return (
     <span className='flex flex-wrap gap-1'>
-      {not_alighted > 0 && <Badge tone='danger'>{not_alighted} not marked off</Badge>}
-      {not_boarded > 0 && <Badge tone='warning'>{not_boarded} never got on</Badge>}
+      {not_alighted > 0 && (
+        <Badge tone='danger' className='font-medium'>
+          {not_alighted} not marked off
+        </Badge>
+      )}
+      {not_boarded > 0 && (
+        <Badge tone='warning' className='font-medium'>
+          {not_boarded} never got on
+        </Badge>
+      )}
     </span>
   )
 }
@@ -48,7 +66,8 @@ function BoardingFlags({ trip }: { trip: Trip }) {
 export function TripHistoryPage() {
   const search = route.useSearch()
   const navigate = useNavigate({ from: '/fleet/history' })
-  const trips = useTrips({ ...search, limit: LIMIT }, false)
+  const limit = search.limit ?? LIMIT
+  const trips = useTrips({ ...search, limit }, false)
   const routes = useBusRoutes()
   const busOptions = useBusOptions()
   const rows = trips.data?.items ?? []
@@ -71,26 +90,36 @@ export function TripHistoryPage() {
   const columns: Column<Trip>[] = [
     {
       key: 'date',
-      header: 'Date',
+      header: 'DATE',
       cell: (trip) => (
         <div className='grid'>
-          <span className='font-semibold'>{formatDate(trip.trip_date)}</span>
-          <span className='text-xs text-muted-foreground'>{TRIP_KIND[trip.kind]}</span>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+            {formatDate(trip.trip_date)}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {TRIP_KIND[trip.kind]}
+          </span>
         </div>
       ),
     },
     {
       key: 'route',
-      header: 'Route',
-      cell: (trip) => <span className='font-bold'>{trip.route.name}</span>,
+      header: 'ROUTE',
+      cell: (trip) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+          {trip.route.name}
+        </span>
+      ),
     },
     {
       key: 'bus',
-      header: 'Bus',
+      header: 'BUS',
       cell: (trip) => (
-        <div className='grid'>
-          <span className='font-semibold'>{trip.vehicle.name}</span>
-          <span className='font-mono text-xs text-muted-foreground'>
+        <div className='grid min-w-0'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {trip.vehicle.name}
+          </span>
+          <span className='font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {trip.vehicle.registration_no}
           </span>
         </div>
@@ -98,29 +127,31 @@ export function TripHistoryPage() {
     },
     {
       key: 'time',
-      header: 'Time',
+      header: 'TIME',
       cell: (trip) => (
         <div className='grid'>
-          <span className='tabular'>
+          <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
             {clock(trip.started_at)} – {trip.ended_at ? clock(trip.ended_at) : 'now'}
           </span>
-          <span className='text-xs text-muted-foreground'>{durationText(tripSeconds(trip))}</span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {durationText(tripSeconds(trip))}
+          </span>
         </div>
       ),
     },
     {
       key: 'stops',
-      header: 'Stops',
+      header: 'STOPS',
       hideBelow: 'lg',
       cell: (trip) => (
-        <span className='tabular'>
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
           {trip.stops_done} of {trip.stops_total}
         </span>
       ),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       cell: (trip) => (
         <div className='grid justify-items-start gap-1'>
           <span className='flex flex-wrap gap-1'>
@@ -128,22 +159,26 @@ export function TripHistoryPage() {
             <TrackingBadge trip={trip} />
           </span>
           {trip.end_reason && END_REASON[trip.end_reason] && (
-            <span className='text-xs text-muted-foreground'>{END_REASON[trip.end_reason]}</span>
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              {END_REASON[trip.end_reason]}
+            </span>
           )}
           {trip.swept_at && (
-            <span className='text-xs text-muted-foreground'>Swept {clock(trip.swept_at)}</span>
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              Swept {clock(trip.swept_at)}
+            </span>
           )}
         </div>
       ),
     },
     {
       key: 'boarding',
-      header: 'Boarding',
+      header: 'BOARDING',
       cell: (trip) => <BoardingFlags trip={trip} />,
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-56',
       cell: (trip) => (
@@ -157,7 +192,7 @@ export function TripHistoryPage() {
               setChecklistTrip(trip.id)
             }}
           >
-            <ClipboardCheck />
+            <ClipboardCheck className='size-3.5' />
             Checklist
           </Button>
           <Button
@@ -169,7 +204,11 @@ export function TripHistoryPage() {
               void open(trip)
             }}
           >
-            {trip.status === 'ended' ? <PlayCircle /> : <RouteIcon />}
+            {trip.status === 'ended' ? (
+              <Play className='size-3.5' />
+            ) : (
+              <RouteIcon className='size-3.5' />
+            )}
             {trip.status === 'ended' ? 'Replay' : 'Live'}
           </Button>
         </div>
@@ -191,12 +230,12 @@ export function TripHistoryPage() {
           }
           onClear={filtered ? () => navigate({ search: { page: 1 }, replace: true }) : undefined}
         >
-          <Input
-            type='date'
-            aria-label='Trip date'
-            max={today()}
+          <DatePicker
+            size='sm'
+            placeholder='Any day'
             value={search.date ?? ''}
-            onChange={(event) => setSearch({ date: event.target.value || undefined })}
+            max={today()}
+            onChange={(value: string) => setSearch({ date: value || undefined })}
             className='w-full sm:w-44'
           />
           <FilterSelect
@@ -255,14 +294,16 @@ export function TripHistoryPage() {
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
                 <div className='grid min-w-0'>
-                  <span className='truncate font-bold'>{trip.route.name}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                    {trip.route.name}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {trip.vehicle.name} · {TRIP_KIND[trip.kind]}
                   </span>
                 </div>
                 <TripStatusBadge trip={trip} />
               </div>
-              <span className='tabular text-xs text-muted-foreground'>
+              <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
                 {formatDate(trip.trip_date)} · {clock(trip.started_at)} –{' '}
                 {trip.ended_at ? clock(trip.ended_at) : 'now'} · {trip.stops_done} of{' '}
                 {trip.stops_total} stops
@@ -277,12 +318,12 @@ export function TripHistoryPage() {
                   setChecklistTrip(trip.id)
                 }}
               >
-                <ClipboardCheck />
+                <ClipboardCheck className='size-3.5' />
                 Checklist
               </Button>
               <span className='flex items-center gap-1.5 text-xs font-semibold text-primary'>
                 {trip.status === 'ended' ? (
-                  <PlayCircle className='size-3.5' />
+                  <Play className='size-3.5' />
                 ) : (
                   <RouteIcon className='size-3.5' />
                 )}
@@ -292,10 +333,12 @@ export function TripHistoryPage() {
           )}
           pagination={{
             page: search.page,
-            limit: LIMIT,
+            limit,
             total: trips.data?.total ?? 0,
             label: 'trips',
             onPageChange: (page) => navigate({ search: (prev) => ({ ...prev, page }) }),
+            onLimitChange: (next) =>
+              navigate({ search: (prev) => ({ ...prev, limit: next, page: 1 }), replace: true }),
           }}
         />
       </Card>

@@ -14,8 +14,6 @@ import {
 } from 'lucide-react'
 import { PageTabs } from '@/components/common/page-tabs'
 import { Page, PageHeader } from '@/components/common/page'
-import { useShortcut } from '@/components/shortcuts/shortcut-context'
-import { Kbd } from '@/components/shortcuts/kbd'
 import { Button } from '@/components/ui/button'
 import { can, useMe } from '@/features/auth/api'
 import { BusLogTab } from '../components/bus-log-tab'
@@ -109,6 +107,8 @@ export function MaintenancePage() {
   const setSearch = (patch: Partial<MaintenanceSearch>) =>
     navigate({ search: (prev) => ({ ...prev, page: 1, ...patch }), replace: true })
   const onPageChange = (page: number) => navigate({ search: (prev) => ({ ...prev, page }) })
+  const onLimitChange = (limit: number) =>
+    navigate({ search: (prev) => ({ ...prev, limit, page: 1 }), replace: true })
   const onClear = () =>
     navigate({
       search: {
@@ -129,12 +129,11 @@ export function MaintenancePage() {
     setAdding(true)
   }
 
-  useShortcut('maintenance.create', startAdding, { enabled: Boolean(add) })
-
   const tabProps: TabProps = {
     search,
     setSearch,
     onPageChange,
+    onLimitChange,
     onClear,
     canManage,
     adding,
@@ -150,10 +149,9 @@ export function MaintenancePage() {
         description={current.description}
         actions={
           add && (
-            <Button onClick={startAdding}>
-              <Plus />
+            <Button variant='primary' onClick={startAdding}>
+              <Plus className='size-4' />
               {add.label}
-              <Kbd id='maintenance.create' inverted />
             </Button>
           )
         }

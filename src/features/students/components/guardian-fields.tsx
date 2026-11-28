@@ -1,4 +1,4 @@
-import { Star, Trash } from 'lucide-react'
+import { StarIcon, TrashIcon } from '@/components/common/icon'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
@@ -70,7 +70,7 @@ export function GuardianFields({
               className='border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
               onClick={onMakePrimary}
             >
-              <Star className='size-4 stroke-[1.75]' />
+              <StarIcon className='size-4 stroke-[1.75]' />
               Make main
             </Button>
           )}
@@ -83,7 +83,7 @@ export function GuardianFields({
               className='text-destructive hover:bg-destructive/10'
               onClick={onRemove}
             >
-              <Trash className='size-4 stroke-[1.75]' />
+              <TrashIcon className='size-4 stroke-[1.75]' />
             </Button>
           )}
         </div>

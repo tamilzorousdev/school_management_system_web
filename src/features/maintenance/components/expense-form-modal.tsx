@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
+import { DatePicker } from '@/components/common/date-picker'
 import { FormField } from '@/components/common/form-field'
 import { Input, Textarea } from '@/components/ui/input'
 import { today } from '@/features/attendance/labels'
@@ -26,7 +27,7 @@ import {
   PAYMENT_MODE_OPTIONS,
 } from '../labels'
 import { applyFieldErrors } from '../helpers'
-import { FileField, FormAlert, type AttachedFile } from './shared'
+import { FileField, FormAlert, MAINTENANCE_INPUT_CLASS, type AttachedFile } from './shared'
 
 const FORM_ID = 'expense-form'
 
@@ -222,13 +223,14 @@ function ExpenseForm({
           control={control}
           name='spent_on'
           render={({ field }) => (
-            <Input
+            <DatePicker
               id='expense-date'
-              type='date'
               max={today()}
-              aria-invalid={Boolean(errors.spent_on) || undefined}
+              className={MAINTENANCE_INPUT_CLASS}
+              invalid={Boolean(errors.spent_on)}
+              required
               value={field.value}
-              onChange={(event) => field.onChange(event.target.value)}
+              onChange={(value: string) => field.onChange(value)}
             />
           )}
         />
@@ -246,7 +248,7 @@ function ExpenseForm({
               placeholder='Choose what it was for'
               searchPlaceholder='Search categories'
               highlightSelected={false}
-              className='sm:w-full'
+              className={MAINTENANCE_INPUT_CLASS}
               invalid={Boolean(errors.category)}
               onChange={(value) => field.onChange(value ?? '')}
             />
@@ -262,6 +264,7 @@ function ExpenseForm({
           max={1_000_000}
           step='0.01'
           placeholder='38500'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.amount) || undefined}
           {...register('amount')}
         />
@@ -278,13 +281,12 @@ function ExpenseForm({
             control={control}
             name='renewed_until'
             render={({ field }) => (
-              <Input
+              <DatePicker
                 id='expense-renewed'
-                type='date'
                 min={today()}
-                aria-invalid={Boolean(errors.renewed_until) || undefined}
+                invalid={Boolean(errors.renewed_until)}
                 value={field.value}
-                onChange={(event) => field.onChange(event.target.value)}
+                onChange={(value: string) => field.onChange(value)}
               />
             )}
           />
@@ -322,6 +324,7 @@ function ExpenseForm({
             id='expense-paid-to'
             maxLength={100}
             placeholder='New India Assurance'
+            className={MAINTENANCE_INPUT_CLASS}
             aria-invalid={Boolean(errors.paid_to) || undefined}
             {...register('paid_to')}
           />

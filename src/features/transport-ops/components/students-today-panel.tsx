@@ -21,8 +21,10 @@ const AWAY_TONE: Record<AwayReason, BadgeTone> = {
 function RiderLine({ rider }: { rider: TodayRider }) {
   return (
     <div className='grid min-w-0 gap-0.5'>
-      <span className='truncate font-semibold'>{rider.student.name}</span>
-      <span className='truncate text-xs text-muted-foreground'>
+      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+        {rider.student.name}
+      </span>
+      <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
         {[rider.class_section, rider.bus?.name ?? rider.route.name, rider.stop]
           .filter(Boolean)
           .join(' · ')}
@@ -34,7 +36,7 @@ function RiderLine({ rider }: { rider: TodayRider }) {
 function AwayBadge({ trip, away }: { trip: string; away: TodayAway | null }) {
   if (!away) return null
   return (
-    <Badge tone={AWAY_TONE[away.reason]} title={away.note}>
+    <Badge tone={AWAY_TONE[away.reason]} className='font-medium' title={away.note}>
       {trip}: {away.note}
     </Badge>
   )
@@ -69,12 +71,12 @@ export function StudentsTodayPanel({ day, live }: { day: string; live: boolean }
   return (
     <Card className='overflow-hidden'>
       <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-        <h2 className='flex items-center gap-2 font-bold'>
+        <h2 className='flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100'>
           <Users className='size-4 text-primary' />
           Bus students today
         </h2>
         {summary && (
-          <span className='tabular text-xs text-muted-foreground'>
+          <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
             {summary.coming} of {summary.riders} coming · {summary.away_pickup} not on pickup ·{' '}
             {summary.away_drop} not on drop
           </span>
@@ -90,7 +92,7 @@ export function StudentsTodayPanel({ day, live }: { day: string; live: boolean }
             aria-pressed={view === item.key}
             onClick={() => setView(item.key)}
           >
-            <item.icon />
+            <item.icon className='size-3.5' />
             {item.label}
             <span className='tabular'>({item.count})</span>
           </Button>

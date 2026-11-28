@@ -74,10 +74,12 @@ function ExceptionRow({ item }: { item: BoardException }) {
         <Icon className='size-4' />
       </span>
       <div className='grid min-w-0 flex-1 gap-1'>
-        <Badge tone={kind.tone} className='justify-self-start'>
+        <Badge tone={kind.tone} className='justify-self-start font-medium'>
           {kind.label}
         </Badge>
-        <span className='text-sm break-words'>{item.message}</span>
+        <span className='text-[13px] leading-[18px] text-slate-700 break-words dark:text-slate-300'>
+          {item.message}
+        </span>
       </div>
       <div className='flex flex-wrap gap-2'>
         {item.incident_id && (
@@ -119,12 +121,12 @@ function ExceptionsPanel({
   return (
     <Card className='overflow-hidden'>
       <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
-        <h2 className='flex items-center gap-2 font-bold'>
+        <h2 className='flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100'>
           <ClipboardList className='size-4 text-primary' />
           Exceptions
         </h2>
         {items && (
-          <Badge tone={items.length ? 'danger' : 'success'}>
+          <Badge tone={items.length ? 'danger' : 'success'} className='font-medium'>
             {items.length ? `${items.length} need attention` : 'All clear'}
           </Badge>
         )}
@@ -157,12 +159,17 @@ function RouteCell({ trip }: { trip: BoardTrip }) {
   return (
     <div className='grid min-w-0 gap-1'>
       <span className='flex items-center gap-2'>
-        <span className='rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-bold'>
+        <span className='rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-bold text-slate-700 dark:text-slate-300'>
           {trip.route_code}
         </span>
-        <span className='truncate font-bold'>{trip.route.name}</span>
+        <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+          {trip.route.name}
+        </span>
       </span>
-      <Badge tone={trip.kind === 'pickup' ? 'info' : 'neutral'} className='justify-self-start'>
+      <Badge
+        tone={trip.kind === 'pickup' ? 'info' : 'neutral'}
+        className='justify-self-start font-medium'
+      >
         {KIND_LABEL[trip.kind]}
       </Badge>
     </div>
@@ -173,11 +180,15 @@ function StatusCell({ trip }: { trip: BoardTrip }) {
   const status = BOARD_STATUS[trip.status]
   return (
     <div className='grid justify-items-start gap-1'>
-      <Badge tone={status.tone} dot pulse={trip.status === 'running'}>
+      <Badge tone={status.tone} dot pulse={trip.status === 'running'} className='font-medium'>
         {status.label}
       </Badge>
       {trip.tracking && (
-        <Badge tone={TRIP_TRACKING[trip.tracking].tone} title={TRIP_TRACKING[trip.tracking].hint}>
+        <Badge
+          tone={TRIP_TRACKING[trip.tracking].tone}
+          title={TRIP_TRACKING[trip.tracking].hint}
+          className='font-medium'
+        >
           {TRIP_TRACKING[trip.tracking].label}
         </Badge>
       )}
@@ -189,7 +200,7 @@ function StopsCell({ trip }: { trip: BoardTrip }) {
   const percent = trip.stops_total ? Math.round((trip.stops_done / trip.stops_total) * 100) : 0
   return (
     <div className='grid min-w-28 gap-1'>
-      <span className='tabular text-sm font-semibold'>
+      <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
         {trip.stops_done}/{trip.stops_total}
       </span>
       <span
@@ -203,7 +214,9 @@ function StopsCell({ trip }: { trip: BoardTrip }) {
         <span className='block h-full rounded-full bg-primary' style={{ width: `${percent}%` }} />
       </span>
       {trip.current_stop && (
-        <span className='truncate text-xs text-muted-foreground'>At {trip.current_stop}</span>
+        <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          At {trip.current_stop}
+        </span>
       )}
     </div>
   )
@@ -212,19 +225,27 @@ function StopsCell({ trip }: { trip: BoardTrip }) {
 function RidersCell({ trip }: { trip: BoardTrip }) {
   return (
     <div className='grid'>
-      <span className='tabular text-sm font-semibold'>
+      <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
         {trip.boarded}/{trip.expected}
       </span>
-      {trip.away > 0 && <span className='text-xs text-muted-foreground'>{trip.away} away</span>}
+      {trip.away > 0 && (
+        <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          {trip.away} away
+        </span>
+      )}
       {(trip.not_at_stop > 0 || trip.boarded_on_hold > 0) && (
         <span className='mt-0.5 flex flex-wrap gap-1'>
           {trip.not_at_stop > 0 && (
-            <Badge tone='warning' title='The bus came and the child was not at the stop'>
+            <Badge
+              tone='warning'
+              className='font-medium'
+              title='The bus came and the child was not at the stop'
+            >
               {trip.not_at_stop} not at stop
             </Badge>
           )}
           {trip.boarded_on_hold > 0 && (
-            <Badge tone='warning' title='Got on with the bus pass on hold'>
+            <Badge tone='warning' className='font-medium' title='Got on with the bus pass on hold'>
               {trip.boarded_on_hold} on hold
             </Badge>
           )}
@@ -235,14 +256,16 @@ function RidersCell({ trip }: { trip: BoardTrip }) {
 }
 
 function SweepCell({ trip }: { trip: BoardTrip }) {
-  if (trip.status !== 'completed') return <span className='text-muted-foreground'>—</span>
+  if (trip.status !== 'completed') return <span className='text-slate-400'>—</span>
   return trip.swept_at ? (
-    <Badge tone='success' title='No child left on the bus'>
+    <Badge tone='success' className='font-medium' title='No child left on the bus'>
       <CircleCheck className='size-3' />
       {clock(trip.swept_at)}
     </Badge>
   ) : (
-    <Badge tone='danger'>Missing</Badge>
+    <Badge tone='danger' className='font-medium'>
+      Missing
+    </Badge>
   )
 }
 
@@ -339,14 +362,16 @@ export function OperationsPage() {
       : undefined
 
   const columns: Column<BoardTrip>[] = [
-    { key: 'route', header: 'Route', cell: (trip) => <RouteCell trip={trip} /> },
+    { key: 'route', header: 'ROUTE', cell: (trip) => <RouteCell trip={trip} /> },
     {
       key: 'bus',
-      header: 'Bus & driver',
+      header: 'BUS & DRIVER',
       cell: (trip) => (
         <div className='grid min-w-0'>
-          <span className='font-semibold'>{trip.vehicle?.name ?? 'No bus'}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {trip.vehicle?.name ?? 'No bus'}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {trip.driver?.name ?? 'No driver'}
           </span>
         </div>
@@ -354,29 +379,37 @@ export function OperationsPage() {
     },
     {
       key: 'planned',
-      header: 'Planned',
+      header: 'PLANNED',
       cell: (trip) => (
         <div className='grid'>
-          <span className='tabular'>{trip.planned_start ?? '—'}</span>
+          <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+            {trip.planned_start ?? '—'}
+          </span>
           {trip.started_at && (
-            <span className='text-xs text-muted-foreground'>Started {clock(trip.started_at)}</span>
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              Started {clock(trip.started_at)}
+            </span>
           )}
         </div>
       ),
     },
-    { key: 'status', header: 'Status', cell: (trip) => <StatusCell trip={trip} /> },
-    { key: 'stops', header: 'Stops', cell: (trip) => <StopsCell trip={trip} /> },
-    { key: 'riders', header: 'Boarded', cell: (trip) => <RidersCell trip={trip} /> },
+    { key: 'status', header: 'STATUS', cell: (trip) => <StatusCell trip={trip} /> },
+    { key: 'stops', header: 'STOPS', cell: (trip) => <StopsCell trip={trip} /> },
+    { key: 'riders', header: 'BOARDED', cell: (trip) => <RidersCell trip={trip} /> },
     {
       key: 'delay',
-      header: 'Delay',
+      header: 'DELAY',
       hideBelow: 'lg',
-      cell: (trip) => <span className='tabular'>{delayText(trip)}</span>,
+      cell: (trip) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {delayText(trip)}
+        </span>
+      ),
     },
-    { key: 'sweep', header: 'Sweep', hideBelow: 'lg', cell: (trip) => <SweepCell trip={trip} /> },
+    { key: 'sweep', header: 'SWEEP', hideBelow: 'lg', cell: (trip) => <SweepCell trip={trip} /> },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       cell: (trip) =>
         trip.trip_id ? (
@@ -387,7 +420,7 @@ export function OperationsPage() {
               onClick={(event) => event.stopPropagation()}
               aria-label={`Open trip ${trip.route.name} ${KIND_LABEL[trip.kind]}`}
             >
-              <RouteIcon />
+              <RouteIcon className='size-3.5' />
               Open
             </Link>
           </Button>
@@ -420,10 +453,10 @@ export function OperationsPage() {
 
           <Card className='overflow-hidden'>
             <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-              <h2 className='font-bold'>
+              <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>
                 {filter ? `${BOARD_STATUS[filter].label} trips` : 'All trips'}
               </h2>
-              <span className='tabular text-xs text-muted-foreground'>
+              <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
                 {rows.length} {rows.length === 1 ? 'trip' : 'trips'}
               </span>
             </div>

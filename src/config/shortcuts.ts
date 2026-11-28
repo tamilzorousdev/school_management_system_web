@@ -136,11 +136,6 @@ export const SHORTCUTS = {
     label: 'Add an expense, income or category in Accounts',
     group: 'Users',
   },
-  'maintenance.create': {
-    combo: 'alt+n',
-    label: 'Add a ticket, fuel entry, expense or rule in Maintenance',
-    group: 'Users',
-  },
   'appraisals.create': { combo: 'alt+n', label: 'Add a staff appraisal', group: 'Users' },
   'banners.create': {
     combo: 'alt+n',

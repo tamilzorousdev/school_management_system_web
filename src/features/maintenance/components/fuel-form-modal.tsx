@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
+import { DatePicker } from '@/components/common/date-picker'
 import { FormField } from '@/components/common/form-field'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -22,7 +23,7 @@ import {
 } from '../api'
 import { PAYMENT_MODE_OPTIONS, rupees } from '../labels'
 import { applyFieldErrors } from '../helpers'
-import { FileField, FormAlert, type AttachedFile } from './shared'
+import { FileField, FormAlert, MAINTENANCE_INPUT_CLASS, type AttachedFile } from './shared'
 
 const FORM_ID = 'fuel-form'
 
@@ -233,13 +234,14 @@ function FuelForm({
           control={control}
           name='filled_on'
           render={({ field }) => (
-            <Input
+            <DatePicker
               id='fuel-date'
-              type='date'
               max={today()}
-              aria-invalid={Boolean(errors.filled_on) || undefined}
+              className={MAINTENANCE_INPUT_CLASS}
+              invalid={Boolean(errors.filled_on)}
+              required
               value={field.value}
-              onChange={(event) => field.onChange(event.target.value)}
+              onChange={(value: string) => field.onChange(value)}
             />
           )}
         />
@@ -253,6 +255,7 @@ function FuelForm({
           max={1000}
           step='0.01'
           placeholder='60.5'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.litres) || undefined}
           {...register('litres')}
         />
@@ -272,6 +275,7 @@ function FuelForm({
           max={100_000}
           step='0.01'
           placeholder='5800'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.amount) || undefined}
           {...register('amount')}
         />
@@ -291,6 +295,7 @@ function FuelForm({
           max={2_000_000}
           step='0.1'
           placeholder='48213'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.odometer_km) || undefined}
           {...register('odometer_km')}
         />
@@ -362,6 +367,7 @@ function FuelForm({
             id='fuel-station'
             maxLength={100}
             placeholder='Indian Oil, Anna Nagar'
+            className={MAINTENANCE_INPUT_CLASS}
             aria-invalid={Boolean(errors.station) || undefined}
             {...register('station')}
           />
