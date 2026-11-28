@@ -5,6 +5,7 @@ import { AppModal } from '@/components/common/app-modal'
 import { Avatar } from '@/components/common/avatar'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
+import { IdentityFields } from '@/components/common/identity-fields'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -12,6 +13,12 @@ import { useClasses, useSections } from '@/features/setup/api'
 import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
+import {
+  toIdentityDraft,
+  toIdentityInput,
+  validateIdentity,
+  type IdentityDraft,
+} from '@/lib/identity'
 import {
   studentsApi,
   useStudentMutation,
@@ -129,6 +136,7 @@ function StudentForm({
   onDone: (id: number) => void
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft)
+  const [identity, setIdentity] = useState<IdentityDraft>(() => toIdentityDraft())
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [caregiverType, setCaregiverType] = useState<'parents' | 'guardian'>('parents')
   const [guardians, setGuardians] = useState<GuardianDraft[]>([emptyGuardian('father')])
@@ -142,8 +150,13 @@ function StudentForm({
     setErrors((current) => ({ ...current, [field]: '' }))
   }
 
+  const setIdentityField = <K extends keyof IdentityDraft>(field: K, value: IdentityDraft[K]) => {
+    setIdentity((current) => ({ ...current, [field]: value }))
+    setErrors((current) => ({ ...current, [field]: '' }))
+  }
+
   const validate = () => {
-    const next: Record<string, string> = {}
+    const next: Record<string, string> = validateIdentity(identity)
     if (!draft.first_name.trim()) next.first_name = 'Enter the first name'
     if (!draft.dob) next.dob = 'Enter the date of birth'
     if (!draft.gender) next.gender = 'Choose a gender'
@@ -213,6 +226,7 @@ function StudentForm({
             : null,
         is_adopted: draft.is_adopted,
         photo_file_id: draft.photo_file_id,
+        ...toIdentityInput(identity),
         guardians: guardians.map(({ key: _key, ...guardian }, index) => ({
           ...guardian,
           email: guardian.email || null,
@@ -575,6 +589,18 @@ function StudentForm({
             />
           </label>
         </div>
+      </section>
+
+      <section className='grid gap-3'>
+        <h3 className='text-xs font-bold tracking-wider text-muted-foreground uppercase'>
+          Community and identity
+        </h3>
+        <IdentityFields
+          idPrefix='student'
+          value={identity}
+          onChange={setIdentityField}
+          errors={errors}
+        />
       </section>
 
       {/* Parents & Guardians Section */}

@@ -14,14 +14,17 @@ import {
   Star,
   Trash,
 } from 'lucide-react'
+import { AadhaarValue } from '@/components/common/aadhaar-value'
 import { DetailList, EmptyState, ErrorState } from '@/components/common/display'
 import { DocumentList } from '@/components/common/document-list'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Section } from '@/features/setup/components/setup-shared'
+import { can, useMe } from '@/features/auth/api'
 import { formatDate } from '@/lib/format'
-import { staffApi, useStaffBank, useStaffMutation, type StaffDetail } from '../api'
+import { communityLabel, religionLabel } from '@/lib/identity'
+import { staffApi, useStaffAadhaar, useStaffBank, useStaffMutation, type StaffDetail } from '../api'
 import { GENDER_LABELS, LANGUAGE_OPTIONS, STAFF_DOCUMENT_TYPES, STAFF_TYPE_LABELS } from '../labels'
 import { TeacherSpecialClasses } from '@/features/performance/components/teacher-special-classes'
 import { SignaturePanel } from '@/features/signatures/signature-panel'
@@ -35,41 +38,46 @@ export function ProfileTab({ staff, canManage }: { staff: StaffDetail; canManage
   const [editing, setEditing] = useState(false)
   return (
     <div className='grid gap-6 xl:grid-cols-[3fr_2fr]'>
-      <Section title='Details'>
-        <DetailList
-          items={[
-            { label: 'Employee number', value: staff.employee_no, mono: true },
-            { label: 'Staff type', value: STAFF_TYPE_LABELS[staff.staff_type] },
-            { label: 'Designation', value: staff.designation },
-            { label: 'Department', value: orDash(staff.department) },
-            { label: 'Mobile', value: `+91 ${staff.mobile}` },
-            { label: 'Email', value: orDash(staff.email) },
-            {
-              label: 'App language',
-              value:
-                LANGUAGE_OPTIONS.find((option) => option.value === staff.language)?.label ?? '—',
-            },
-            { label: 'Gender', value: staff.gender ? GENDER_LABELS[staff.gender] : '—' },
-            { label: 'Date of birth', value: formatDate(staff.dob) },
-            { label: 'Joined on', value: formatDate(staff.joining_date) },
-            {
-              label: 'Experience before joining',
-              value: `${staff.prior_experience_years} ${staff.prior_experience_years === 1 ? 'year' : 'years'}`,
-            },
-            ...(staff.staff_type === 'teaching'
-              ? [{ label: 'Most periods a week', value: staff.max_periods_per_week }]
-              : []),
-            ...(staff.left_on ? [{ label: 'Left on', value: formatDate(staff.left_on) }] : []),
-            { label: 'Address', value: orDash(staff.address) },
-            {
-              label: 'Emergency contact',
-              value: staff.emergency_contact_name
-                ? `${staff.emergency_contact_name}${staff.emergency_contact_mobile ? ` · +91 ${staff.emergency_contact_mobile}` : ''}`
-                : orDash(staff.emergency_contact_mobile && `+91 ${staff.emergency_contact_mobile}`),
-            },
-          ]}
-        />
-      </Section>
+      <div className='grid content-start gap-6'>
+        <Section title='Details'>
+          <DetailList
+            items={[
+              { label: 'Employee number', value: staff.employee_no, mono: true },
+              { label: 'Staff type', value: STAFF_TYPE_LABELS[staff.staff_type] },
+              { label: 'Designation', value: staff.designation },
+              { label: 'Department', value: orDash(staff.department) },
+              { label: 'Mobile', value: `+91 ${staff.mobile}` },
+              { label: 'Email', value: orDash(staff.email) },
+              {
+                label: 'App language',
+                value:
+                  LANGUAGE_OPTIONS.find((option) => option.value === staff.language)?.label ?? '—',
+              },
+              { label: 'Gender', value: staff.gender ? GENDER_LABELS[staff.gender] : '—' },
+              { label: 'Date of birth', value: formatDate(staff.dob) },
+              { label: 'Joined on', value: formatDate(staff.joining_date) },
+              {
+                label: 'Experience before joining',
+                value: `${staff.prior_experience_years} ${staff.prior_experience_years === 1 ? 'year' : 'years'}`,
+              },
+              ...(staff.staff_type === 'teaching'
+                ? [{ label: 'Most periods a week', value: staff.max_periods_per_week }]
+                : []),
+              ...(staff.left_on ? [{ label: 'Left on', value: formatDate(staff.left_on) }] : []),
+              { label: 'Address', value: orDash(staff.address) },
+              {
+                label: 'Emergency contact',
+                value: staff.emergency_contact_name
+                  ? `${staff.emergency_contact_name}${staff.emergency_contact_mobile ? ` · +91 ${staff.emergency_contact_mobile}` : ''}`
+                  : orDash(
+                      staff.emergency_contact_mobile && `+91 ${staff.emergency_contact_mobile}`
+                    ),
+              },
+            ]}
+          />
+        </Section>
+        <StaffIdentitySection staff={staff} />
+      </div>
       <div className='grid content-start gap-6'>
         <Section
           title='Qualifications'
@@ -130,6 +138,39 @@ export function ProfileTab({ staff, canManage }: { staff: StaffDetail; canManage
       </div>
       <QualificationsModal staff={staff} open={editing} onOpenChange={setEditing} />
     </div>
+  )
+}
+
+function StaffIdentitySection({ staff }: { staff: StaffDetail }) {
+  const canReveal = can(useMe().data, 'identity.aadhaar')
+  const [shown, setShown] = useState(false)
+  const aadhaar = useStaffAadhaar(staff.id, shown && canReveal)
+  return (
+    <Section title='Community and identity'>
+      <DetailList
+        items={[
+          { label: 'Community', value: communityLabel(staff.community) },
+          { label: 'Caste', value: orDash(staff.caste) },
+          { label: 'Religion', value: religionLabel(staff.religion) },
+          { label: 'Community certificate', value: orDash(staff.community_certificate_no) },
+          { label: 'Nationality', value: orDash(staff.nationality) },
+          { label: 'Mother tongue', value: orDash(staff.mother_tongue) },
+          {
+            label: 'Aadhaar',
+            value: (
+              <AadhaarValue
+                masked={staff.aadhaar_masked}
+                canReveal={canReveal}
+                shown={shown}
+                loading={aadhaar.isFetching}
+                revealed={aadhaar.data?.aadhaar_no}
+                onToggle={() => setShown((value) => !value)}
+              />
+            ),
+          },
+        ]}
+      />
+    </Section>
   )
 }
 
@@ -294,7 +335,9 @@ export function BankTab({ staff, canBank }: { staff: StaffDetail; canBank: boole
             <Button
               size='sm'
               variant={hasAny ? 'secondary' : 'primary'}
-              className={hasAny ? 'border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]' : undefined}
+              className={
+                hasAny ? 'border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB]' : undefined
+              }
               onClick={() => setEditing(true)}
             >
               {hasAny ? (
