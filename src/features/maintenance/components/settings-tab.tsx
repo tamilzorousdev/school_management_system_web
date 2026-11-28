@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CircleOff, History, Lock, LockOpen, Pencil, Plus, Store, Trash2 } from 'lucide-react'
+import { CircleOff, History, Lock, LockOpen, PenLine, Plus, Store } from 'lucide-react'
 import { z } from 'zod'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { ErrorState } from '@/components/common/display'
 import { FormField } from '@/components/common/form-field'
+import { TrashIcon } from '@/components/common/icon'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,7 @@ import { VENDOR_KIND, VENDOR_KIND_OPTIONS, rupees } from '../labels'
 import type { TabProps } from '../search'
 import { HistoryModal } from './history-modal'
 import { applyFieldErrors } from '../helpers'
-import { FormAlert } from './shared'
+import { FormAlert, MAINTENANCE_INPUT_CLASS } from './shared'
 import { VendorFormModal } from './vendor-form-modal'
 
 const LIMIT = 20
@@ -91,7 +92,9 @@ export function SettingsTab({ canManage, adding, onAddingChange }: TabProps) {
         <Card className='grid content-start gap-4 p-4'>
           <div className='flex items-start justify-between gap-2'>
             <div className='grid min-w-0 gap-0.5'>
-              <span className='font-semibold'>Alerts and rules</span>
+              <span className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+                Alerts and rules
+              </span>
               <span className='text-sm text-muted-foreground'>
                 When services show as due soon, and when fuel and mileage are flagged.
               </span>
@@ -102,7 +105,7 @@ export function SettingsTab({ canManage, adding, onAddingChange }: TabProps) {
               className='shrink-0'
               onClick={() => setHistoryOpen(true)}
             >
-              <History />
+              <History className='size-3.5' />
               History
             </Button>
           </div>
@@ -186,6 +189,7 @@ function SettingsForm({ settings, canManage }: { settings: FleetSettings; canMan
         min={props.min}
         max={props.max}
         step={props.step ?? '1'}
+        className={MAINTENANCE_INPUT_CLASS}
         aria-invalid={Boolean(errors[name]) || undefined}
         {...register(name)}
       />
@@ -223,7 +227,7 @@ function SettingsForm({ settings, canManage }: { settings: FleetSettings; canMan
       )}
       {canManage && (
         <div className='flex items-end sm:col-span-2'>
-          <Button type='submit' loading={save.isPending} disabled={!isDirty}>
+          <Button type='submit' variant='primary' loading={save.isPending} disabled={!isDirty}>
             Save settings
           </Button>
         </div>
@@ -240,7 +244,10 @@ function PreTripRule({ settings, canManage }: { settings: FleetSettings; canMana
     <Card className='grid gap-3 p-4'>
       <div className='flex items-start justify-between gap-3'>
         <div className='grid gap-0.5'>
-          <label htmlFor='settings-pre-trip' className='font-semibold'>
+          <label
+            htmlFor='settings-pre-trip'
+            className='text-sm font-bold text-slate-900 dark:text-slate-100'
+          >
             Pre-trip check before the first trip
           </label>
           <span className='text-sm text-muted-foreground'>
@@ -281,15 +288,17 @@ function MonthLock({ settings, canManage }: { settings: FleetSettings; canManage
   return (
     <Card className='grid gap-3 p-4'>
       <div className='grid gap-0.5'>
-        <span className='flex items-center gap-2 font-semibold'>
+        <span className='flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100'>
           Month lock
           {settings.locked_until ? (
-            <Badge tone='warning'>
+            <Badge tone='warning' className='font-medium'>
               <Lock className='size-3' />
               Locked to {formatDate(settings.locked_until)}
             </Badge>
           ) : (
-            <Badge tone='neutral'>Nothing locked</Badge>
+            <Badge tone='neutral' className='font-medium'>
+              Nothing locked
+            </Badge>
           )}
         </span>
         <span className='text-sm text-muted-foreground'>
@@ -310,13 +319,13 @@ function MonthLock({ settings, canManage }: { settings: FleetSettings; canManage
             className='w-full sm:w-56'
             onChange={setMonth}
           />
-          <Button disabled={!month} onClick={() => setConfirm('lock')}>
-            <Lock />
+          <Button variant='primary' size='sm' disabled={!month} onClick={() => setConfirm('lock')}>
+            <Lock className='size-3.5' />
             Lock
           </Button>
           {settings.locked_until && (
-            <Button variant='outline' onClick={() => setConfirm('unlock')}>
-              <LockOpen />
+            <Button variant='outline' size='sm' onClick={() => setConfirm('unlock')}>
+              <LockOpen className='size-3.5' />
               Unlock
             </Button>
           )}
@@ -357,13 +366,14 @@ function VendorsCard({
   onAddingChange: (open: boolean) => void
 }) {
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(LIMIT)
   const [searchText, setSearchText] = useState('')
   const [kind, setKind] = useState<VendorKind | undefined>()
   const [editing, setEditing] = useState<Vendor | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [deleting, setDeleting] = useState<Vendor | null>(null)
   if (adding && !editOpen && editing) setEditing(null)
-  const vendors = useVendors({ page, limit: LIMIT, search: searchText || undefined, kind })
+  const vendors = useVendors({ page, limit, search: searchText || undefined, kind })
   const remove = useMaintenanceMutation((id: number) => maintenanceApi.removeVendor(id))
   const rows = vendors.data?.items ?? []
 
@@ -375,11 +385,13 @@ function VendorsCard({
   const columns: Column<Vendor>[] = [
     {
       key: 'name',
-      header: 'Name',
+      header: 'NAME',
       cell: (vendor) => (
         <div className='grid min-w-0'>
-          <span className='font-semibold'>{vendor.name}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {vendor.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {[vendor.phone, vendor.address].filter(Boolean).join(' · ') || '—'}
           </span>
         </div>
@@ -387,13 +399,17 @@ function VendorsCard({
     },
     {
       key: 'kind',
-      header: 'Kind',
+      header: 'KIND',
       cell: (vendor) => (
         <span className='flex flex-wrap gap-1'>
-          <Badge tone={vendor.kind === 'fuel_station' ? 'info' : 'neutral'}>
+          <Badge tone={vendor.kind === 'fuel_station' ? 'info' : 'neutral'} className='font-medium'>
             {VENDOR_KIND[vendor.kind]}
           </Badge>
-          {!vendor.is_active && <Badge tone='warning'>Inactive</Badge>}
+          {!vendor.is_active && (
+            <Badge tone='warning' className='font-medium'>
+              Inactive
+            </Badge>
+          )}
         </span>
       ),
     },
@@ -401,17 +417,25 @@ function VendorsCard({
       key: 'gst',
       header: 'GSTIN',
       hideBelow: 'xl',
-      cell: (vendor) => <span className='font-mono text-xs'>{vendor.gst_no ?? '—'}</span>,
+      cell: (vendor) => (
+        <span className='font-mono text-[12px] leading-[16px] text-slate-700 dark:text-slate-300'>
+          {vendor.gst_no ?? '—'}
+        </span>
+      ),
     },
     {
       key: 'spent',
-      header: 'Total spent',
+      header: 'TOTAL SPENT',
       align: 'right',
-      cell: (vendor) => <span className='tabular font-semibold'>{rupees(vendor.total_spent)}</span>,
+      cell: (vendor) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {rupees(vendor.total_spent)}
+        </span>
+      ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-24',
       cell: (vendor) =>
@@ -421,24 +445,27 @@ function VendorsCard({
               variant='ghost'
               size='icon-sm'
               aria-label={`Edit ${vendor.name}`}
+              title='Edit'
+              className='text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
               onClick={(event) => {
                 event.stopPropagation()
                 openEdit(vendor)
               }}
             >
-              <Pencil />
+              <PenLine className='size-4' />
             </Button>
             <Button
               variant='ghost'
               size='icon-sm'
               aria-label={`Remove ${vendor.name}`}
-              className='text-destructive hover:bg-destructive/10'
+              title='Delete'
+              className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] dark:text-red-400 dark:hover:bg-destructive/10 dark:hover:text-red-300'
               onClick={(event) => {
                 event.stopPropagation()
                 setDeleting(vendor)
               }}
             >
-              <Trash2 />
+              <TrashIcon className='size-4' />
             </Button>
           </div>
         ),
@@ -451,14 +478,16 @@ function VendorsCard({
     <Card className='overflow-hidden'>
       <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
         <div className='grid gap-0.5'>
-          <span className='font-semibold'>Garages and fuel stations</span>
+          <span className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+            Garages and fuel stations
+          </span>
           <span className='text-sm text-muted-foreground'>
             Pick them in services, fuel entries and expenses to see the total spent with each.
           </span>
         </div>
         {canManage && (
           <Button variant='outline' size='sm' onClick={() => onAddingChange(true)}>
-            <Plus />
+            <Plus className='size-3.5' />
             Add garage or station
           </Button>
         )}
@@ -483,6 +512,8 @@ function VendorsCard({
           }}
           placeholder='Search name or phone'
           label='Search garages and stations'
+          compact
+          showShortcut={false}
         />
         <FilterSelect
           id='vendor-kind-filter'
@@ -530,10 +561,14 @@ function VendorsCard({
         )}
         pagination={{
           page,
-          limit: LIMIT,
+          limit,
           total: vendors.data?.total ?? 0,
           label: 'saved',
           onPageChange: setPage,
+          onLimitChange: (next) => {
+            setLimit(next)
+            setPage(1)
+          },
         }}
       />
       <VendorFormModal

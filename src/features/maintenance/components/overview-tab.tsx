@@ -1,5 +1,5 @@
 import {
-  AlertOctagon,
+  AlertTriangle,
   Ban,
   CalendarClock,
   ChevronRight,
@@ -126,7 +126,7 @@ export function OverviewTab({ goTo }: TabProps) {
       <div className='grid items-start gap-4 lg:grid-cols-2'>
         <Card className='overflow-hidden'>
           <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
-            <span className='font-semibold'>Services due</span>
+            <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>Services due</h2>
             <button
               type='button'
               onClick={() => goTo('schedules')}
@@ -158,14 +158,16 @@ export function OverviewTab({ goTo }: TabProps) {
                     className='flex w-full items-center gap-3 px-4 py-3 text-left outline-none hover:bg-muted/50 focus-visible:bg-accent/60'
                   >
                     <span className='grid min-w-0 flex-1 gap-0.5'>
-                      <span className='truncate font-semibold'>{schedule.title}</span>
-                      <span className='truncate text-xs text-muted-foreground'>
+                      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                        {schedule.title}
+                      </span>
+                      <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                         {schedule.vehicle.name} · {schedule.vehicle.registration_no}
                       </span>
                       <DueLeft schedule={schedule} />
                     </span>
                     <DueBadge schedule={schedule} />
-                    <ChevronRight className='size-4 shrink-0 text-muted-foreground' />
+                    <ChevronRight className='size-4 shrink-0 text-slate-400' />
                   </button>
                 </li>
               ))}
@@ -174,7 +176,9 @@ export function OverviewTab({ goTo }: TabProps) {
         </Card>
         <Card className='overflow-hidden'>
           <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
-            <span className='font-semibold'>Documents expiring</span>
+            <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+              Documents expiring
+            </h2>
             <span className='text-xs text-muted-foreground'>Within 30 days</span>
           </div>
           {due.isPending ? (
@@ -208,21 +212,23 @@ export function OverviewTab({ goTo }: TabProps) {
                     className='flex w-full items-center gap-3 px-4 py-3 text-left outline-none hover:bg-muted/50 focus-visible:bg-accent/60'
                   >
                     {document.days_left < 0 ? (
-                      <AlertOctagon className='size-4 shrink-0 text-destructive' />
+                      <AlertTriangle className='size-4 shrink-0 text-destructive' />
                     ) : (
                       <FileWarning className='size-4 shrink-0 text-warning' />
                     )}
                     <span className='grid min-w-0 flex-1 gap-0.5'>
-                      <span className='truncate font-semibold'>{documentName(document.kind)}</span>
-                      <span className='truncate text-xs text-muted-foreground'>
+                      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                        {documentName(document.kind)}
+                      </span>
+                      <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                         {document.vehicle.name} · {document.vehicle.registration_no} ·{' '}
                         {formatDate(document.expiry)}
                       </span>
                     </span>
-                    <Badge tone={daysTone(document.days_left)}>
+                    <Badge tone={daysTone(document.days_left)} className='font-medium'>
                       {daysLabel(document.days_left)}
                     </Badge>
-                    <ChevronRight className='size-4 shrink-0 text-muted-foreground' />
+                    <ChevronRight className='size-4 shrink-0 text-slate-400' />
                   </button>
                 </li>
               ))}

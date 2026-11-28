@@ -1,17 +1,7 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import {
-  AlertCircle,
-  Check,
-  CheckCircle2,
-  CircleOff,
-  ClipboardList,
-  Clock,
-  Eye,
-  GraduationCap,
-  Plus,
-  X,
-} from 'lucide-react'
+import { CircleOff, ClipboardList } from 'lucide-react'
+import { AlertCircleIcon, CheckCircleIcon, CheckIcon, ClockIcon, CloseXIcon, EyeIcon, GraduationCapIcon, PlusIcon } from '@/components/common/icon'
 import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
@@ -76,7 +66,7 @@ export function AdmissionsPage() {
       label: 'Waiting for a decision',
       value: data?.applied ?? 0,
       hint: 'Approve or reject',
-      icon: Clock,
+      icon: ClockIcon,
       tone: 'info',
       active: search.status === 'applied',
       onClick: () => pick('applied'),
@@ -86,7 +76,7 @@ export function AdmissionsPage() {
       label: 'Approved, not enrolled',
       value: data?.approved ?? 0,
       hint: 'Enrol to create the student',
-      icon: CheckCircle2,
+      icon: CheckCircleIcon,
       tone: 'warning',
       active: search.status === 'approved',
       onClick: () => pick('approved'),
@@ -96,7 +86,7 @@ export function AdmissionsPage() {
       label: 'Enrolled this year',
       value: data?.enrolled ?? 0,
       hint: 'Now in Students',
-      icon: GraduationCap,
+      icon: GraduationCapIcon,
       tone: 'success',
       active: search.status === 'enrolled',
       onClick: () => pick('enrolled'),
@@ -106,7 +96,7 @@ export function AdmissionsPage() {
       label: 'Rejected',
       value: data?.rejected ?? 0,
       hint: 'With the reason kept',
-      icon: AlertCircle,
+      icon: AlertCircleIcon,
       tone: 'danger',
       active: search.status === 'rejected',
       onClick: () => pick('rejected'),
@@ -132,7 +122,7 @@ export function AdmissionsPage() {
               }
             }}
           >
-            <Check className='size-3.5 stroke-[1.75]' />
+            <CheckIcon className='size-3.5 stroke-[1.75]' />
             Approve
           </Button>
           <Button
@@ -146,7 +136,7 @@ export function AdmissionsPage() {
               setRejecting(admission)
             }}
           >
-            <X className='size-4 stroke-[1.75]' />
+            <CloseXIcon className='size-4 stroke-[1.75]' />
           </Button>
         </div>
       )
@@ -162,7 +152,7 @@ export function AdmissionsPage() {
               setEnrolling(admission)
             }}
           >
-            <Check className='size-3.5 stroke-[1.75]' />
+            <CheckIcon className='size-3.5 stroke-[1.75]' />
             Enrol
           </Button>
           <Button
@@ -176,7 +166,7 @@ export function AdmissionsPage() {
               setRejecting(admission)
             }}
           >
-            <X className='size-4 stroke-[1.75]' />
+            <CloseXIcon className='size-4 stroke-[1.75]' />
           </Button>
         </div>
       )
@@ -199,7 +189,7 @@ export function AdmissionsPage() {
               })
             }}
           >
-            <Eye className='size-4 stroke-[1.75]' />
+            <EyeIcon className='size-4 stroke-[1.75]' />
           </Button>
         </div>
       )
@@ -310,7 +300,7 @@ export function AdmissionsPage() {
         actions={
           canManage && (
             <Button variant='primary' size='sm' onClick={() => setCreating(true)}>
-              <Plus className='size-4 stroke-[1.75]' />
+              <PlusIcon className='size-4 stroke-[1.75]' />
               New application
             </Button>
           )
@@ -371,7 +361,7 @@ export function AdmissionsPage() {
               : 'Take the first application for this year.',
             action: !filtered && canManage && (
               <Button variant='primary' size='sm' onClick={() => setCreating(true)}>
-                <Plus className='size-4 stroke-[1.75]' />
+                <PlusIcon className='size-4 stroke-[1.75]' />
                 New application
               </Button>
             ),

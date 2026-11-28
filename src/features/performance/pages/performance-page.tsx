@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   BookOpenCheck,
   CalendarCheck,
   CalendarClock,
   ChartColumnBig,
+  ChevronRight,
   CircleX,
   ClipboardCheck,
   Pencil,
@@ -25,6 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { StatusPill, TableCheckbox } from '@/features/attendance/components/students-tab'
 import { can, useMe } from '@/features/auth/api'
 import { useExamOptions } from '@/features/exams/api'
 import { useClasses } from '@/features/setup/api'
@@ -53,14 +55,43 @@ const route = getRouteApi('/_app/class-performance')
 const pct = (value: number | null | undefined) =>
   value === null || value === undefined ? '—' : formatNumber(value, 1, '%')
 
-const tone = (value: number | null, good: number, fair: number) =>
-  value === null
-    ? 'text-muted-foreground'
-    : value >= good
-      ? 'text-success'
-      : value >= fair
-        ? 'text-warning'
-        : 'text-destructive'
+function PercentPill({
+  value,
+  good,
+  fair,
+  invert = false,
+}: {
+  value: number | null | undefined
+  good: number
+  fair: number
+  invert?: boolean
+}) {
+  const pillClass =
+    value === null || value === undefined
+      ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+      : invert
+        ? value <= good
+          ? 'bg-[#ECFDF5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300'
+          : value <= fair
+            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+        : value >= good
+          ? 'bg-[#ECFDF5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300'
+          : value >= fair
+            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold tracking-tight tabular-nums',
+        pillClass
+      )}
+    >
+      {pct(value)}
+    </span>
+  )
+}
 
 export function PerformancePage() {
   const search = route.useSearch()
@@ -167,6 +198,23 @@ function ClassReport({
 }) {
   const data = report.data
   const totals = data?.totals
+  const [sectionFilter, setSectionFilter] = useState<'all' | 'has_below'>('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const allSections = data?.sections ?? []
+  const filteredSections =
+    sectionFilter === 'has_below'
+      ? allSections.filter((row) => row.below_average > 0)
+      : allSections
+  const totalSections = filteredSections.length
+  const maxPage = Math.max(1, Math.ceil(totalSections / pageSize))
+  const currentPage = Math.min(page, maxPage)
+  const paginatedRows = useMemo(
+    () => filteredSections.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [filteredSections, currentPage, pageSize]
+  )
+
   const cards: Insight[] = [
     {
       key: 'average',
@@ -204,11 +252,13 @@ function ClassReport({
   const columns: Column<SectionPerformance>[] = [
     {
       key: 'section',
-      header: 'Class',
+      header: 'SECTION ⇅',
       cell: (row) => (
         <div className='grid min-w-0'>
-          <span className='font-bold'>{row.name}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {row.class_teacher ?? 'No class teacher'}
           </span>
         </div>
@@ -216,73 +266,72 @@ function ClassReport({
     },
     {
       key: 'students',
-      header: 'Students',
+      header: 'STUDENTS',
       align: 'right',
-      cell: (row) => formatNumber(row.students),
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatNumber(row.students)}
+        </span>
+      ),
     },
     {
       key: 'average',
-      header: 'Average',
+      header: 'AVERAGE',
       align: 'right',
-      cell: (row) => (
-        <span className={cn('font-semibold', tone(row.average_percent, 75, 50))}>
-          {pct(row.average_percent)}
-        </span>
-      ),
+      cell: (row) => <PercentPill value={row.average_percent} good={75} fair={50} />,
     },
     {
       key: 'pass',
-      header: 'Pass %',
+      header: 'PASS %',
       align: 'right',
-      cell: (row) => (
-        <span className={cn('font-semibold', tone(row.pass_percent, 90, 70))}>
-          {pct(row.pass_percent)}
-        </span>
-      ),
+      cell: (row) => <PercentPill value={row.pass_percent} good={90} fair={70} />,
     },
     {
       key: 'fail',
-      header: 'Fail %',
+      header: 'FAIL %',
       align: 'right',
-      cell: (row) => (
-        <span
-          className={cn(
-            'font-semibold',
-            row.fail_percent ? 'text-destructive' : 'text-muted-foreground'
-          )}
-        >
-          {pct(row.fail_percent)}
-        </span>
-      ),
+      cell: (row) => <PercentPill value={row.fail_percent} good={0} fair={15} invert />,
     },
     {
       key: 'attendance',
-      header: 'Attendance',
+      header: 'ATTENDANCE',
       align: 'right',
       hideBelow: 'lg',
-      cell: (row) => (
-        <span className={tone(row.attendance_percent, 90, 75)}>{pct(row.attendance_percent)}</span>
-      ),
+      cell: (row) => <PercentPill value={row.attendance_percent} good={85} fair={75} />,
     },
     {
       key: 'below',
-      header: 'Below average',
+      header: 'BELOW AVERAGE',
       align: 'right',
       cell: (row) =>
         row.below_average ? (
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={(event) => {
-              event.stopPropagation()
-              onOpenSection(row.section_id)
-            }}
-          >
-            {row.below_average} {row.below_average === 1 ? 'student' : 'students'}
-          </Button>
+          <StatusPill
+            tone='warning'
+            label={`${row.below_average} ${row.below_average === 1 ? 'student' : 'students'}`}
+          />
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
+    },
+    {
+      key: 'action',
+      header: 'ACTION',
+      align: 'right' as const,
+      cell: (row) => (
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-label={`View students below average in ${row.name}`}
+          title='View below average'
+          className='text-slate-500 hover:bg-[#EAF7F0] hover:text-[#127D48] dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400'
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpenSection(row.section_id)
+          }}
+        >
+          <ChevronRight className='size-4' />
+        </Button>
+      ),
     },
   ]
 
@@ -292,46 +341,80 @@ function ClassReport({
       <InsightCards items={cards} loading={report.isPending} />
       <Card className='overflow-hidden'>
         <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
-          <h2 className='font-bold'>
-            Class-wise report
-            {data
-              ? ` · ${data.exam?.name ?? 'all published exams'} · ${data.academic_year.name}`
-              : ''}
-          </h2>
+          <div className='flex flex-wrap items-center gap-3'>
+            <h2 className='font-bold'>
+              Sections
+              {data
+                ? ` · ${data.exam?.name ?? 'All published exams'} · ${data.academic_year.name}`
+                : ''}
+            </h2>
+            <SegmentedControl
+              label='Filter sections'
+              value={sectionFilter}
+              onChange={(value: 'all' | 'has_below') => {
+                setSectionFilter(value)
+                setPage(1)
+              }}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'has_below', label: 'Below average' },
+              ]}
+            />
+          </div>
           <span className='text-xs text-muted-foreground'>
-            Click a class to see its students below average
+            Click a section to see its students below average
           </span>
         </div>
         <DataTable
-          rows={data?.sections ?? []}
+          rows={paginatedRows}
           columns={columns}
           rowKey={(row) => row.section_id}
           loading={report.isFetching}
           error={report.isError ? report.error.message : null}
           onRetry={() => report.refetch()}
           onRowClick={(row) => onOpenSection(row.section_id)}
+          pagination={{
+            page: currentPage,
+            limit: pageSize,
+            total: totalSections,
+            label: 'sections',
+            onPageChange: (newPage) => setPage(newPage),
+            onLimitChange: (newLimit) => {
+              setPageSize(newLimit)
+              setPage(1)
+            },
+            limitOptions: [10, 20, 25, 50],
+          }}
           empty={{
             icon: ChartColumnBig,
-            title: 'No classes yet',
-            description: 'Add classes and sections in School setup, then publish exam results.',
+            title: sectionFilter === 'has_below' ? 'No sections below average' : 'No classes yet',
+            description:
+              sectionFilter === 'has_below'
+                ? 'Every section has no students below average.'
+                : 'Add classes and sections in School setup, then publish exam results.',
           }}
           card={(row) => (
-            <div className='grid gap-1.5'>
-              <div className='flex items-start justify-between gap-2'>
-                <span className='font-bold'>{row.name}</span>
-                <span className={cn('text-sm font-semibold', tone(row.average_percent, 75, 50))}>
-                  {pct(row.average_percent)}
-                </span>
+            <div className='table-typography grid gap-2'>
+              <div className='flex items-start justify-between gap-2.5'>
+                <div className='grid min-w-0 flex-1'>
+                  <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                    {row.name}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                    {row.class_teacher ?? 'No class teacher'}
+                  </span>
+                </div>
+                <PercentPill value={row.average_percent} good={75} fair={50} />
               </div>
-              <span className='text-xs text-muted-foreground'>
-                Pass {pct(row.pass_percent)} · Fail {pct(row.fail_percent)} · Attendance{' '}
-                {pct(row.attendance_percent)}
-              </span>
-              {row.below_average > 0 && (
-                <span className='text-xs font-semibold text-warning'>
-                  {row.below_average} below average
+              <div className='flex items-center justify-between text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                <span>
+                  Pass {pct(row.pass_percent)} · Fail {pct(row.fail_percent)} · Attendance{' '}
+                  {pct(row.attendance_percent)}
                 </span>
-              )}
+                {row.below_average > 0 && (
+                  <StatusPill tone='warning' label={`${row.below_average} below`} />
+                )}
+              </div>
             </div>
           )}
         />
@@ -370,6 +453,8 @@ function BelowAverageView({
   const [from, setFrom] = useState(filter.from !== undefined ? String(filter.from) : '35')
   const [to, setTo] = useState(filter.to !== undefined ? String(filter.to) : '60')
   const [scheduling, setScheduling] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const percentOf = (text: string) => {
     const value = Number(text)
     return text.trim() && value >= 0 && value <= 100 ? value : undefined
@@ -377,51 +462,71 @@ function BelowAverageView({
   if (chosenFor !== key) {
     setChosenFor(key)
     setChosen(new Set())
+    setPage(1)
   }
   const data = list.data
   const section = sections.find((item) => item.section_id === sectionId)
-  const rows = data?.students ?? []
-  const allChosen = rows.length > 0 && rows.every((row) => chosen.has(row.student_id))
+  const rows = useMemo(() => data?.students ?? [], [data?.students])
+  const totalStudents = rows.length
+  const maxPage = Math.max(1, Math.ceil(totalStudents / pageSize))
+  const currentPage = Math.min(page, maxPage)
+  const paginatedRows = useMemo(
+    () => rows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [rows, currentPage, pageSize]
+  )
+  const allChosen =
+    paginatedRows.length > 0 && paginatedRows.every((row) => chosen.has(row.student_id))
+  const isIndeterminate =
+    !allChosen && paginatedRows.some((row) => chosen.has(row.student_id))
+
+  const toggleStudent = (studentId: number) =>
+    setChosen((current) => {
+      const next = new Set(current)
+      if (next.has(studentId)) next.delete(studentId)
+      else next.add(studentId)
+      return next
+    })
+
+  const togglePage = () =>
+    setChosen((current) => {
+      const next = new Set(current)
+      if (allChosen) {
+        paginatedRows.forEach((row) => next.delete(row.student_id))
+      } else {
+        paginatedRows.forEach((row) => next.add(row.student_id))
+      }
+      return next
+    })
 
   const columns: Column<BelowAverageStudent>[] = [
     {
       key: 'pick',
       header: (
-        <input
-          type='checkbox'
-          aria-label='Choose every student'
-          className='size-4 accent-[var(--primary)]'
+        <TableCheckbox
+          ariaLabel='Choose every student on this page'
           checked={allChosen}
-          onChange={() =>
-            setChosen(allChosen ? new Set() : new Set(rows.map((row) => row.student_id)))
-          }
+          indeterminate={isIndeterminate}
+          onChange={togglePage}
         />
       ),
+      className: 'w-12 text-center',
       cell: (row) => (
-        <input
-          type='checkbox'
-          aria-label={`Choose ${row.full_name}`}
-          className='size-4 accent-[var(--primary)]'
+        <TableCheckbox
+          ariaLabel={`Choose ${row.full_name}`}
           checked={chosen.has(row.student_id)}
-          onClick={(event) => event.stopPropagation()}
-          onChange={() =>
-            setChosen((current) => {
-              const next = new Set(current)
-              if (next.has(row.student_id)) next.delete(row.student_id)
-              else next.add(row.student_id)
-              return next
-            })
-          }
+          onChange={() => toggleStudent(row.student_id)}
         />
       ),
     },
     {
       key: 'student',
-      header: 'Student',
+      header: 'STUDENT ⇅',
       cell: (row) => (
         <div className='grid min-w-0'>
-          <span className='font-bold'>{row.full_name}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.full_name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {row.roll_no ? `Roll ${row.roll_no}` : 'No roll number'}
             {row.special_classes.length
               ? ` · In ${row.special_classes.map((item) => item.title).join(', ')}`
@@ -432,18 +537,20 @@ function BelowAverageView({
     },
     {
       key: 'percent',
-      header: 'Result',
+      header: 'RESULT',
       align: 'right',
       cell: (row) => (
-        <div className='grid justify-items-end'>
-          <span className='font-semibold text-destructive'>{pct(row.percent)}</span>
-          <span className='text-xs text-muted-foreground'>{formatNumber(row.gap, 1)} below</span>
+        <div className='grid justify-items-end gap-0.5'>
+          <PercentPill value={row.percent} good={75} fair={50} />
+          <span className='text-[11.5px] leading-[16px] text-slate-400 tabular-nums dark:text-slate-500'>
+            {formatNumber(row.gap, 1)} below
+          </span>
         </div>
       ),
     },
     {
       key: 'weak',
-      header: 'Weak subjects',
+      header: 'WEAK SUBJECTS',
       hideBelow: 'lg',
       cell: (row) =>
         row.weak_subjects.length ? (
@@ -455,17 +562,15 @@ function BelowAverageView({
             ))}
           </div>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
       key: 'attendance',
-      header: 'Attendance',
+      header: 'ATTENDANCE',
       align: 'right',
       hideBelow: 'lg',
-      cell: (row) => (
-        <span className={tone(row.attendance_percent, 90, 75)}>{pct(row.attendance_percent)}</span>
-      ),
+      cell: (row) => <PercentPill value={row.attendance_percent} good={85} fair={75} />,
     },
   ]
 
@@ -577,12 +682,24 @@ function BelowAverageView({
             )}
           </div>
           <DataTable
-            rows={rows}
+            rows={paginatedRows}
             columns={columns}
             rowKey={(row) => row.student_id}
             loading={list.isFetching}
             error={list.isError ? list.error.message : null}
             onRetry={() => list.refetch()}
+            pagination={{
+              page: currentPage,
+              limit: pageSize,
+              total: totalStudents,
+              label: 'students',
+              onPageChange: (newPage) => setPage(newPage),
+              onLimitChange: (newLimit) => {
+                setPageSize(newLimit)
+                setPage(1)
+              },
+              limitOptions: [10, 20, 25, 50],
+            }}
             empty={{
               icon: UsersRound,
               title: 'No student in this group',
@@ -590,31 +707,33 @@ function BelowAverageView({
                 'Every assessed student is at or above it, or no results are published yet.',
             }}
             card={(row) => (
-              <label className='grid cursor-pointer gap-1.5'>
-                <span className='flex items-start justify-between gap-2'>
-                  <span className='flex items-center gap-2 font-bold'>
-                    <input
-                      type='checkbox'
-                      className='size-4 accent-[var(--primary)]'
+              <div className='table-typography grid gap-2'>
+                <div className='flex items-start justify-between gap-2.5'>
+                  <span className='pt-0.5'>
+                    <TableCheckbox
+                      ariaLabel={`Choose ${row.full_name}`}
                       checked={chosen.has(row.student_id)}
-                      onChange={() =>
-                        setChosen((current) => {
-                          const next = new Set(current)
-                          if (next.has(row.student_id)) next.delete(row.student_id)
-                          else next.add(row.student_id)
-                          return next
-                        })
-                      }
+                      onChange={() => toggleStudent(row.student_id)}
                     />
-                    {row.full_name}
                   </span>
-                  <span className='font-semibold text-destructive'>{pct(row.percent)}</span>
-                </span>
-                <span className='text-xs text-muted-foreground'>
-                  {row.weak_subjects.map((subject) => subject.name).join(', ') || 'No weak subject'}{' '}
-                  · Attendance {pct(row.attendance_percent)}
-                </span>
-              </label>
+                  <div className='grid min-w-0 flex-1'>
+                    <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                      {row.full_name}
+                    </span>
+                    <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                      {row.roll_no ? `Roll ${row.roll_no}` : 'No roll number'}
+                    </span>
+                  </div>
+                  <PercentPill value={row.percent} good={75} fair={50} />
+                </div>
+                <div className='flex items-center justify-between text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                  <span>
+                    {row.weak_subjects.map((subject) => subject.name).join(', ') ||
+                      'No weak subject'}
+                  </span>
+                  <span>Attendance {pct(row.attendance_percent)}</span>
+                </div>
+              </div>
             )}
           />
         </Card>
@@ -654,20 +773,33 @@ function SpecialClassesView({
   const [removing, setRemoving] = useState<SpecialClass | null>(null)
   const remove = usePerformanceMutation((id: number) => performanceApi.removeSpecial(id))
   const chosenSection = sections.find((item) => item.section_id === sectionId)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const allSpecials = useMemo(() => specials.data ?? [], [specials.data])
+  const totalSpecials = allSpecials.length
+  const maxPage = Math.max(1, Math.ceil(totalSpecials / pageSize))
+  const currentPage = Math.min(page, maxPage)
+  const paginatedRows = useMemo(
+    () => allSpecials.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [allSpecials, currentPage, pageSize]
+  )
 
   const columns: Column<SpecialClass>[] = [
     {
       key: 'title',
-      header: 'Class',
+      header: 'CLASS ⇅',
       cell: (row) => (
         <div className='grid min-w-0 gap-0.5'>
-          <span className='flex flex-wrap items-center gap-1.5'>
-            <Badge tone={row.kind === 'special' ? 'info' : 'warning'}>
-              {row.kind === 'special' ? 'Special' : 'Extra'}
-            </Badge>
-            <span className='font-bold'>{row.title}</span>
+          <span className='flex flex-wrap items-center gap-2'>
+            <StatusPill
+              tone={row.kind === 'special' ? 'info' : 'warning'}
+              label={row.kind === 'special' ? 'Special' : 'Extra'}
+            />
+            <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {row.title}
+            </span>
           </span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {row.section.name}
             {row.subject ? ` · ${row.subject.name}` : ''}
           </span>
@@ -676,29 +808,43 @@ function SpecialClassesView({
     },
     {
       key: 'when',
-      header: 'When',
+      header: 'WHEN',
       cell: (row) => (
         <div className='grid'>
-          <span className='font-semibold'>{row.when}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.when}
+          </span>
+          <span className='text-[11.5px] leading-[16px] text-slate-400 dark:text-slate-500'>
             {row.timing === 'period' ? 'During a period' : 'Extra time'}
           </span>
         </div>
       ),
     },
-    { key: 'teacher', header: 'Teacher', hideBelow: 'lg', cell: (row) => row.teacher.name },
+    {
+      key: 'teacher',
+      header: 'TEACHER',
+      hideBelow: 'lg',
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+          {row.teacher.name}
+        </span>
+      ),
+    },
     {
       key: 'students',
-      header: 'Students',
+      header: 'STUDENTS',
       cell: (row) => (
-        <span title={row.students.map((student) => student.name).join(', ')}>
+        <span
+          className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'
+          title={row.students.map((student) => student.name).join(', ')}
+        >
           {row.students.length} {row.students.length === 1 ? 'student' : 'students'}
         </span>
       ),
     },
     {
       key: 'actions',
-      header: '',
+      header: 'ACTION',
       align: 'right' as const,
       cell: (row: SpecialClass) => (
         <div className='flex justify-end gap-1'>
@@ -706,9 +852,11 @@ function SpecialClassesView({
             variant='ghost'
             size='icon-sm'
             aria-label={`Attendance of ${row.title}`}
+            title='Mark attendance'
+            className='text-slate-500 hover:bg-[#EAF7F0] hover:text-[#127D48] dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400'
             onClick={() => setAttendance(row)}
           >
-            <ClipboardCheck />
+            <ClipboardCheck className='size-4' />
           </Button>
           {canManage && (
             <>
@@ -716,17 +864,21 @@ function SpecialClassesView({
                 variant='ghost'
                 size='icon-sm'
                 aria-label={`Edit ${row.title}`}
+                title='Edit'
+                className='text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
                 onClick={() => setEditing(row)}
               >
-                <Pencil />
+                <Pencil className='size-4' />
               </Button>
               <Button
                 variant='ghost'
                 size='icon-sm'
                 aria-label={`Stop ${row.title}`}
+                title='Stop class'
+                className='text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400'
                 onClick={() => setRemoving(row)}
               >
-                <Trash2 />
+                <Trash2 className='size-4' />
               </Button>
             </>
           )}
@@ -744,7 +896,10 @@ function SpecialClassesView({
           allLabel='All classes'
           value={sectionId ? String(sectionId) : undefined}
           options={sections.map((item) => ({ value: String(item.section_id), label: item.name }))}
-          onChange={(value) => onSection(value ? Number(value) : undefined)}
+          onChange={(value) => {
+            onSection(value ? Number(value) : undefined)
+            setPage(1)
+          }}
         />
         {canManage && (
           <>
@@ -772,12 +927,24 @@ function SpecialClassesView({
           </span>
         </div>
         <DataTable
-          rows={specials.data ?? []}
+          rows={paginatedRows}
           columns={columns}
           rowKey={(row) => row.id}
           loading={specials.isFetching}
           error={specials.isError ? specials.error.message : null}
           onRetry={() => specials.refetch()}
+          pagination={{
+            page: currentPage,
+            limit: pageSize,
+            total: totalSpecials,
+            label: 'classes',
+            onPageChange: (newPage) => setPage(newPage),
+            onLimitChange: (newLimit) => {
+              setPageSize(newLimit)
+              setPage(1)
+            },
+            limitOptions: [10, 20, 25, 50],
+          }}
           empty={{
             icon: CalendarClock,
             title: 'No special or extra classes yet',
@@ -785,14 +952,17 @@ function SpecialClassesView({
               'Choose a class and click New special class, or pick students in Below average for an extra class.',
           }}
           card={(row) => (
-            <div className='grid gap-1'>
-              <span className='flex items-center gap-1.5 font-bold'>
-                <Badge tone={row.kind === 'special' ? 'info' : 'warning'}>
-                  {row.kind === 'special' ? 'Special' : 'Extra'}
-                </Badge>
-                {row.title}
-              </span>
-              <span className='text-xs text-muted-foreground'>
+            <div className='table-typography grid gap-2'>
+              <div className='flex items-start justify-between gap-2'>
+                <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                  {row.title}
+                </span>
+                <StatusPill
+                  tone={row.kind === 'special' ? 'info' : 'warning'}
+                  label={row.kind === 'special' ? 'Special' : 'Extra'}
+                />
+              </div>
+              <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                 {row.section.name} · {row.when} · {row.teacher.name} · {row.students.length}{' '}
                 students
               </span>

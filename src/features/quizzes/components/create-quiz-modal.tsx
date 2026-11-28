@@ -8,11 +8,11 @@ import {
   Save,
   ShieldAlert,
   Sparkles,
-  Trash2,
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { FormField } from '@/components/common/form-field'
+import { TrashIcon } from '@/components/common/icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input, Label, Textarea } from '@/components/ui/input'
@@ -675,12 +675,12 @@ export function CreateQuizModal({
                       <Button
                         type='button'
                         variant='ghost'
-                        size='sm'
+                        size='icon-sm'
                         onClick={() => handleRemoveQuestion(qIdx)}
-                        className='h-7 w-7 p-0 text-muted-foreground hover:text-destructive'
+                        className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] [&_svg]:size-5'
                         title='Delete question'
                       >
-                        <Trash2 className='h-3.5 w-3.5' />
+                        <TrashIcon className='size-5' />
                       </Button>
                     )}
                   </div>

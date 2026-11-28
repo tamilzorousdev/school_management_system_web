@@ -12,13 +12,13 @@ import {
   Hourglass,
   IndianRupee,
   MapPinOff,
-  Pencil,
+  PenLine,
   Plus,
-  Trash2,
   X,
 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { TrashIcon } from '@/components/common/icon'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
@@ -64,12 +64,16 @@ const needsPayBack = (entry: FuelEntry) =>
 function FuelFlags({ entry }: { entry: FuelEntry }) {
   return (
     <span className='flex flex-wrap gap-1'>
-      <Badge tone={FUEL_STATUS[entry.status].tone} dot>
+      <Badge tone={FUEL_STATUS[entry.status].tone} dot className='font-medium'>
         {FUEL_STATUS[entry.status].label}
       </Badge>
-      {!entry.is_full && <Badge tone='neutral'>Part fill</Badge>}
+      {!entry.is_full && (
+        <Badge tone='neutral' className='font-medium'>
+          Part fill
+        </Badge>
+      )}
       {entry.price_warning && (
-        <Badge tone='warning' title={entry.price_warning}>
+        <Badge tone='warning' className='font-medium' title={entry.price_warning}>
           <AlertTriangle className='size-3' />
           Price
         </Badge>
@@ -77,6 +81,7 @@ function FuelFlags({ entry }: { entry: FuelEntry }) {
       {entry.gps_check?.status === 'mismatch' && (
         <Badge
           tone='danger'
+          className='font-medium'
           title={`Odometer ${formatNumber(entry.gps_check.odometer_km, 0, 'km')} but GPS ${formatNumber(entry.gps_check.gps_km, 0, 'km')} since the last full fill`}
         >
           <MapPinOff className='size-3' />
@@ -84,7 +89,7 @@ function FuelFlags({ entry }: { entry: FuelEntry }) {
         </Badge>
       )}
       {entry.payment_mode === 'driver_paid' && (
-        <Badge tone={entry.reimbursed_at ? 'success' : 'info'}>
+        <Badge tone={entry.reimbursed_at ? 'success' : 'info'} className='font-medium'>
           {entry.reimbursed_at ? 'Paid back' : 'Driver paid'}
         </Badge>
       )}
@@ -96,6 +101,7 @@ export function FuelTab({
   search,
   setSearch,
   onPageChange,
+  onLimitChange,
   onClear,
   canManage,
   adding,
@@ -122,9 +128,10 @@ export function FuelTab({
   const reimburse = useMaintenanceMutation((id: number) => maintenanceApi.reimburseFuel(id))
 
   const sort = SORTS.find((item) => item === search.sort)
+  const limit = search.limit ?? LIMIT
   const params: FuelListParams = {
     page: search.page,
-    limit: LIMIT,
+    limit,
     search: search.search,
     sort,
     order: sort ? search.order : undefined,
@@ -212,50 +219,60 @@ export function FuelTab({
           entry.status === 'pending' && {
             key: 'approve',
             label: 'Approve',
-            icon: <Check />,
+            icon: <Check className='size-4 stroke-[2.25]' />,
             onClick: () => setReview({ entry, action: 'approve' }),
-            className: 'text-success hover:bg-success/10',
+            className:
+              'text-slate-500 hover:bg-[#EAF7F0] hover:text-[#127D48] dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400',
           },
         canManage &&
           entry.status === 'pending' && {
             key: 'reject',
             label: 'Reject',
-            icon: <X />,
+            icon: <X className='size-4' />,
             onClick: () => setReview({ entry, action: 'reject' }),
-            className: 'text-destructive hover:bg-destructive/10',
+            className:
+              'text-slate-500 hover:bg-destructive/10 hover:text-destructive dark:text-slate-400 dark:hover:bg-destructive/10 dark:hover:text-destructive',
           },
         canManage &&
           needsPayBack(entry) && {
             key: 'pay',
             label: 'Mark as paid back',
-            icon: <HandCoins />,
+            icon: <HandCoins className='size-4' />,
             onClick: () => setPaying(entry),
-            className: 'text-info hover:bg-info/10',
+            className:
+              'text-slate-500 hover:bg-info/10 hover:text-info dark:text-slate-400 dark:hover:bg-info/10 dark:hover:text-info',
           },
         entry.bill_file && {
           key: 'bill',
           label: 'Open bill',
-          icon: <FileText />,
+          icon: <FileText className='size-4' />,
           onClick: () => openStoredFile(entry.bill_file),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         {
           key: 'history',
           label: 'Change history',
-          icon: <History />,
+          icon: <History className='size-4' />,
           onClick: () => setHistory(entry),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         canManage && {
           key: 'edit',
           label: 'Edit',
-          icon: <Pencil />,
+          icon: <PenLine className='size-4' />,
           onClick: () => openEdit(entry),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         canManage && {
           key: 'delete',
           label: 'Delete',
-          icon: <Trash2 />,
+          icon: <TrashIcon className='size-4' />,
           onClick: () => setDeleting(entry),
-          className: 'text-destructive hover:bg-destructive/10',
+          className:
+            'text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] dark:text-red-400 dark:hover:bg-destructive/10 dark:hover:text-red-300',
           destructive: true,
         },
       ] as (SheetAction | false | null)[]
@@ -290,27 +307,37 @@ export function FuelTab({
   const columns: Column<FuelEntry>[] = [
     {
       key: 'filled_on',
-      header: 'Date',
+      header: 'DATE',
       sortKey: 'filled_on',
-      cell: (entry) => <span className='tabular font-semibold'>{formatDate(entry.filled_on)}</span>,
+      cell: (entry) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {formatDate(entry.filled_on)}
+        </span>
+      ),
     },
-    { key: 'bus', header: 'Bus', cell: (entry) => <BusCell vehicle={entry.vehicle} /> },
+    { key: 'bus', header: 'BUS', cell: (entry) => <BusCell vehicle={entry.vehicle} /> },
     {
       key: 'litres',
-      header: 'Litres',
+      header: 'LITRES',
       sortKey: 'litres',
       align: 'right',
-      cell: (entry) => <span className='tabular'>{formatNumber(entry.litres, 1)}</span>,
+      cell: (entry) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatNumber(entry.litres, 1)}
+        </span>
+      ),
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: 'AMOUNT',
       sortKey: 'amount',
       align: 'right',
       cell: (entry) => (
         <div className='grid'>
-          <span className='tabular font-semibold'>{rupees(entry.amount)}</span>
-          <span className='tabular text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+            {rupees(entry.amount)}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
             ₹{formatNumber(entry.price_per_litre, 2)}/L
           </span>
         </div>
@@ -318,27 +345,31 @@ export function FuelTab({
     },
     {
       key: 'km_per_litre',
-      header: 'km/l',
+      header: 'KM/L',
       align: 'right',
       hideBelow: 'lg',
       cell: (entry) => (
         <div className='grid'>
-          <span className='tabular font-semibold'>{formatNumber(entry.km_per_litre, 2)}</span>
-          <span className='tabular text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+            {formatNumber(entry.km_per_litre, 2)}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
             {formatNumber(entry.odometer_km, 0, 'km')}
           </span>
         </div>
       ),
     },
-    { key: 'status', header: 'Status', cell: (entry) => <FuelFlags entry={entry} /> },
+    { key: 'status', header: 'STATUS', cell: (entry) => <FuelFlags entry={entry} /> },
     {
       key: 'station',
-      header: 'Station and payment',
+      header: 'STATION AND PAYMENT',
       hideBelow: 'xl',
       cell: (entry) => (
         <div className='grid min-w-0'>
-          <span className='truncate'>{entry.fuel_station?.name ?? entry.station ?? '—'}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {entry.fuel_station?.name ?? entry.station ?? '—'}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {[PAYMENT_MODE[entry.payment_mode], entry.filled_by?.name].filter(Boolean).join(' · ')}
           </span>
         </div>
@@ -346,7 +377,7 @@ export function FuelTab({
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-44',
       cell: actions,
@@ -378,6 +409,8 @@ export function FuelTab({
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Search station or bus'
             label='Search fuel log'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='fuel-status-filter'
@@ -434,8 +467,8 @@ export function FuelTab({
               ? 'Try another bus, status or dates, or clear the filters.'
               : 'Log each fill from the fuel bill, or let drivers add them from the app for you to check.',
             action: !filtered && canManage && (
-              <Button onClick={() => onAddingChange(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => onAddingChange(true)}>
+                <Plus className='size-3.5' />
                 Add fuel entry
               </Button>
             ),
@@ -444,12 +477,16 @@ export function FuelTab({
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
                 <div className='grid min-w-0'>
-                  <span className='font-bold'>{formatDate(entry.filled_on)}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+                    {formatDate(entry.filled_on)}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {entry.vehicle.name} · {entry.vehicle.registration_no}
                   </span>
                 </div>
-                <span className='tabular font-bold'>{rupees(entry.amount)}</span>
+                <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+                  {rupees(entry.amount)}
+                </span>
               </div>
               <FuelFlags entry={entry} />
               <div className='tabular grid grid-cols-3 gap-2 text-xs'>
@@ -482,10 +519,11 @@ export function FuelTab({
           )}
           pagination={{
             page: search.page,
-            limit: LIMIT,
+            limit,
             total: fuel.data?.total ?? 0,
             label: 'entries',
             onPageChange,
+            onLimitChange,
           }}
         />
       </Card>

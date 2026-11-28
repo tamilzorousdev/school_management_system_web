@@ -18,7 +18,7 @@ import {
 } from '../api'
 import { numberText, optionalNumber, rupees, wholeText } from '../labels'
 import { applyFieldErrors } from '../helpers'
-import { FileField, FormAlert, type AttachedFile } from './shared'
+import { FileField, FormAlert, MAINTENANCE_INPUT_CLASS, type AttachedFile } from './shared'
 
 const FORM_ID = 'close-ticket-form'
 
@@ -178,6 +178,7 @@ function CloseForm({
           max={1_000_000}
           step='0.01'
           placeholder='3000'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.parts_cost) || undefined}
           {...register('parts_cost')}
         />
@@ -198,6 +199,7 @@ function CloseForm({
           max={1_000_000}
           step='0.01'
           placeholder='1500'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.labour_cost) || undefined}
           {...register('labour_cost')}
         />
@@ -217,6 +219,7 @@ function CloseForm({
             max={1_000_000}
             step='0.01'
             placeholder='4500'
+            className={MAINTENANCE_INPUT_CLASS}
             aria-invalid={Boolean(errors.cost) || undefined}
             {...register('cost')}
           />
@@ -230,6 +233,7 @@ function CloseForm({
           min={0}
           max={2_000_000}
           step='0.1'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.odometer_km) || undefined}
           {...register('odometer_km')}
         />
@@ -261,6 +265,7 @@ function CloseForm({
             id='close-vendor'
             maxLength={100}
             placeholder='Sri Murugan Motors'
+            className={MAINTENANCE_INPUT_CLASS}
             aria-invalid={Boolean(errors.vendor) || undefined}
             {...register('vendor')}
           />
@@ -278,6 +283,7 @@ function CloseForm({
           min={1}
           max={120}
           placeholder='12'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.warranty_months) || undefined}
           {...register('warranty_months')}
         />
@@ -290,6 +296,7 @@ function CloseForm({
           min={100}
           max={500_000}
           placeholder='20000'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.warranty_km) || undefined}
           {...register('warranty_km')}
         />

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { BellRing, Bus, IdCard, ShieldCheck } from 'lucide-react'
+import { Bell, Bus, IdCard, ShieldCheck } from 'lucide-react'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,15 +36,17 @@ export function ExpiriesTab({ canManage }: { canManage: boolean }) {
     <Card className='overflow-hidden'>
       <div className='flex flex-wrap items-start justify-between gap-3 border-b px-4 py-3 sm:px-5'>
         <div className='grid gap-0.5'>
-          <h2 className='font-bold'>Documents ending in the next 30 days</h2>
+          <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+            Documents ending in the next 30 days
+          </h2>
           <p className='text-xs text-muted-foreground'>
             Bus insurance, fitness, PUC and permit, and crew licences, badges, medical and police
             checks. Alerts go out every day at 07:00 at 30, 7 and 1 days left and on the last day.
           </p>
         </div>
         {canManage && (
-          <Button onClick={send} loading={check.isPending}>
-            <BellRing />
+          <Button variant='primary' size='sm' onClick={send} loading={check.isPending}>
+            <Bell className='size-3.5' />
             Send alerts now
           </Button>
         )}
@@ -87,8 +89,10 @@ export function ExpiriesTab({ canManage }: { canManage: boolean }) {
                   <Icon className='size-4' />
                 </span>
                 <span className='grid min-w-0 flex-1'>
-                  <span className='truncate font-semibold'>{item.label}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                    {item.label}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {person ? (
                       <Link
                         to='/crew/$staffId'
@@ -104,7 +108,9 @@ export function ExpiriesTab({ canManage }: { canManage: boolean }) {
                     · ends {formatDate(item.date)}
                   </span>
                 </span>
-                <Badge tone={daysTone(item.days_left)}>{daysText(item.days_left)}</Badge>
+                <Badge tone={daysTone(item.days_left)} className='font-medium'>
+                  {daysText(item.days_left)}
+                </Badge>
               </li>
             )
           })}

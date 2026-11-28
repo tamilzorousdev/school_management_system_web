@@ -101,19 +101,25 @@ function ChecklistRow({ student }: { student: ChecklistStudent }) {
     <li className='flex flex-wrap items-start gap-x-3 gap-y-1 p-3'>
       <span className='grid min-w-0 flex-1 gap-0.5'>
         <span className='flex flex-wrap items-center gap-1.5'>
-          <span className='truncate font-semibold'>{student.full_name}</span>
-          {student.pass_status === 'on_hold' && <Badge tone='warning'>Pass on hold</Badge>}
+          <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {student.full_name}
+          </span>
+          {student.pass_status === 'on_hold' && (
+            <Badge tone='warning' className='font-medium'>
+              Pass on hold
+            </Badge>
+          )}
           {student.boarded?.pass_on_hold && (
-            <Badge tone='warning' title='Got on with the bus pass on hold'>
+            <Badge tone='warning' className='font-medium' title='Got on with the bus pass on hold'>
               Boarded on hold
             </Badge>
           )}
         </span>
-        <span className='truncate text-xs text-muted-foreground'>
+        <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
           {[student.class_section, student.stop?.name].filter(Boolean).join(' · ')}
         </span>
         {marks.map((text) => (
-          <span key={text} className='text-xs text-muted-foreground'>
+          <span key={text} className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {text}
           </span>
         ))}
@@ -121,9 +127,11 @@ function ChecklistRow({ student }: { student: ChecklistStudent }) {
       <span className='grid justify-items-end gap-1'>
         <span className='flex flex-wrap justify-end gap-1'>
           {student.flag ? (
-            <Badge tone={TRIP_FLAG[student.flag].tone}>{TRIP_FLAG[student.flag].label}</Badge>
+            <Badge tone={TRIP_FLAG[student.flag].tone} className='font-medium'>
+              {TRIP_FLAG[student.flag].label}
+            </Badge>
           ) : (
-            <Badge tone={RIDER_STATUS[student.status].tone}>
+            <Badge tone={RIDER_STATUS[student.status].tone} className='font-medium'>
               {student.status === 'away' && student.away_note
                 ? student.away_note
                 : RIDER_STATUS[student.status].label}

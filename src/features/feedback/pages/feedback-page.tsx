@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import {
   ChartColumnBig,
+  ChevronRight,
   MessageSquareQuote,
   Settings2,
   Star,
-  ThumbsDown,
   ThumbsUp,
   Trash2,
   Trophy,
@@ -18,11 +18,12 @@ import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
 import { PageTabs } from '@/components/common/page-tabs'
+import { SegmentedControl } from '@/components/common/segmented-control'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { StatusPill } from '@/features/attendance/components/students-tab'
 import { can, useMe } from '@/features/auth/api'
 import { useExamOptions } from '@/features/exams/api'
 import { useSections } from '@/features/setup/api'
@@ -53,26 +54,49 @@ const LIMIT = 20
 const pct = (value: number | null | undefined) =>
   value === null || value === undefined ? '—' : formatNumber(value, 1, '%')
 
-const passTone = (value: number | null) =>
-  value === null
-    ? 'text-muted-foreground'
-    : value >= 90
-      ? 'text-success'
-      : value >= 60
-        ? 'text-warning'
-        : 'text-destructive'
+function PercentPill({
+  value,
+  good,
+  fair,
+  invert = false,
+}: {
+  value: number | null | undefined
+  good: number
+  fair: number
+  invert?: boolean
+}) {
+  const pillClass =
+    value === null || value === undefined
+      ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+      : invert
+        ? value <= good
+          ? 'bg-[#ECFDF5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300'
+          : value <= fair
+            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+        : value >= good
+          ? 'bg-[#ECFDF5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300'
+          : value >= fair
+            ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold tracking-tight tabular-nums',
+        pillClass
+      )}
+    >
+      {pct(value)}
+    </span>
+  )
+}
 
 function BehaviourBadge({ value }: { value: 'good' | 'bad' }) {
   return value === 'good' ? (
-    <Badge tone='success'>
-      <ThumbsUp className='size-3' />
-      Good
-    </Badge>
+    <StatusPill tone='success' label='Good' />
   ) : (
-    <Badge tone='danger'>
-      <ThumbsDown className='size-3' />
-      Bad
-    </Badge>
+    <StatusPill tone='danger' label='Bad' />
   )
 }
 
@@ -121,9 +145,10 @@ export function FeedbackPage() {
       />
       {status && (
         <div className='flex flex-wrap items-center gap-2 text-xs'>
-          <Badge tone={status.teacher_rating_enabled ? 'success' : 'neutral'}>
-            Parent ratings {status.teacher_rating_enabled ? 'on' : 'off'}
-          </Badge>
+          <StatusPill
+            tone={status.teacher_rating_enabled ? 'success' : 'neutral'}
+            label={`Parent ratings ${status.teacher_rating_enabled ? 'on' : 'off'}`}
+          />
           {status.teacher_rating_enabled && status.cycle && (
             <span className='text-muted-foreground'>
               Once every{' '}
@@ -133,9 +158,10 @@ export function FeedbackPage() {
               · this window {formatDate(status.cycle.start)} to {formatDate(status.cycle.end)}
             </span>
           )}
-          <Badge tone={status.student_feedback_enabled ? 'success' : 'neutral'}>
-            Student feedback {status.student_feedback_enabled ? 'on' : 'off'}
-          </Badge>
+          <StatusPill
+            tone={status.student_feedback_enabled ? 'success' : 'neutral'}
+            label={`Student feedback ${status.student_feedback_enabled ? 'on' : 'off'}`}
+          />
           {status.student_feedback_enabled && status.term && (
             <span className='text-muted-foreground'>{status.term.name}</span>
           )}
@@ -191,17 +217,39 @@ function RankingView({
   ranking: ReturnType<typeof useTeacherRanking>
   onOpen: (teacherId: number) => void
 }) {
-  const rows = ranking.data ?? []
-  const rated = rows.filter((row) => row.ratings > 0)
+  const [filter, setFilter] = useState<'all' | 'rated' | 'unrated'>('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+
+  const allRows = useMemo(() => ranking.data ?? [], [ranking.data])
+  const rated = allRows.filter((row) => row.ratings > 0)
   const total = rated.reduce((sum, row) => sum + row.ratings, 0)
   const good = rated.reduce((sum, row) => sum + row.good, 0)
   const stars = rated.reduce((sum, row) => sum + (row.average_stars ?? 0) * row.ratings, 0)
+
+  const rows = useMemo(
+    () =>
+      filter === 'rated'
+        ? allRows.filter((row) => row.ratings > 0)
+        : filter === 'unrated'
+          ? allRows.filter((row) => row.ratings === 0)
+          : allRows,
+    [allRows, filter]
+  )
+  const totalRows = rows.length
+  const maxPage = Math.max(1, Math.ceil(totalRows / pageSize))
+  const currentPage = Math.min(page, maxPage)
+  const paginatedRows = useMemo(
+    () => rows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [rows, currentPage, pageSize]
+  )
+
   const cards: Insight[] = [
     {
       key: 'ratings',
       label: 'Parent ratings',
       value: total,
-      hint: `${rated.length} of ${rows.length} teachers rated`,
+      hint: `${rated.length} of ${allRows.length} teachers rated`,
       icon: Star,
       tone: 'primary',
     },
@@ -233,45 +281,82 @@ function RankingView({
   const columns: Column<RankingRow>[] = [
     {
       key: 'rank',
-      header: 'Rank',
+      header: 'RANK',
       className: 'w-16',
       cell: (row) =>
         row.rank ? (
-          <span className={cn('tabular font-bold', row.rank <= 3 && 'text-warning')}>
+          <span
+            className={cn(
+              'inline-flex items-center rounded-full px-2 py-0.5 text-[11.5px] font-semibold tabular-nums',
+              row.rank <= 3
+                ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+            )}
+          >
             #{row.rank}
           </span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     {
       key: 'teacher',
-      header: 'Teacher',
+      header: 'TEACHER ⇅',
       cell: (row) => (
-        <span className='grid'>
-          <span className='font-semibold'>{row.name}</span>
-          <span className='text-xs text-muted-foreground'>{row.designation ?? 'Teacher'}</span>
+        <div className='grid min-w-0'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {row.designation ?? 'Teacher'}
+          </span>
+        </div>
+      ),
+    },
+    { key: 'stars', header: 'AVERAGE', cell: (row) => <Stars value={row.average_stars} /> },
+    {
+      key: 'ratings',
+      header: 'RATINGS',
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {row.ratings}
         </span>
       ),
     },
-    { key: 'stars', header: 'Average', cell: (row) => <Stars value={row.average_stars} /> },
-    {
-      key: 'ratings',
-      header: 'Ratings',
-      cell: (row) => <span className='tabular'>{row.ratings}</span>,
-    },
     {
       key: 'behaviour',
-      header: 'Good / bad',
+      header: 'GOOD / BAD',
       cell: (row) => (
-        <span className='tabular text-sm'>
-          <span className='font-semibold text-success'>{row.good}</span>
-          {' / '}
-          <span className='font-semibold text-destructive'>{row.bad}</span>
+        <span className='flex flex-wrap items-center gap-2 text-[13px] leading-[18px] tabular-nums'>
+          <span>
+            <span className='font-semibold text-emerald-600 dark:text-emerald-400'>{row.good}</span>
+            <span className='text-slate-300 dark:text-slate-600'> / </span>
+            <span className='font-semibold text-rose-600 dark:text-rose-400'>{row.bad}</span>
+          </span>
           {row.good_percent !== null && (
-            <span className='text-muted-foreground'> · {pct(row.good_percent)} good</span>
+            <PercentPill value={row.good_percent} good={85} fair={70} />
           )}
         </span>
+      ),
+    },
+    {
+      key: 'action',
+      header: 'ACTION',
+      align: 'right' as const,
+      cell: (row) => (
+        <Button
+          variant='ghost'
+          size='icon-sm'
+          aria-label={`View ratings for ${row.name}`}
+          title='View parent ratings'
+          className='text-slate-500 hover:bg-[#EAF7F0] hover:text-[#127D48] dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400'
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpen(row.teacher_user_id)
+          }}
+        >
+          <ChevronRight className='size-4' />
+        </Button>
       ),
     },
   ]
@@ -279,31 +364,77 @@ function RankingView({
     <div className='grid gap-4'>
       <InsightCards items={cards} loading={ranking.isPending} />
       <Card className='overflow-hidden'>
+        <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
+          <div className='flex flex-wrap items-center gap-3'>
+            <h2 className='font-bold'>Teachers</h2>
+            <SegmentedControl
+              label='Filter teachers'
+              value={filter}
+              onChange={(value: 'all' | 'rated' | 'unrated') => {
+                setFilter(value)
+                setPage(1)
+              }}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'rated', label: 'Rated' },
+                { value: 'unrated', label: 'Unrated' },
+              ]}
+            />
+          </div>
+          <span className='text-xs text-muted-foreground'>
+            Click a teacher to view their parent ratings
+          </span>
+        </div>
         <DataTable
-          rows={rows}
+          rows={paginatedRows}
           columns={columns}
           rowKey={(row) => row.teacher_user_id}
           loading={ranking.isPending}
           error={ranking.error?.message}
           onRetry={() => void ranking.refetch()}
           onRowClick={(row) => onOpen(row.teacher_user_id)}
+          pagination={{
+            page: currentPage,
+            limit: pageSize,
+            total: totalRows,
+            label: 'teachers',
+            onPageChange: (newPage) => setPage(newPage),
+            onLimitChange: (newLimit) => {
+              setPageSize(newLimit)
+              setPage(1)
+            },
+            limitOptions: [10, 20, 25, 50],
+          }}
           empty={{
             icon: Trophy,
-            title: 'No teachers yet',
-            description: 'Teaching staff appear here.',
+            title: filter === 'all' ? 'No teachers yet' : 'No teachers in this group',
+            description:
+              filter === 'all'
+                ? 'Teaching staff appear here.'
+                : 'Switch filter to see other teachers.',
           }}
           card={(row) => (
-            <div className='flex items-center justify-between gap-3'>
-              <span className='grid'>
-                <span className='font-semibold'>
-                  {row.rank ? `#${row.rank} ` : ''}
-                  {row.name}
-                </span>
-                <span className='text-xs text-muted-foreground'>
+            <div className='table-typography grid gap-2'>
+              <div className='flex items-start justify-between gap-2.5'>
+                <div className='grid min-w-0 flex-1'>
+                  <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                    {row.rank ? `#${row.rank} · ` : ''}
+                    {row.name}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                    {row.designation ?? 'Teacher'}
+                  </span>
+                </div>
+                <Stars value={row.average_stars} />
+              </div>
+              <div className='flex items-center justify-between text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                <span>
                   {row.ratings} ratings · {row.good} good · {row.bad} bad
                 </span>
-              </span>
-              <Stars value={row.average_stars} />
+                {row.good_percent !== null && (
+                  <PercentPill value={row.good_percent} good={85} fair={70} />
+                )}
+              </div>
             </div>
           )}
         />
@@ -339,68 +470,80 @@ function RatingsView({
   const columns: Column<Rating>[] = [
     {
       key: 'teacher',
-      header: 'Teacher',
-      cell: (row) => <span className='font-semibold'>{row.teacher.name}</span>,
-    },
-    {
-      key: 'stars',
-      header: 'Stars',
-      cell: (row) => <Stars value={row.stars} label={row.stars_label} />,
-    },
-    {
-      key: 'behaviour',
-      header: 'Behaviour',
-      cell: (row) => <BehaviourBadge value={row.behaviour} />,
-    },
-    {
-      key: 'remark',
-      header: 'Remark',
-      cell: (row) =>
-        row.remark ? (
-          <span className='line-clamp-2 max-w-72 text-sm'>{row.remark}</span>
-        ) : (
-          <span className='text-muted-foreground'>—</span>
-        ),
-    },
-    {
-      key: 'parent',
-      header: 'Parent',
-      hideBelow: 'lg',
+      header: 'TEACHER ⇅',
       cell: (row) => (
-        <span className='grid'>
-          <span className='text-sm'>{row.parent.name}</span>
-          <span className='text-xs text-muted-foreground'>
-            {row.student.name}
-            {row.section ? ` · ${row.section}` : ''}
-          </span>
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+          {row.teacher.name}
         </span>
       ),
     },
     {
+      key: 'stars',
+      header: 'STARS',
+      cell: (row) => <Stars value={row.stars} label={row.stars_label} />,
+    },
+    {
+      key: 'behaviour',
+      header: 'BEHAVIOUR',
+      cell: (row) => <BehaviourBadge value={row.behaviour} />,
+    },
+    {
+      key: 'remark',
+      header: 'REMARK',
+      cell: (row) =>
+        row.remark ? (
+          <span className='line-clamp-2 max-w-72 text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {row.remark}
+          </span>
+        ) : (
+          <span className='text-slate-400'>—</span>
+        ),
+    },
+    {
+      key: 'parent',
+      header: 'PARENT',
+      hideBelow: 'lg',
+      cell: (row) => (
+        <div className='grid min-w-0'>
+          <span className='truncate text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+            {row.parent.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {row.student.name}
+            {row.section ? ` · ${row.section}` : ''}
+          </span>
+        </div>
+      ),
+    },
+    {
       key: 'date',
-      header: 'Date',
+      header: 'DATE',
       hideBelow: 'xl',
       cell: (row) => (
-        <span className='text-sm text-muted-foreground'>{formatDate(row.created_at)}</span>
+        <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          {formatDate(row.created_at)}
+        </span>
       ),
     },
     ...(canManage
       ? [
           {
             key: 'actions',
-            header: '',
-            className: 'w-12',
+            header: 'ACTION',
+            align: 'right' as const,
             cell: (row: Rating) => (
               <Button
-                size='icon'
+                size='icon-sm'
                 variant='ghost'
+                title='Remove rating'
                 aria-label={`Remove rating of ${row.teacher.name} by ${row.parent.name}`}
+                className='text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400'
                 onClick={(event) => {
                   event.stopPropagation()
                   setRemoving(row)
                 }}
               >
-                <Trash2 className='text-destructive' />
+                <Trash2 className='size-4' />
               </Button>
             ),
           },
@@ -408,7 +551,7 @@ function RatingsView({
       : []),
   ]
   return (
-    <Card className='overflow-hidden'>
+    <div className='grid gap-4'>
       <ListToolbar
         summary={list.data ? `${list.data.total} ratings` : ''}
         onClear={
@@ -452,66 +595,80 @@ function RatingsView({
           onChange={(value) => setSearch({ low: value ? true : undefined })}
         />
       </ListToolbar>
-      <DataTable
-        rows={list.data?.items ?? []}
-        columns={columns}
-        rowKey={(row) => row.id}
-        loading={list.isPending}
-        error={list.error?.message}
-        onRetry={() => void list.refetch()}
-        empty={{
-          icon: Star,
-          title: filtered ? 'No ratings match' : 'No parent ratings yet',
-          description: filtered
-            ? 'Clear the filters to see every rating.'
-            : 'Turn on parent ratings in Settings; ratings from the Parent app appear here.',
-        }}
-        card={(row) => (
-          <div className='grid gap-1.5'>
-            <div className='flex items-center justify-between gap-2'>
-              <span className='font-semibold'>{row.teacher.name}</span>
-              <BehaviourBadge value={row.behaviour} />
+      <Card className='overflow-hidden'>
+        <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
+          <h2 className='font-bold'>Parent ratings</h2>
+          <span className='text-xs text-muted-foreground'>
+            {list.data ? `${list.data.total} ratings` : 'Ratings submitted by parents'}
+          </span>
+        </div>
+        <DataTable
+          rows={list.data?.items ?? []}
+          columns={columns}
+          rowKey={(row) => row.id}
+          loading={list.isPending}
+          error={list.error?.message}
+          onRetry={() => void list.refetch()}
+          empty={{
+            icon: Star,
+            title: filtered ? 'No ratings match' : 'No parent ratings yet',
+            description: filtered
+              ? 'Clear the filters to see every rating.'
+              : 'Turn on parent ratings in Settings; ratings from the Parent app appear here.',
+          }}
+          card={(row) => (
+            <div className='table-typography grid gap-2'>
+              <div className='flex items-center justify-between gap-2'>
+                <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                  {row.teacher.name}
+                </span>
+                <BehaviourBadge value={row.behaviour} />
+              </div>
+              <Stars value={row.stars} label={row.stars_label} />
+              {row.remark && (
+                <p className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+                  {row.remark}
+                </p>
+              )}
+              <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                {row.parent.name} · {row.student.name}
+                {row.section ? ` · ${row.section}` : ''} · {formatDate(row.created_at)}
+              </span>
             </div>
-            <Stars value={row.stars} label={row.stars_label} />
-            {row.remark && <p className='text-sm'>{row.remark}</p>}
-            <span className='text-xs text-muted-foreground'>
-              {row.parent.name} · {row.student.name}
-              {row.section ? ` · ${row.section}` : ''} · {formatDate(row.created_at)}
-            </span>
-          </div>
-        )}
-        pagination={
-          list.data
-            ? {
-                page: search.page,
-                limit: list.data.limit,
-                total: list.data.total,
-                label: 'ratings',
-                onPageChange: (page) => setSearch({ page }),
-              }
-            : undefined
-        }
-      />
-      <ConfirmDialog
-        open={Boolean(removing)}
-        onOpenChange={(open) => !open && setRemoving(null)}
-        title='Remove this rating?'
-        description={`${removing?.parent.name}'s rating of ${removing?.teacher.name} will be removed, and the parent can rate again in this window.`}
-        confirmText='Remove rating'
-        destructive
-        loading={remove.isPending}
-        onConfirm={async () => {
-          if (!removing) return
-          try {
-            await remove.mutateAsync(removing.id)
-            alerts.success('Rating removed')
-            setRemoving(null)
-          } catch (error) {
-            alerts.error(toApiError(error).message)
+          )}
+          pagination={
+            list.data
+              ? {
+                  page: search.page,
+                  limit: list.data.limit,
+                  total: list.data.total,
+                  label: 'ratings',
+                  onPageChange: (page) => setSearch({ page }),
+                }
+              : undefined
           }
-        }}
-      />
-    </Card>
+        />
+        <ConfirmDialog
+          open={Boolean(removing)}
+          onOpenChange={(open) => !open && setRemoving(null)}
+          title='Remove this rating?'
+          description={`${removing?.parent.name}'s rating of ${removing?.teacher.name} will be removed, and the parent can rate again in this window.`}
+          confirmText='Remove rating'
+          destructive
+          loading={remove.isPending}
+          onConfirm={async () => {
+            if (!removing) return
+            try {
+              await remove.mutateAsync(removing.id)
+              alerts.success('Rating removed')
+              setRemoving(null)
+            } catch (error) {
+              alerts.error(toApiError(error).message)
+            }
+          }}
+        />
+      </Card>
+    </div>
   )
 }
 
@@ -529,30 +686,28 @@ function ReportView({
   const published = (exams.data?.items ?? []).filter((exam) => exam.status === 'published')
   return (
     <div className='grid gap-4'>
-      <Card className='overflow-hidden'>
-        <ListToolbar
-          summary={
-            report.data
-              ? `${report.data.teachers.length} teachers · ${report.data.exam?.name ?? 'all published exams'}`
-              : ''
-          }
-          onClear={
-            search.exam_id || search.teacher_user_id
-              ? () => setSearch({ exam_id: undefined, teacher_user_id: undefined })
-              : undefined
-          }
-        >
-          <FilterSelect
-            id='feedback-exam'
-            label='Exam'
-            allLabel='All published exams'
-            value={search.exam_id ? String(search.exam_id) : undefined}
-            options={published.map((exam) => ({ value: String(exam.id), label: exam.name }))}
-            onChange={(value) => setSearch({ exam_id: value ? Number(value) : undefined })}
-          />
-          {teacherFilter}
-        </ListToolbar>
-      </Card>
+      <ListToolbar
+        summary={
+          report.data
+            ? `${report.data.teachers.length} teachers · ${report.data.exam?.name ?? 'all published exams'}`
+            : ''
+        }
+        onClear={
+          search.exam_id || search.teacher_user_id
+            ? () => setSearch({ exam_id: undefined, teacher_user_id: undefined })
+            : undefined
+        }
+      >
+        <FilterSelect
+          id='feedback-exam'
+          label='Exam'
+          allLabel='All published exams'
+          value={search.exam_id ? String(search.exam_id) : undefined}
+          options={published.map((exam) => ({ value: String(exam.id), label: exam.name }))}
+          onChange={(value) => setSearch({ exam_id: value ? Number(value) : undefined })}
+        />
+        {teacherFilter}
+      </ListToolbar>
       {report.isError ? (
         <ErrorState message={report.error.message} onRetry={() => void report.refetch()} />
       ) : !report.data ? (
@@ -581,21 +736,25 @@ function ReportView({
 
 function TeacherCard({ teacher }: { teacher: TeacherReportRow }) {
   return (
-    <Card className='grid gap-3 p-4'>
-      <div className='flex flex-wrap items-start justify-between gap-3'>
-        <span className='grid'>
-          <span className='font-bold'>{teacher.name}</span>
-          <span className='text-xs text-muted-foreground'>{teacher.designation ?? 'Teacher'}</span>
-        </span>
-        <div className='flex flex-wrap items-center gap-2 text-sm'>
-          <Badge tone='neutral'>{teacher.overall.papers} papers</Badge>
-          <span className={cn('font-semibold', passTone(teacher.overall.pass_percent))}>
-            Pass {pct(teacher.overall.pass_percent)}
+    <Card className='overflow-hidden'>
+      <div className='flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3'>
+        <div className='grid min-w-0'>
+          <span className='text-[14px] leading-[20px] font-bold text-slate-900 dark:text-slate-100'>
+            {teacher.name}
           </span>
-          <span className='text-destructive'>Fail {pct(teacher.overall.fail_percent)}</span>
-          <span className='text-muted-foreground'>Avg {pct(teacher.overall.average_percent)}</span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {teacher.designation ?? 'Teacher'}
+          </span>
+        </div>
+        <div className='flex flex-wrap items-center gap-2 text-sm'>
+          <StatusPill tone='neutral' label={`${teacher.overall.papers} papers`} />
+          <PercentPill value={teacher.overall.pass_percent} good={90} fair={60} />
+          <PercentPill value={teacher.overall.fail_percent} good={0} fair={15} invert />
+          <span className='text-[12px] font-medium text-slate-500 tabular-nums dark:text-slate-400'>
+            Avg {pct(teacher.overall.average_percent)}
+          </span>
           <Stars value={teacher.rating.average_stars} />
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[12px] text-slate-500 dark:text-slate-400'>
             {teacher.rating.ratings} ratings · {teacher.rating.good} good · {teacher.rating.bad} bad
           </span>
         </div>
@@ -603,39 +762,55 @@ function TeacherCard({ teacher }: { teacher: TeacherReportRow }) {
       <div className='overflow-x-auto'>
         <table className='w-full min-w-[560px] text-sm'>
           <thead>
-            <tr className='border-b text-left text-xs text-muted-foreground uppercase'>
-              <th className='py-1.5 pr-3 font-semibold'>Class</th>
-              <th className='py-1.5 pr-3 font-semibold'>Subject</th>
-              <th className='py-1.5 pr-3 font-semibold'>Students</th>
-              <th className='py-1.5 pr-3 font-semibold'>Pass</th>
-              <th className='py-1.5 pr-3 font-semibold'>Fail</th>
-              <th className='py-1.5 font-semibold'>Average</th>
+            <tr className='border-b bg-slate-50/80 text-left text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:bg-slate-900/60 dark:text-slate-400'>
+              <th className='px-4 py-2.5'>Class</th>
+              <th className='px-3 py-2.5'>Subject</th>
+              <th className='px-3 py-2.5'>Students</th>
+              <th className='px-3 py-2.5'>Pass</th>
+              <th className='px-3 py-2.5'>Fail</th>
+              <th className='px-4 py-2.5'>Average</th>
             </tr>
           </thead>
           <tbody>
             {teacher.classes.map((item) => (
-              <tr key={`${item.section_id}-${item.subject_id}`} className='border-b last:border-0'>
-                <td className='py-1.5 pr-3 font-semibold'>{item.section}</td>
-                <td className='py-1.5 pr-3'>{item.subject}</td>
-                <td className='tabular py-1.5 pr-3'>{item.students || '—'}</td>
-                <td
-                  className={cn('tabular py-1.5 pr-3 font-semibold', passTone(item.pass_percent))}
-                >
-                  {pct(item.pass_percent)}
+              <tr
+                key={`${item.section_id}-${item.subject_id}`}
+                className='border-b transition-colors last:border-0 hover:bg-slate-50/70 dark:hover:bg-slate-900/40'
+              >
+                <td className='px-4 py-2.5 text-[13px] font-semibold text-slate-900 dark:text-slate-100'>
+                  {item.section}
                 </td>
-                <td className='tabular py-1.5 pr-3 text-destructive'>{pct(item.fail_percent)}</td>
-                <td className='tabular py-1.5'>{pct(item.average_percent)}</td>
+                <td className='px-3 py-2.5 text-[13px] text-slate-700 dark:text-slate-300'>
+                  {item.subject}
+                </td>
+                <td className='px-3 py-2.5 text-[13px] text-slate-700 tabular-nums dark:text-slate-300'>
+                  {item.students || '—'}
+                </td>
+                <td className='px-3 py-2.5'>
+                  <PercentPill value={item.pass_percent} good={90} fair={60} />
+                </td>
+                <td className='px-3 py-2.5'>
+                  <PercentPill value={item.fail_percent} good={0} fair={15} invert />
+                </td>
+                <td className='px-4 py-2.5'>
+                  <PercentPill value={item.average_percent} good={75} fair={50} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {teacher.remarks.length > 0 && (
-        <div className='grid gap-1'>
-          <span className='text-xs font-semibold text-muted-foreground'>Latest parent remarks</span>
-          <ul className='grid gap-1'>
+        <div className='grid gap-1.5 border-t bg-slate-50/40 px-4 py-3 dark:bg-slate-900/30'>
+          <span className='text-[11px] font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400'>
+            Latest parent remarks
+          </span>
+          <ul className='grid gap-1.5'>
             {teacher.remarks.map((remark, index) => (
-              <li key={index} className='rounded-md bg-muted/50 px-2.5 py-1.5 text-sm'>
+              <li
+                key={index}
+                className='rounded-md border border-slate-200/70 bg-white px-3 py-2 text-[13px] text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+              >
                 “{remark}”
               </li>
             ))}
@@ -671,68 +846,80 @@ function StudentsView({
   const columns: Column<StudentFeedback>[] = [
     {
       key: 'student',
-      header: 'Student',
+      header: 'STUDENT ⇅',
       cell: (row) => (
-        <span className='grid'>
-          <span className='font-semibold'>{row.student.name}</span>
-          <span className='text-xs text-muted-foreground'>{row.section ?? 'No section'}</span>
-        </span>
+        <div className='grid min-w-0'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.student.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {row.section ?? 'No section'}
+          </span>
+        </div>
       ),
     },
     {
       key: 'teacher',
-      header: 'Teacher',
+      header: 'TEACHER',
       cell: (row) => (
-        <span className='grid'>
-          <span className='text-sm'>{row.teacher.name}</span>
-          <span className='text-xs text-muted-foreground'>{row.term.name}</span>
-        </span>
+        <div className='grid min-w-0'>
+          <span className='truncate text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+            {row.teacher.name}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+            {row.term.name}
+          </span>
+        </div>
       ),
     },
     {
       key: 'studies',
-      header: 'Studies',
+      header: 'STUDIES',
       cell: (row) => <Stars value={row.studies} label={row.studies_label} />,
     },
     {
       key: 'behaviour',
-      header: 'Behaviour',
+      header: 'BEHAVIOUR',
       cell: (row) => <Stars value={row.behaviour} label={row.behaviour_label} />,
     },
     {
       key: 'sports',
-      header: 'Sports',
+      header: 'SPORTS',
       hideBelow: 'lg',
       cell: (row) => <Stars value={row.sports} label={row.sports_label} />,
     },
     {
       key: 'remark',
-      header: 'Remark',
+      header: 'REMARK',
       hideBelow: 'xl',
       cell: (row) =>
         row.remark ? (
-          <span className='line-clamp-2 max-w-64 text-sm'>{row.remark}</span>
+          <span className='line-clamp-2 max-w-64 text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {row.remark}
+          </span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     ...(canManage
       ? [
           {
             key: 'actions',
-            header: '',
-            className: 'w-12',
+            header: 'ACTION',
+            align: 'right' as const,
             cell: (row: StudentFeedback) => (
               <Button
-                size='icon'
+                size='icon-sm'
                 variant='ghost'
+                title='Remove feedback'
                 aria-label={`Remove feedback on ${row.student.name} by ${row.teacher.name}`}
+                className='text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400'
                 onClick={(event) => {
                   event.stopPropagation()
                   setRemoving(row)
                 }}
               >
-                <Trash2 className='text-destructive' />
+                <Trash2 className='size-4' />
               </Button>
             ),
           },
@@ -740,7 +927,7 @@ function StudentsView({
       : []),
   ]
   return (
-    <Card className='overflow-hidden'>
+    <div className='grid gap-4'>
       <ListToolbar
         summary={list.data ? `${list.data.total} feedback` : ''}
         onClear={
@@ -769,66 +956,82 @@ function StudentsView({
           onChange={(value) => setSearch({ section_id: value ? Number(value) : undefined })}
         />
       </ListToolbar>
-      <DataTable
-        rows={list.data?.items ?? []}
-        columns={columns}
-        rowKey={(row) => row.id}
-        loading={list.isPending}
-        error={list.error?.message}
-        onRetry={() => void list.refetch()}
-        empty={{
-          icon: MessageSquareQuote,
-          title: filtered ? 'No feedback matches' : 'No student feedback yet',
-          description: filtered
-            ? 'Clear the filters to see all feedback.'
-            : 'Turn on student feedback in Settings; teachers give it once a term in the Staff app.',
-        }}
-        card={(row) => (
-          <div className='grid gap-1.5'>
-            <div className='flex items-center justify-between gap-2'>
-              <span className='font-semibold'>{row.student.name}</span>
-              <span className='text-xs text-muted-foreground'>{row.section}</span>
+      <Card className='overflow-hidden'>
+        <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
+          <h2 className='font-bold'>Student feedback</h2>
+          <span className='text-xs text-muted-foreground'>
+            {list.data ? `${list.data.total} feedback` : 'Feedback given by teachers each term'}
+          </span>
+        </div>
+        <DataTable
+          rows={list.data?.items ?? []}
+          columns={columns}
+          rowKey={(row) => row.id}
+          loading={list.isPending}
+          error={list.error?.message}
+          onRetry={() => void list.refetch()}
+          empty={{
+            icon: MessageSquareQuote,
+            title: filtered ? 'No feedback matches' : 'No student feedback yet',
+            description: filtered
+              ? 'Clear the filters to see all feedback.'
+              : 'Turn on student feedback in Settings; teachers give it once a term in the Staff app.',
+          }}
+          card={(row) => (
+            <div className='table-typography grid gap-2'>
+              <div className='flex items-center justify-between gap-2'>
+                <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                  {row.student.name}
+                </span>
+                <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                  {row.section}
+                </span>
+              </div>
+              <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                {row.teacher.name} · {row.term.name}
+              </span>
+              <Stars value={row.studies} label={`Studies · ${row.studies_label}`} />
+              <Stars value={row.behaviour} label={`Behaviour · ${row.behaviour_label}`} />
+              {row.sports && <Stars value={row.sports} label={`Sports · ${row.sports_label}`} />}
+              {row.remark && (
+                <p className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+                  {row.remark}
+                </p>
+              )}
             </div>
-            <span className='text-xs text-muted-foreground'>
-              {row.teacher.name} · {row.term.name}
-            </span>
-            <Stars value={row.studies} label={`Studies · ${row.studies_label}`} />
-            <Stars value={row.behaviour} label={`Behaviour · ${row.behaviour_label}`} />
-            {row.sports && <Stars value={row.sports} label={`Sports · ${row.sports_label}`} />}
-            {row.remark && <p className='text-sm'>{row.remark}</p>}
-          </div>
-        )}
-        pagination={
-          list.data
-            ? {
-                page: search.page,
-                limit: list.data.limit,
-                total: list.data.total,
-                label: 'feedback',
-                onPageChange: (page) => setSearch({ page }),
-              }
-            : undefined
-        }
-      />
-      <ConfirmDialog
-        open={Boolean(removing)}
-        onOpenChange={(open) => !open && setRemoving(null)}
-        title='Remove this feedback?'
-        description={`${removing?.teacher.name}'s feedback on ${removing?.student.name} will be removed, and the teacher can give it again this term.`}
-        confirmText='Remove feedback'
-        destructive
-        loading={remove.isPending}
-        onConfirm={async () => {
-          if (!removing) return
-          try {
-            await remove.mutateAsync(removing.id)
-            alerts.success('Feedback removed')
-            setRemoving(null)
-          } catch (error) {
-            alerts.error(toApiError(error).message)
+          )}
+          pagination={
+            list.data
+              ? {
+                  page: search.page,
+                  limit: list.data.limit,
+                  total: list.data.total,
+                  label: 'feedback',
+                  onPageChange: (page) => setSearch({ page }),
+                }
+              : undefined
           }
-        }}
-      />
-    </Card>
+        />
+        <ConfirmDialog
+          open={Boolean(removing)}
+          onOpenChange={(open) => !open && setRemoving(null)}
+          title='Remove this feedback?'
+          description={`${removing?.teacher.name}'s feedback on ${removing?.student.name} will be removed, and the teacher can give it again this term.`}
+          confirmText='Remove feedback'
+          destructive
+          loading={remove.isPending}
+          onConfirm={async () => {
+            if (!removing) return
+            try {
+              await remove.mutateAsync(removing.id)
+              alerts.success('Feedback removed')
+              setRemoving(null)
+            } catch (error) {
+              alerts.error(toApiError(error).message)
+            }
+          }}
+        />
+      </Card>
+    </div>
   )
 }

@@ -1,14 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import {
-  ArrowRightLeft,
-  Bus,
-  ClipboardCheck,
-  History,
-  ListOrdered,
-  Plus,
-  UserMinus,
-} from 'lucide-react'
+import { ArrowRightLeft, ClipboardCheck, History, UserMinus } from 'lucide-react'
+import { BusFrontIcon, ListIcon, PlusIcon } from '@/components/common/icon'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DetailList, EmptyState, ErrorState } from '@/components/common/display'
 import { Badge } from '@/components/ui/badge'
@@ -66,7 +59,7 @@ export function TransportTab({
     return (
       <Section title='Bus'>
         <EmptyState
-          icon={Bus}
+          icon={BusFrontIcon}
           title='Bus details are hidden'
           description='You need access to Fleet to see this student’s route and stop.'
           className='py-6'
@@ -130,14 +123,14 @@ function TransportDetails({
           <ErrorState message={transport.error.message} onRetry={() => transport.refetch()} />
         ) : !rider ? (
           <EmptyState
-            icon={Bus}
+            icon={BusFrontIcon}
             title='No bus stop yet'
             description='Give this student a route and stop so the driver, attendant and parents can follow the bus.'
             className='py-6'
             action={
               canManage && (
                 <Button onClick={() => setEditing(true)}>
-                  <Plus className='size-4 stroke-[1.75]' />
+                  <PlusIcon className='size-4 stroke-[1.75]' />
                   Assign a bus stop
                 </Button>
               )
@@ -200,7 +193,7 @@ function TransportDetails({
             />
             <Button size='sm' variant='secondary' asChild className='justify-self-start'>
               <Link to='/transport/routes/$routeId/students' params={{ routeId: rider.route.id }}>
-                <ListOrdered />
+                <ListIcon />
                 Route student list
               </Link>
             </Button>

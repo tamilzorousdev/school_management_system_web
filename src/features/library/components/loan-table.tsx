@@ -48,7 +48,7 @@ export function LoanTable({
   const all: Record<LoanColumn, Column<Loan>> = {
     book: {
       key: 'book',
-      header: 'Book',
+      header: 'BOOK',
       cell: (loan) => (
         <BookLine
           bookId={loan.book.id}
@@ -66,75 +66,83 @@ export function LoanTable({
     },
     member: {
       key: 'member',
-      header: 'Member',
+      header: 'MEMBER',
       cell: (loan) => <MemberLine member={loan.member} size='sm' />,
     },
     phone: {
       key: 'phone',
-      header: 'Phone',
+      header: 'PHONE',
       cell: (loan) => <PhoneText phone={loan.member.phone} />,
     },
     issued: {
       key: 'issued_at',
-      header: 'Issued',
+      header: 'ISSUED',
       sortKey: 'issued_at',
       hideBelow: 'lg',
       cell: (loan) => (
         <div className='grid'>
-          <span>{formatDateTime(loan.issued_at)}</span>
+          <span className='text-[13px] leading-[18px] text-slate-800 dark:text-slate-200'>
+            {formatDateTime(loan.issued_at)}
+          </span>
           {loan.issued_by && (
-            <span className='text-xs text-muted-foreground'>by {loan.issued_by}</span>
+            <span className='text-[11.5px] leading-[16px] text-slate-400 dark:text-slate-500'>
+              by {loan.issued_by}
+            </span>
           )}
         </div>
       ),
     },
     due: {
       key: 'due_date',
-      header: 'Due',
+      header: 'DUE',
       sortKey: 'due_date',
       cell: (loan) => (
         <div className='grid'>
-          <span>{formatDate(loan.due_date)}</span>
+          <span className='text-[13px] leading-[18px] text-slate-800 dark:text-slate-200'>
+            {formatDate(loan.due_date)}
+          </span>
           {loan.renew_count > 0 && (
-            <span className='text-xs text-muted-foreground'>Renewed {loan.renew_count}×</span>
+            <span className='text-[11.5px] leading-[16px] text-slate-400 dark:text-slate-500'>
+              Renewed {loan.renew_count}×
+            </span>
           )}
         </div>
       ),
     },
     state: {
       key: 'state',
-      header: 'Status',
+      header: 'STATUS',
       cell: (loan) => <LoanStateBadge state={loan.state} days={loan.days_overdue} />,
     },
     returned: {
       key: 'returned_at',
-      header: 'Returned',
+      header: 'RETURNED',
       sortKey: 'returned_at',
       hideBelow: 'xl',
       cell: (loan) => (loan.returned_at ? formatDateTime(loan.returned_at) : '—'),
     },
     fine: {
       key: 'fine',
-      header: 'Running fine',
+      header: 'RUNNING FINE',
       align: 'right',
       cell: (loan) =>
         loan.running_fine > 0 ? (
           <span className='tabular font-bold text-destructive'>{rupees(loan.running_fine)}</span>
         ) : (
-          <span className='text-muted-foreground'>—</span>
+          <span className='text-slate-400'>—</span>
         ),
     },
     follow_up: {
       key: 'follow_up',
-      header: 'Last follow-up',
+      header: 'LAST FOLLOW-UP',
       hideBelow: 'lg',
       cell: (loan) =>
         loan.last_follow_up ? (
           <div className='grid max-w-56'>
-            <span className='truncate text-sm'>
+            <span className='truncate text-[13px] leading-[18px] text-slate-800 dark:text-slate-200'>
               {loan.last_follow_up.note ?? loan.last_follow_up.action.replace(/_/g, ' ')}
             </span>
-            <span className='text-xs text-muted-foreground'>
+            <span className='text-[11.5px] leading-[16px] text-slate-400 dark:text-slate-500'>
               {formatDate(loan.last_follow_up.created_at)}
               {loan.last_follow_up.next_follow_up_on
                 ? ` · next ${formatDate(loan.last_follow_up.next_follow_up_on)}`
@@ -142,7 +150,7 @@ export function LoanTable({
             </span>
           </div>
         ) : (
-          <span className='text-muted-foreground'>None yet</span>
+          <span className='text-slate-400'>None yet</span>
         ),
     },
   }
@@ -151,7 +159,7 @@ export function LoanTable({
   if (actions) {
     table.push({
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-24',
       cell: (loan) => (

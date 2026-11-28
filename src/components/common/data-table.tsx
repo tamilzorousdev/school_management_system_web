@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, type LucideIcon } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { Pagination } from '@/components/common/pagination'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,7 +36,12 @@ interface DataTableProps<T> {
   loading?: boolean
   error?: string | null
   onRetry?: () => void
-  empty: { icon: LucideIcon; title: string; description?: string; action?: React.ReactNode }
+  empty: {
+    icon: React.ComponentType<{ className?: string }>
+    title: string
+    description?: string
+    action?: React.ReactNode
+  }
   onRowClick?: (row: T) => void
   isSelected?: (row: T) => boolean
   rowClassName?: (row: T) => string | undefined

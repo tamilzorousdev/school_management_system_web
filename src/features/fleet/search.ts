@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const tripHistorySearchSchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),
+  limit: z.coerce.number().int().min(10).max(50).optional().catch(undefined),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)

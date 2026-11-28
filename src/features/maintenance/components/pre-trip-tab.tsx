@@ -11,11 +11,11 @@ import {
 } from 'lucide-react'
 import { AppModal } from '@/components/common/app-modal'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { DatePicker } from '@/components/common/date-picker'
 import { FilterSelect, ListToolbar } from '@/components/common/list-toolbar'
 import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { today } from '@/features/attendance/labels'
 import { useBusOptions } from '@/features/transport/api'
@@ -45,7 +45,7 @@ const stateOf = (check: PreTripCheck) =>
 function CheckBadge({ check }: { check: PreTripCheck }) {
   const state = stateOf(check)
   return (
-    <Badge tone={state.tone} dot>
+    <Badge tone={state.tone} dot className='font-medium'>
       {check.failed_count && !check.blocked
         ? `${check.failed_count} not OK`
         : check.cleared_at && check.critical_failed
@@ -63,14 +63,22 @@ function boardState(row: PreTripTodayRow): { label: string; tone: BadgeTone } {
   return { label: 'Done, all OK', tone: 'success' }
 }
 
-export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage }: TabProps) {
+export function PreTripTab({
+  search,
+  setSearch,
+  onPageChange,
+  onLimitChange,
+  onClear,
+  canManage,
+}: TabProps) {
   const busOptions = useBusOptions()
   const [viewing, setViewing] = useState<PreTripCheck | null>(null)
   const board = useChecksToday()
   const settings = useFleetSettings()
+  const limit = search.limit ?? LIMIT
   const params: PreTripListParams = {
     page: search.page,
-    limit: LIMIT,
+    limit,
     vehicle_id: search.vehicle_id,
     date: search.date,
     state: search.state,
@@ -83,21 +91,25 @@ export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage
   const columns: Column<PreTripCheck>[] = [
     {
       key: 'date',
-      header: 'Date',
+      header: 'DATE',
       cell: (check) => (
-        <span className='tabular font-semibold'>{formatDate(check.check_date)}</span>
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {formatDate(check.check_date)}
+        </span>
       ),
     },
-    { key: 'bus', header: 'Bus', cell: (check) => <BusCell vehicle={check.vehicle} /> },
-    { key: 'state', header: 'Result', cell: (check) => <CheckBadge check={check} /> },
+    { key: 'bus', header: 'BUS', cell: (check) => <BusCell vehicle={check.vehicle} /> },
+    { key: 'state', header: 'RESULT', cell: (check) => <CheckBadge check={check} /> },
     {
       key: 'by',
-      header: 'Checked by',
+      header: 'CHECKED BY',
       hideBelow: 'lg',
       cell: (check) => (
         <div className='grid'>
-          <span>{check.checked_by.name}</span>
-          <span className='tabular text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {check.checked_by.name}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
             {formatDateTime(check.created_at)}
           </span>
         </div>
@@ -105,10 +117,10 @@ export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage
     },
     {
       key: 'failed',
-      header: 'Not OK',
+      header: 'NOT OK',
       hideBelow: 'lg',
       cell: (check) => (
-        <span className='line-clamp-1 text-muted-foreground'>
+        <span className='line-clamp-1 text-[13px] leading-[18px] text-slate-500 dark:text-slate-400'>
           {check.items
             .filter((item) => !item.ok)
             .map((item) => item.label)
@@ -118,10 +130,14 @@ export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage
     },
     {
       key: 'odometer',
-      header: 'Odometer',
+      header: 'ODOMETER',
       align: 'right',
       hideBelow: 'xl',
-      cell: (check) => <span className='tabular'>{formatNumber(check.odometer_km, 0, 'km')}</span>,
+      cell: (check) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatNumber(check.odometer_km, 0, 'km')}
+        </span>
+      ),
     },
   ]
 
@@ -132,7 +148,9 @@ export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage
       <Card className='grid gap-3 p-4'>
         <div className='flex flex-wrap items-center justify-between gap-2'>
           <div className='grid gap-0.5'>
-            <span className='font-semibold'>Today’s checks</span>
+            <span className='text-sm font-bold text-slate-900 dark:text-slate-100'>
+              Today’s checks
+            </span>
             <span className='text-sm text-muted-foreground'>
               {board.isPending
                 ? 'Loading…'
@@ -188,12 +206,16 @@ export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage
                       )}
                     />
                     <span className='grid min-w-0 flex-1'>
-                      <span className='truncate font-semibold'>{row.vehicle.name}</span>
-                      <span className='truncate font-mono text-xs text-muted-foreground'>
+                      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                        {row.vehicle.name}
+                      </span>
+                      <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                         {row.vehicle.registration_no}
                       </span>
                     </span>
-                    <Badge tone={state.tone}>{state.label}</Badge>
+                    <Badge tone={state.tone} className='font-medium'>
+                      {state.label}
+                    </Badge>
                   </button>
                 </li>
               )
@@ -226,13 +248,12 @@ export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage
             options={busOptions}
             onChange={(value) => setSearch({ vehicle_id: value ? Number(value) : undefined })}
           />
-          <Input
-            type='date'
-            aria-label='Check date'
+          <DatePicker
+            size='sm'
             placeholder='Any day'
             value={search.date ?? ''}
             max={today()}
-            onChange={(event) => setSearch({ date: event.target.value || undefined })}
+            onChange={(value: string) => setSearch({ date: value || undefined })}
             className='w-full sm:w-40'
           />
         </ListToolbar>
@@ -275,10 +296,11 @@ export function PreTripTab({ search, setSearch, onPageChange, onClear, canManage
           )}
           pagination={{
             page: search.page,
-            limit: LIMIT,
+            limit,
             total: checks.data?.total ?? 0,
             label: 'checks',
             onPageChange,
+            onLimitChange,
           }}
         />
       </Card>
@@ -319,18 +341,18 @@ function CheckDetailModal({
         footer={
           <div className='flex flex-wrap justify-end gap-2'>
             {check?.photo_file && (
-              <Button variant='outline' onClick={() => openStoredFile(check.photo_file)}>
-                <ImageIcon />
+              <Button variant='outline' size='sm' onClick={() => openStoredFile(check.photo_file)}>
+                <ImageIcon className='size-3.5' />
                 Open photo
               </Button>
             )}
             {check?.blocked && canManage && (
-              <Button onClick={() => setClearing(true)}>
-                <ShieldCheck />
+              <Button variant='primary' size='sm' onClick={() => setClearing(true)}>
+                <ShieldCheck className='size-3.5' />
                 Clear for trips
               </Button>
             )}
-            <Button variant='outline' onClick={() => onOpenChange(false)}>
+            <Button variant='secondary' size='sm' onClick={() => onOpenChange(false)}>
               Close
             </Button>
           </div>

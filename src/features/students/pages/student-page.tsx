@@ -1,36 +1,7 @@
 import { useState } from 'react'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import {
-  ArrowLeft,
-  BedDouble,
-  Bus,
-  Camera,
-  ChevronDown,
-  Eye,
-  FileSpreadsheet,
-  FileText,
-  GraduationCap,
-  HeartPulse,
-  IdCard,
-  IndianRupee,
-  Library,
-  Link2,
-  LogOut,
-  NotebookPen,
-  Pencil,
-  Phone,
-  Plus,
-  RefreshCw,
-  School,
-  Smartphone,
-  Star,
-  Medal,
-  Trophy,
-  Trash,
-  UserRound,
-  UsersRound,
-  X,
-} from 'lucide-react'
+import { ArrowLeft, BedDouble, Camera, FileSpreadsheet, NotebookPen, Medal } from 'lucide-react'
+import { BusFrontIcon, ChevronDownIcon, CloseXIcon, DocumentTextIcon, EditIcon, EyeIcon, HeartPulseIcon, IdCardInfoIcon, LinkIcon, LogOutIcon, OpenBookIcon, PhoneCallIcon, PlusIcon, RefreshIcon, RupeeCircleIcon, SchoolBuildingIcon, SmartphoneIcon, StarIcon, TrashIcon, TrophyStarIcon, UserOutlineIcon, UsersIcon } from '@/components/common/icon'
 import { Avatar, ImagePreviewModal } from '@/components/common/avatar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DocumentList } from '@/components/common/document-list'
@@ -283,7 +254,7 @@ export function StudentPage() {
                 loading={printing}
                 onClick={() => void printCard()}
               >
-                <IdCard className='size-4 stroke-[1.75]' />
+                <IdCardInfoIcon className='size-4 stroke-[1.75]' />
                 ID card
               </Button>
             )}
@@ -294,7 +265,7 @@ export function StudentPage() {
                 className='w-[85px] h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={() => setModal('edit')}
               >
-                <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                <EditIcon className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Edit
               </Button>
             )}
@@ -307,19 +278,19 @@ export function StudentPage() {
                     className='h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                   >
                     More
-                    <ChevronDown className='size-4 stroke-[1.75]' />
+                    <ChevronDownIcon className='size-4 stroke-[1.75]' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {active && (
                     <DropdownMenuItem onSelect={() => setModal('class')}>
-                      <School />
+                      <SchoolBuildingIcon />
                       Change class or section
                     </DropdownMenuItem>
                   )}
                   {active && (
                     <DropdownMenuItem onSelect={() => setModal('reissue')}>
-                      <RefreshCw />
+                      <RefreshIcon />
                       Replace lost ID card
                     </DropdownMenuItem>
                   )}
@@ -331,13 +302,13 @@ export function StudentPage() {
                         )
                       }
                     >
-                      <FileText />
+                      <DocumentTextIcon />
                       Transfer certificate
                     </DropdownMenuItem>
                   )}
                   {data.photo_url && (
                     <DropdownMenuItem onSelect={() => setViewingPhoto(true)}>
-                      <Eye className='size-4' />
+                      <EyeIcon className='size-4' />
                       View photo
                     </DropdownMenuItem>
                   )}
@@ -352,14 +323,14 @@ export function StudentPage() {
                   </DropdownMenuItem>
                   {data.photo_url && (
                     <DropdownMenuItem destructive onSelect={() => void removePhoto()}>
-                      <Trash className='size-4 stroke-[1.75]' />
+                      <TrashIcon className='size-4 stroke-[1.75]' />
                       Remove photo
                     </DropdownMenuItem>
                   )}
                   {active && !data.noc_status && <DropdownMenuSeparator />}
                   {active && !data.noc_status && (
                     <DropdownMenuItem destructive onSelect={() => setModal('leave')}>
-                      <LogOut />
+                      <LogOutIcon />
                       Leaving the school
                     </DropdownMenuItem>
                   )}
@@ -380,18 +351,18 @@ export function StudentPage() {
         value={tab}
         onChange={go}
         tabs={[
-          { value: 'profile', label: 'Profile', icon: UserRound },
+          { value: 'profile', label: 'Profile', icon: UserOutlineIcon },
           {
             value: 'guardians',
             label: 'Parents',
-            icon: UsersRound,
+            icon: UsersIcon,
             count: data.guardian_details.length,
           },
-          { value: 'documents', label: 'Documents', icon: FileText, count: counts.data?.documents },
+          { value: 'documents', label: 'Documents', icon: DocumentTextIcon, count: counts.data?.documents },
           {
             value: 'health',
             label: 'Health',
-            icon: HeartPulse,
+            icon: HeartPulseIcon,
             count: counts.data?.vaccinations_overdue || undefined,
           },
           {
@@ -400,17 +371,17 @@ export function StudentPage() {
             icon: NotebookPen,
             count: counts.data?.behaviour_notes,
           },
-          { value: 'transport', label: 'Transport', icon: Bus },
+          { value: 'transport', label: 'Transport', icon: BusFrontIcon },
           { value: 'achievements', label: 'Achievements', icon: Medal },
           ...(canSeeResults
             ? [
-                { value: 'results' as const, label: 'Results', icon: Trophy },
+                { value: 'results' as const, label: 'Results', icon: TrophyStarIcon },
                 { value: 'report-card' as const, label: 'Report card', icon: FileSpreadsheet },
               ]
             : []),
-          ...(canSeeFees ? [{ value: 'fees' as const, label: 'Fees', icon: IndianRupee }] : []),
+          ...(canSeeFees ? [{ value: 'fees' as const, label: 'Fees', icon: RupeeCircleIcon }] : []),
           ...(canSeeLibrary
-            ? [{ value: 'library' as const, label: 'Library', icon: Library }]
+            ? [{ value: 'library' as const, label: 'Library', icon: OpenBookIcon }]
             : []),
           ...(canSeeHostel ? [{ value: 'hostel' as const, label: 'Hostel', icon: BedDouble }] : []),
         ]}
@@ -489,7 +460,7 @@ function LeftBanner({ student }: { student: StudentDetail }) {
     <Card className='flex flex-wrap items-center justify-between gap-3 border-warning/40 bg-warning/5 p-4'>
       <div className='flex items-center gap-3'>
         <span className='grid size-10 place-items-center rounded-lg bg-warning/15 text-warning'>
-          <LogOut className='size-5' />
+          <LogOutIcon className='size-5' />
         </span>
         <div className='grid'>
           <span className='font-semibold'>
@@ -504,19 +475,6 @@ function LeftBanner({ student }: { student: StudentDetail }) {
         </div>
       </div>
       <div className='flex flex-wrap gap-2'>
-        {student.alumni_id && (
-          <Button
-            variant='secondary'
-            size='sm'
-            className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
-            asChild
-          >
-            <Link to='/alumni/$id' params={{ id: String(student.alumni_id) }}>
-              <GraduationCap className='size-3.5 stroke-[1.75]' />
-              View alumni record
-            </Link>
-          </Button>
-        )}
         {tc.data && (
           <Button
             variant='secondary'
@@ -528,7 +486,7 @@ function LeftBanner({ student }: { student: StudentDetail }) {
               )
             }
           >
-            <FileText className='size-3.5 stroke-[1.75]' />
+            <DocumentTextIcon className='size-3.5 stroke-[1.75]' />
             Transfer certificate
           </Button>
         )}
@@ -559,7 +517,7 @@ function ProfileTab({
                 className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={onChangeClass}
               >
-                <Pencil className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                <EditIcon className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Change
               </Button>
             )
@@ -659,7 +617,7 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                 className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={() => setLinking(true)}
               >
-                <Plus className='size-4 stroke-[1.75]' />
+                <PlusIcon className='size-4 stroke-[1.75]' />
                 Link parent
               </Button>
             )
@@ -681,11 +639,11 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                       href={`tel:+91${guardian.mobile}`}
                       className='tabular inline-flex items-center gap-1 hover:text-foreground font-medium'
                     >
-                      <Phone className='size-3 stroke-[1.75]' />
+                      <PhoneCallIcon className='size-3 stroke-[1.75]' />
                       +91 {guardian.mobile}
                     </a>
                     <span className='inline-flex items-center gap-1'>
-                      <Smartphone className='size-3 stroke-[1.75]' />
+                      <SmartphoneIcon className='size-3 stroke-[1.75]' />
                       {guardian.on_app
                         ? 'Uses the app'
                         : guardian.receives_alerts
@@ -706,7 +664,7 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                         className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                         onClick={() => makeMain.mutate(guardian.id)}
                       >
-                        <Star className='size-4 stroke-[1.75]' />
+                        <StarIcon className='size-4 stroke-[1.75]' />
                       </Button>
                     )}
                     {student.guardian_details.length > 1 && (
@@ -718,7 +676,7 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                         className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                         onClick={() => setUnlinking({ id: guardian.id, name: guardian.name })}
                       >
-                        <X className='size-4 stroke-[1.75]' />
+                        <CloseXIcon className='size-4 stroke-[1.75]' />
                       </Button>
                     )}
                   </div>
@@ -745,7 +703,7 @@ function GuardiansTab({ student, canManage }: { student: StudentDetail; canManag
                     <span className='text-xs text-muted-foreground'>
                       Class {sibling.class_section ?? '—'}
                     </span>
-                    <Link2 className='size-4 text-muted-foreground' />
+                    <LinkIcon className='size-4 text-muted-foreground' />
                   </Link>
                 </li>
               ))}

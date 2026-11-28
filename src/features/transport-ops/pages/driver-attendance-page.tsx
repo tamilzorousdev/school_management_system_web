@@ -1,5 +1,5 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { Clock3, IdCard, UserRoundCheck, UserRoundX, Users } from 'lucide-react'
+import { Clock, IdCard, UserRoundCheck, UserRoundX, Users } from 'lucide-react'
 import { Avatar } from '@/components/common/avatar'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
@@ -26,45 +26,64 @@ function DriverCell({ row }: { row: DriverDay }) {
         subtitle={row.duty ? `Check-in selfie · ${clock(row.duty.check_in_at)}` : undefined}
       />
       <div className='grid min-w-0'>
-        <span className={cn('truncate font-bold', !row.duty && 'text-muted-foreground')}>
+        <span
+          className={cn(
+            'truncate text-[13px] leading-[18px] font-semibold',
+            row.duty ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
+          )}
+        >
           {row.driver.name}
         </span>
-        <span className='font-mono text-xs text-muted-foreground'>{row.mobile ?? '—'}</span>
+        <span className='font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          {row.mobile ?? '—'}
+        </span>
       </div>
     </div>
   )
 }
 
 function CheckInCell({ row }: { row: DriverDay }) {
-  if (!row.duty) return <Badge>Not checked in</Badge>
+  if (!row.duty) return <Badge className='font-medium'>Not checked in</Badge>
   const place = DUTY_PLACE[row.duty.check_in_place]
   return (
     <div className='grid justify-items-start gap-1'>
-      <span className='tabular font-semibold'>{clock(row.duty.check_in_at)}</span>
-      <Badge tone={place.tone}>{place.label}</Badge>
+      <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+        {clock(row.duty.check_in_at)}
+      </span>
+      <Badge tone={place.tone} className='font-medium'>
+        {place.label}
+      </Badge>
     </div>
   )
 }
 
 function LateCell({ row }: { row: DriverDay }) {
-  if (!row.duty) return <span className='text-muted-foreground'>—</span>
+  if (!row.duty) return <span className='text-slate-400'>—</span>
   return row.duty.late_minutes > 0 ? (
-    <Badge tone='warning'>{row.duty.late_minutes} min late</Badge>
+    <Badge tone='warning' className='font-medium'>
+      {row.duty.late_minutes} min late
+    </Badge>
   ) : (
-    <Badge tone='success'>On time</Badge>
+    <Badge tone='success' className='font-medium'>
+      On time
+    </Badge>
   )
 }
 
 function AttendantCell({ row }: { row: DriverDay }) {
   const present = row.duty?.attendant_present
   if (present === null || present === undefined) {
-    return <span className='text-muted-foreground'>—</span>
+    return <span className='text-slate-400'>—</span>
   }
   return (
     <div className='grid justify-items-start gap-0.5'>
-      <Badge tone={present ? 'success' : 'danger'}>{present ? 'Yes' : 'No'}</Badge>
+      <Badge tone={present ? 'success' : 'danger'} className='font-medium'>
+        {present ? 'Yes' : 'No'}
+      </Badge>
       {row.duty?.attendant && (
-        <span className='truncate text-xs text-muted-foreground'>{row.duty.attendant.name}</span>
+        <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+          {row.duty.attendant.name}
+        </span>
       )}
     </div>
   )
@@ -100,7 +119,7 @@ export function DriverAttendancePage() {
       label: 'Late',
       value: late,
       hint: 'After the reporting time',
-      icon: Clock3,
+      icon: Clock,
       tone: late ? 'warning' : 'neutral',
     },
     {
@@ -114,39 +133,51 @@ export function DriverAttendancePage() {
   ]
 
   const columns: Column<DriverDay>[] = [
-    { key: 'driver', header: 'Driver', cell: (row) => <DriverCell row={row} /> },
+    { key: 'driver', header: 'DRIVER', cell: (row) => <DriverCell row={row} /> },
     {
       key: 'bus',
-      header: 'Bus',
-      cell: (row) => <span className='font-medium'>{row.vehicle?.name ?? 'No bus'}</span>,
+      header: 'BUS',
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+          {row.vehicle?.name ?? 'No bus'}
+        </span>
+      ),
     },
     {
       key: 'reporting',
-      header: 'Reporting',
-      cell: (row) => <span className='tabular'>{row.duty?.reporting_time ?? '—'}</span>,
+      header: 'REPORTING',
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {row.duty?.reporting_time ?? '—'}
+        </span>
+      ),
     },
-    { key: 'check_in', header: 'Check-in', cell: (row) => <CheckInCell row={row} /> },
-    { key: 'late', header: 'Late', cell: (row) => <LateCell row={row} /> },
+    { key: 'check_in', header: 'CHECK-IN', cell: (row) => <CheckInCell row={row} /> },
+    { key: 'late', header: 'LATE', cell: (row) => <LateCell row={row} /> },
     {
       key: 'attendant',
-      header: 'Attendant',
+      header: 'ATTENDANT',
       hideBelow: 'lg',
       cell: (row) => <AttendantCell row={row} />,
     },
     {
       key: 'check_out',
-      header: 'Check-out',
+      header: 'CHECK-OUT',
       cell: (row) => (
-        <span className='tabular'>
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
           {row.duty?.check_out_at ? clock(row.duty.check_out_at) : '—'}
         </span>
       ),
     },
     {
       key: 'hours',
-      header: 'Hours',
+      header: 'HOURS',
       hideBelow: 'lg',
-      cell: (row) => <span className='tabular'>{hoursText(row.duty?.hours ?? null)}</span>,
+      cell: (row) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {hoursText(row.duty?.hours ?? null)}
+        </span>
+      ),
     },
   ]
 
@@ -188,10 +219,10 @@ export function DriverAttendancePage() {
                 <DriverCell row={row} />
                 <LateCell row={row} />
               </div>
-              <span className='text-xs text-muted-foreground'>
+              <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                 {row.vehicle?.name ?? 'No bus'} · Reporting {row.duty?.reporting_time ?? '—'}
               </span>
-              <div className='flex flex-wrap items-start gap-4 text-xs'>
+              <div className='flex flex-wrap items-start gap-4 text-[12px] leading-[16px]'>
                 <CheckInCell row={row} />
                 <AttendantCell row={row} />
                 {row.duty?.check_out_at && (

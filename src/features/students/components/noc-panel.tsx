@@ -1,13 +1,6 @@
 import { useState } from 'react'
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  FileText,
-  RefreshCw,
-  XCircle,
-  type LucideIcon,
-} from 'lucide-react'
+import { XCircle } from 'lucide-react'
+import { AlertTriangleIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon, RefreshIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { FormField } from '@/components/common/form-field'
 import { Badge } from '@/components/ui/badge'
@@ -147,7 +140,7 @@ export function NocPanel({
             )
           }
         >
-          <FileText className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+          <DocumentTextIcon className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
           Print NOC
         </Button>
         {canManage && (
@@ -158,7 +151,7 @@ export function NocPanel({
             className='h-9 px-4 gap-2 bg-[#127D48] text-white hover:bg-[#0E6339] font-medium shadow-xs disabled:opacity-50'
             onClick={onIssueTc}
           >
-            <FileText className='size-4 stroke-[1.75]' />
+            <DocumentTextIcon className='size-4 stroke-[1.75]' />
             Issue TC
           </Button>
         )}
@@ -191,7 +184,7 @@ function NocRow({
   onReopen: () => void
 }) {
   const done = item.status === 'cleared'
-  const Icon: LucideIcon = done ? CheckCircle2 : item.blocking ? AlertTriangle : Clock
+  const Icon = done ? CheckCircleIcon : item.blocking ? AlertTriangleIcon : ClockIcon
 
   return (
     <li className='flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between'>
@@ -248,7 +241,7 @@ function NocRow({
             className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
             onClick={onReopen}
           >
-            <RefreshCw className='size-3.5 stroke-[1.75] text-[#3C4440]' />
+            <RefreshIcon className='size-3.5 stroke-[1.75] text-[#3C4440]' />
             Reopen
           </Button>
         ) : (
@@ -259,7 +252,7 @@ function NocRow({
             className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium disabled:opacity-50'
             onClick={onClear}
           >
-            <CheckCircle2 className='size-3.5 stroke-[1.75] text-[#127D48]' />
+            <CheckCircleIcon className='size-3.5 stroke-[1.75] text-[#127D48]' />
             Clear
           </Button>
         ))}

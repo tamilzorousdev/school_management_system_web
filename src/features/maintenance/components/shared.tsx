@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { FileText, Upload, X } from 'lucide-react'
+import { DatePicker } from '@/components/common/date-picker'
 import { FormField } from '@/components/common/form-field'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input, Textarea } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/input'
 import { toApiError } from '@/lib/api/errors'
 import { filesApi } from '@/lib/files'
 import type { VehicleRef } from '../api'
@@ -25,11 +26,16 @@ export interface AttachedFile {
   name: string
 }
 
+export const MAINTENANCE_INPUT_CLASS =
+  'h-8 w-full sm:max-w-[320px] rounded-md border-[#DFE4E1] bg-white px-3 text-[13px] dark:border-border dark:bg-card'
+
 export function BusCell({ vehicle }: { vehicle: VehicleRef }) {
   return (
     <div className='grid min-w-0'>
-      <span className='truncate font-semibold'>{vehicle.name}</span>
-      <span className='font-mono text-xs whitespace-nowrap text-muted-foreground'>
+      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+        {vehicle.name}
+      </span>
+      <span className='font-mono text-[12px] leading-[16px] whitespace-nowrap text-slate-500 dark:text-slate-400'>
         {vehicle.registration_no}
       </span>
     </div>
@@ -225,13 +231,13 @@ export function NoteDialog({
           </FormField>
         </form>
         <DialogFooter>
-          <Button variant='outline' onClick={() => onOpenChange(false)} disabled={loading}>
+          <Button variant='secondary' onClick={() => onOpenChange(false)} disabled={loading}>
             Cancel
           </Button>
           <Button
             type='submit'
             form='note-dialog-form'
-            variant={destructive ? 'destructive' : 'default'}
+            variant={destructive ? 'destructive' : 'primary'}
             loading={loading}
           >
             {confirmText}
@@ -253,22 +259,20 @@ export function DateRangeInputs({
 }) {
   return (
     <>
-      <Input
-        type='date'
-        aria-label='From date'
-        placeholder='From'
+      <DatePicker
+        size='sm'
+        placeholder='From date'
         value={from ?? ''}
         max={to}
-        onChange={(event) => onChange({ from: event.target.value || undefined })}
+        onChange={(value: string) => onChange({ from: value || undefined })}
         className='w-full sm:w-40'
       />
-      <Input
-        type='date'
-        aria-label='To date'
-        placeholder='To'
+      <DatePicker
+        size='sm'
+        placeholder='To date'
         value={to ?? ''}
         min={from}
-        onChange={(event) => onChange({ to: event.target.value || undefined })}
+        onChange={(value: string) => onChange({ to: value || undefined })}
         className='w-full sm:w-40'
       />
     </>
@@ -308,7 +312,7 @@ export function ActionSheet({
           {actions.map((action) => (
             <Button
               key={action.key}
-              variant={action.destructive ? 'destructive' : 'outline'}
+              variant={action.destructive ? 'destructive' : 'secondary'}
               className='justify-start'
               onClick={() => {
                 onOpenChange(false)

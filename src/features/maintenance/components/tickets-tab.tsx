@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   Ban,
+  Check,
   CheckCircle2,
   CircleDot,
   CircleOff,
@@ -8,7 +9,7 @@ import {
   FileText,
   ImageIcon,
   IndianRupee,
-  Pencil,
+  PenLine,
   Plus,
   Timer,
   Wrench,
@@ -51,14 +52,24 @@ const OFF_ROAD_OPTIONS = [
 function TicketBadges({ ticket }: { ticket: Ticket }) {
   return (
     <span className='flex flex-wrap gap-1'>
-      <Badge tone={TICKET_KIND[ticket.kind].tone}>{TICKET_KIND[ticket.kind].label}</Badge>
-      <Badge tone={TICKET_SOURCE[ticket.source].tone}>{TICKET_SOURCE[ticket.source].label}</Badge>
+      <Badge tone={TICKET_KIND[ticket.kind].tone} className='font-medium'>
+        {TICKET_KIND[ticket.kind].label}
+      </Badge>
+      <Badge tone={TICKET_SOURCE[ticket.source].tone} className='font-medium'>
+        {TICKET_SOURCE[ticket.source].label}
+      </Badge>
       {ticket.severity && (
-        <Badge tone={SEVERITY[ticket.severity].tone}>{SEVERITY[ticket.severity].label}</Badge>
+        <Badge tone={SEVERITY[ticket.severity].tone} className='font-medium'>
+          {SEVERITY[ticket.severity].label}
+        </Badge>
       )}
-      {ticket.off_road && ticket.status !== 'done' && <Badge tone='danger'>Off road</Badge>}
+      {ticket.off_road && ticket.status !== 'done' && (
+        <Badge tone='danger' className='font-medium'>
+          Off road
+        </Badge>
+      )}
       {ticket.warranty_claim && (
-        <Badge tone='success' title={warrantyText(ticket) ?? undefined}>
+        <Badge tone='success' className='font-medium' title={warrantyText(ticket) ?? undefined}>
           Claim warranty
         </Badge>
       )}
@@ -69,7 +80,7 @@ function TicketBadges({ ticket }: { ticket: Ticket }) {
 function StatusBadge({ ticket }: { ticket: Ticket }) {
   const status = TICKET_STATUS[ticket.status]
   return (
-    <Badge tone={status.tone} dot>
+    <Badge tone={status.tone} dot className='font-medium'>
       {status.label}
     </Badge>
   )
@@ -81,6 +92,7 @@ export function TicketsTab({
   search,
   setSearch,
   onPageChange,
+  onLimitChange,
   onClear,
   canManage,
   adding,
@@ -99,9 +111,10 @@ export function TicketsTab({
     setEditOpen(true)
   }
   const sort = SORTS.find((item) => item === search.sort)
+  const limit = search.limit ?? LIMIT
   const params: TicketListParams = {
     page: search.page,
-    limit: LIMIT,
+    limit,
     search: search.search,
     sort,
     order: sort ? search.order : undefined,
@@ -193,30 +206,37 @@ export function TicketsTab({
           ticket.status !== 'done' && {
             key: 'close',
             label: 'Close ticket',
-            icon: <CheckCircle2 />,
+            icon: <Check className='size-4 stroke-[2.25]' />,
             onClick: () => {
               setClosing(ticket)
               setCloseOpen(true)
             },
-            className: 'text-success hover:bg-success/10',
+            className:
+              'text-slate-500 hover:bg-[#EAF7F0] hover:text-[#127D48] dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400',
           },
         ticket.bill_file && {
           key: 'bill',
           label: 'Open bill',
-          icon: <FileText />,
+          icon: <FileText className='size-4' />,
           onClick: () => openStoredFile(ticket.bill_file),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         ticket.photo_file && {
           key: 'photo',
           label: 'Open photo',
-          icon: <ImageIcon />,
+          icon: <ImageIcon className='size-4' />,
           onClick: () => openStoredFile(ticket.photo_file),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         canManage && {
           key: 'edit',
           label: 'Edit',
-          icon: <Pencil />,
+          icon: <PenLine className='size-4' />,
           onClick: () => openEdit(ticket),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
       ] as (SheetAction | false | null)[]
     ).filter((action): action is SheetAction => Boolean(action))
@@ -250,18 +270,20 @@ export function TicketsTab({
   const columns: Column<Ticket>[] = [
     {
       key: 'title',
-      header: 'Work',
+      header: 'WORK',
       cell: (ticket) => (
         <div className='grid min-w-0 gap-1'>
           <span className='flex flex-wrap items-center gap-1.5'>
-            <span className='font-bold'>{ticket.title}</span>
+            <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+              {ticket.title}
+            </span>
             {ticket.fault_code && (
               <span className='font-mono text-xs font-semibold text-destructive'>
                 {ticket.fault_code}
               </span>
             )}
           </span>
-          <span className='line-clamp-1 text-xs text-muted-foreground'>
+          <span className='line-clamp-1 text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {[
               ticket.category ? SERVICE_CATEGORY[ticket.category] : null,
               ticket.reported_by ? `Reported by ${ticket.reported_by.name}` : null,
@@ -273,50 +295,62 @@ export function TicketsTab({
         </div>
       ),
     },
-    { key: 'bus', header: 'Bus', cell: (ticket) => <BusCell vehicle={ticket.vehicle} /> },
-    { key: 'source', header: 'Type', cell: (ticket) => <TicketBadges ticket={ticket} /> },
+    { key: 'bus', header: 'BUS', cell: (ticket) => <BusCell vehicle={ticket.vehicle} /> },
+    { key: 'source', header: 'TYPE', cell: (ticket) => <TicketBadges ticket={ticket} /> },
     {
       key: 'status',
-      header: 'Status',
+      header: 'STATUS',
       sortKey: 'status',
       cell: (ticket) => <StatusBadge ticket={ticket} />,
     },
     {
       key: 'opened_at',
-      header: 'Opened',
+      header: 'OPENED',
       sortKey: 'opened_at',
       hideBelow: 'lg',
-      cell: (ticket) => <span className='tabular'>{formatDate(ticket.opened_at)}</span>,
+      cell: (ticket) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatDate(ticket.opened_at)}
+        </span>
+      ),
     },
     {
       key: 'closed_at',
-      header: 'Closed',
+      header: 'CLOSED',
       sortKey: 'closed_at',
       hideBelow: 'xl',
-      cell: (ticket) => <span className='tabular'>{formatDate(ticket.closed_at)}</span>,
+      cell: (ticket) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatDate(ticket.closed_at)}
+        </span>
+      ),
     },
     {
       key: 'cost',
-      header: 'Cost',
+      header: 'COST',
       sortKey: 'cost',
       hideBelow: 'lg',
       cell: (ticket) => (
         <div className='grid'>
-          <span className='tabular font-semibold'>{rupees(ticket.cost)}</span>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+            {rupees(ticket.cost)}
+          </span>
           {(ticket.parts_cost !== null || ticket.labour_cost !== null) && (
-            <span className='tabular text-xs text-muted-foreground'>
+            <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
               Parts {rupees(ticket.parts_cost ?? 0)} · Labour {rupees(ticket.labour_cost ?? 0)}
             </span>
           )}
           {vendorName(ticket) && (
-            <span className='truncate text-xs text-muted-foreground'>{vendorName(ticket)}</span>
+            <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              {vendorName(ticket)}
+            </span>
           )}
         </div>
       ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-28',
       cell: actions,
@@ -350,6 +384,8 @@ export function TicketsTab({
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Search title, fault code or vendor'
             label='Search tickets'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='ticket-status-filter'
@@ -417,8 +453,8 @@ export function TicketsTab({
               ? 'Try another bus, type or status, or clear the filters.'
               : 'Tickets come from engine fault codes, driver reports and failed pre-trip checks, or you can add one by hand.',
             action: !filtered && canManage && (
-              <Button onClick={() => onAddingChange(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => onAddingChange(true)}>
+                <Plus className='size-3.5' />
                 Add ticket
               </Button>
             ),
@@ -427,8 +463,10 @@ export function TicketsTab({
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
                 <div className='grid min-w-0'>
-                  <span className='font-bold'>{ticket.title}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                    {ticket.title}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {ticket.vehicle.name} · {ticket.vehicle.registration_no}
                     {ticket.category ? ` · ${SERVICE_CATEGORY[ticket.category]}` : ''}
                     {ticket.fault_code ? ` · ${ticket.fault_code}` : ''}
@@ -457,10 +495,11 @@ export function TicketsTab({
           )}
           pagination={{
             page: search.page,
-            limit: LIMIT,
+            limit,
             total: tickets.data?.total ?? 0,
             label: 'tickets',
             onPageChange,
+            onLimitChange,
           }}
         />
       </Card>

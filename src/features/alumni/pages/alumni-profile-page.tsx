@@ -8,7 +8,7 @@ import {
   Clock,
   ExternalLink,
   Link2,
-  Pencil,
+  PenLine,
   Trash,
   UserCheck,
   UserX,
@@ -162,7 +162,7 @@ export function AlumniProfilePage() {
                 className='w-[85px] h-9 px-4 gap-2 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
                 onClick={() => setModal('edit')}
               >
-                <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                <PenLine className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 Edit
               </Button>
               <Button
@@ -448,7 +448,7 @@ function AcademicHistory({
             className='h-8 px-3 gap-1.5 border border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
             onClick={onEdit}
           >
-            <Pencil className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+            <PenLine className='size-3.5 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
             Edit
           </Button>
         )

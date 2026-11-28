@@ -6,9 +6,9 @@ import {
   FileText,
   Plus,
   Shuffle,
-  Trash2,
   UserCheck,
 } from 'lucide-react'
+import { TrashIcon } from '@/components/common/icon'
 import { Combobox } from '@/components/common/combobox'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState } from '@/components/common/display'
@@ -408,11 +408,11 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
                   {canManage && (
                     <Button
                       variant='ghost'
-                      size='icon'
-                      className='h-6 w-6 text-red-500 hover:bg-red-50'
+                      size='icon-sm'
+                      className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318]'
                       onClick={() => handleDeleteHall(hall.id)}
                     >
-                      <Trash2 className='h-3.5 w-3.5' />
+                      <TrashIcon className='size-4' />
                     </Button>
                   )}
                 </div>
@@ -569,11 +569,11 @@ export function HallsTab({ canManage, examId: initialExamId, onExamChange }: Hal
                       <td className='p-3 text-right'>
                         <Button
                           variant='ghost'
-                          size='icon'
-                          className='h-7 w-7 text-red-500 hover:bg-red-50'
+                          size='icon-sm'
+                          className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318]'
                           onClick={() => handleDeleteInvigilator(inv.id, inv.teacher_name)}
                         >
-                          <Trash2 className='h-3.5 w-3.5' />
+                          <TrashIcon className='size-4' />
                         </Button>
                       </td>
                     )}

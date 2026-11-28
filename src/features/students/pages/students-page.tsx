@@ -1,19 +1,7 @@
 import { useState } from 'react'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import {
-  ArrowUpCircle,
-  ChevronDown,
-  CircleOff,
-  Eye,
-  FileSpreadsheet,
-  GraduationCap,
-  IdCard,
-  ListOrdered,
-  Plus,
-  Sparkles,
-  UserRoundX,
-  UsersRound,
-} from 'lucide-react'
+import { ArrowUpCircle, CircleOff, FileSpreadsheet, UserRoundX } from 'lucide-react'
+import { ChevronDownIcon, EyeIcon, GraduationCapIcon, IdCardInfoIcon, ListIcon, PlusIcon, SparklesIcon, UsersIcon } from '@/components/common/icon'
 import { Avatar } from '@/components/common/avatar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
@@ -117,7 +105,7 @@ export function StudentsPage() {
       label: 'Students',
       value: data?.total ?? 0,
       hint: `${data?.boys ?? 0} boys · ${data?.girls ?? 0} girls`,
-      icon: GraduationCap,
+      icon: GraduationCapIcon,
       tone: 'primary',
       active: !search.no_section && !search.has_siblings && !search.new_this_month,
       onClick: () =>
@@ -128,7 +116,7 @@ export function StudentsPage() {
       label: 'Joined this month',
       value: data?.new_this_month ?? 0,
       hint: 'New admissions',
-      icon: Sparkles,
+      icon: SparklesIcon,
       tone: 'success',
       active: Boolean(search.new_this_month),
       onClick: () => toggle('new_this_month'),
@@ -148,7 +136,7 @@ export function StudentsPage() {
       label: 'With siblings here',
       value: data?.with_siblings ?? 0,
       hint: 'Brothers and sisters share parents',
-      icon: UsersRound,
+      icon: UsersIcon,
       tone: 'info',
       active: Boolean(search.has_siblings),
       onClick: () => toggle('has_siblings'),
@@ -278,7 +266,7 @@ export function StudentsPage() {
             openStudent(student.id)
           }}
         >
-          <Eye className='size-4 stroke-[1.75]' />
+          <EyeIcon className='size-4 stroke-[1.75]' />
         </Button>
       ),
     },
@@ -310,7 +298,7 @@ export function StudentsPage() {
                 loading={printing}
                 onClick={() => void printCards()}
               >
-                <IdCard className='size-4' />
+                <IdCardInfoIcon className='size-4' />
                 Print ID cards
               </Button>
             )}
@@ -320,7 +308,7 @@ export function StudentsPage() {
                   <DropdownMenuTrigger asChild>
                     <Button variant='secondary' size='sm'>
                       Bulk actions
-                      <ChevronDown className='size-4' />
+                      <ChevronDownIcon className='size-4' />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
@@ -336,12 +324,12 @@ export function StudentsPage() {
                 </DropdownMenu>
                 {selectedSection && (
                   <Button variant='secondary' size='sm' onClick={() => setNumbering(true)}>
-                    <ListOrdered className='size-4' />
+                    <ListIcon className='size-4' />
                     Number {classSection(selectedSection.class_name, selectedSection.name)}
                   </Button>
                 )}
                 <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
-                  <Plus className='size-4' />
+                  <PlusIcon className='size-4' />
                   Add student
                 </Button>
               </>
@@ -412,14 +400,14 @@ export function StudentsPage() {
           sort={{ sort: search.sort, order: search.order ?? 'asc' }}
           onSortChange={(next) => setSearch(next as Partial<StudentsSearch>)}
           empty={{
-            icon: filtered ? CircleOff : GraduationCap,
+            icon: filtered ? CircleOff : GraduationCapIcon,
             title: filtered ? 'No students match these filters' : 'No students yet',
             description: filtered
               ? 'Try another name, class or parent mobile, or clear the filters.'
               : 'Enrol students from Admissions, or add existing students here.',
             action: !filtered && canManage && (
               <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
-                <Plus className='size-4' />
+                <PlusIcon className='size-4' />
                 Add student
               </Button>
             ),
@@ -467,7 +455,7 @@ export function StudentsPage() {
                   openStudent(student.id)
                 }}
               >
-                <Eye className='size-4 stroke-[1.75]' />
+                <EyeIcon className='size-4 stroke-[1.75]' />
               </Button>
             </div>
           )}

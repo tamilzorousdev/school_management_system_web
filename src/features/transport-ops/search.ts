@@ -21,6 +21,7 @@ export type BusAttendanceSearch = z.infer<typeof busAttendanceSearchSchema>
 
 export const incidentsSearchSchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),
+  limit: z.coerce.number().int().min(10).max(50).optional().catch(undefined),
   search: z.string().trim().max(100).optional().catch(undefined),
   status: z.enum(['open', 'resolved']).optional().catch(undefined),
   type: z

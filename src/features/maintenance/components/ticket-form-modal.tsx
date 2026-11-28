@@ -35,7 +35,7 @@ import {
   wholeText,
 } from '../labels'
 import { applyFieldErrors } from '../helpers'
-import { FileField, FormAlert, type AttachedFile } from './shared'
+import { FileField, FormAlert, MAINTENANCE_INPUT_CLASS, type AttachedFile } from './shared'
 
 const FORM_ID = 'ticket-form'
 const FAULT_CODE = /^[PCBU][0-9A-F]{4}$/
@@ -401,7 +401,7 @@ function TicketForm({
           id='ticket-fault'
           maxLength={5}
           placeholder='P0301'
-          className='font-mono uppercase'
+          className={`font-mono uppercase ${MAINTENANCE_INPUT_CLASS}`}
           aria-invalid={Boolean(errors.fault_code) || undefined}
           {...register('fault_code')}
         />
@@ -415,6 +415,7 @@ function TicketForm({
           max={2_000_000}
           step='0.1'
           placeholder='48213'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.odometer_km) || undefined}
           {...register('odometer_km')}
         />
@@ -451,6 +452,7 @@ function TicketForm({
             id='ticket-vendor'
             maxLength={100}
             placeholder='Sri Murugan Motors'
+            className={MAINTENANCE_INPUT_CLASS}
             aria-invalid={Boolean(errors.vendor) || undefined}
             {...register('vendor')}
           />
@@ -465,6 +467,7 @@ function TicketForm({
           max={1_000_000}
           step='0.01'
           placeholder='3000'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.parts_cost) || undefined}
           {...register('parts_cost')}
         />
@@ -483,6 +486,7 @@ function TicketForm({
           max={1_000_000}
           step='0.01'
           placeholder='1500'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.labour_cost) || undefined}
           {...register('labour_cost')}
         />
@@ -502,6 +506,7 @@ function TicketForm({
             max={1_000_000}
             step='0.01'
             placeholder='4500'
+            className={MAINTENANCE_INPUT_CLASS}
             aria-invalid={Boolean(errors.cost) || undefined}
             {...register('cost')}
           />
@@ -519,6 +524,7 @@ function TicketForm({
           min={1}
           max={120}
           placeholder='12'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.warranty_months) || undefined}
           {...register('warranty_months')}
         />
@@ -531,6 +537,7 @@ function TicketForm({
           min={100}
           max={500_000}
           placeholder='20000'
+          className={MAINTENANCE_INPUT_CLASS}
           aria-invalid={Boolean(errors.warranty_km) || undefined}
           {...register('warranty_km')}
         />

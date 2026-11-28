@@ -1,16 +1,6 @@
-import { useState } from 'react'
-import {
-  AlertTriangle,
-  Award,
-  EyeOff,
-  Gavel,
-  MessageSquareWarning,
-  NotebookPen,
-  Pencil,
-  Plus,
-  Trash,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { useState, type ComponentType } from 'react'
+import { Award, Gavel, MessageSquareWarning, NotebookPen } from 'lucide-react'
+import { AlertTriangleIcon, EditIcon, EyeOffIcon, PlusIcon, TrashIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -36,7 +26,7 @@ import {
 
 const CATEGORIES: Record<
   BehaviourCategory,
-  { label: string; tone: BadgeTone; icon: LucideIcon; ring: string }
+  { label: string; tone: BadgeTone; icon: ComponentType<{ className?: string }>; ring: string }
 > = {
   appreciation: {
     label: 'Appreciation',
@@ -53,7 +43,7 @@ const CATEGORIES: Record<
   incident: {
     label: 'Incident',
     tone: 'danger',
-    icon: AlertTriangle,
+    icon: AlertTriangleIcon,
     ring: 'bg-destructive/10 text-destructive',
   },
   disciplinary: {
@@ -84,7 +74,7 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
         </p>
         {canManage && (
           <Button variant='primary' size='sm' onClick={() => setEditing('new')}>
-            <Plus className='size-4 stroke-[1.75]' />
+            <PlusIcon className='size-4 stroke-[1.75]' />
             Add note
           </Button>
         )}
@@ -116,7 +106,7 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
                     <Badge tone={category.tone}>{category.label}</Badge>
                     {!note.visible_to_parent && (
                       <Badge tone='neutral'>
-                        <EyeOff className='size-3' />
+                        <EyeOffIcon className='size-3' />
                         Staff only
                       </Badge>
                     )}
@@ -143,7 +133,7 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
                           className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                           onClick={() => setEditing(note)}
                         >
-                          <Pencil className='size-4 stroke-[1.75]' />
+                          <EditIcon className='size-4 stroke-[1.75]' />
                         </Button>
                         <Button
                           size='icon-sm'
@@ -153,7 +143,7 @@ export function BehaviourTab({ studentId, canManage }: { studentId: number; canM
                           className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                           onClick={() => setRemoving(note)}
                         >
-                          <Trash className='size-4 stroke-[1.75]' />
+                          <TrashIcon className='size-4 stroke-[1.75]' />
                         </Button>
                       </span>
                     )}

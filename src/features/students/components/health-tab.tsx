@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { CheckCircle2, Pencil, Plus, Syringe, Trash } from 'lucide-react'
+import { Syringe } from 'lucide-react'
+import { CheckCircleIcon, EditIcon, PlusIcon, TrashIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState, ErrorState } from '@/components/common/display'
@@ -57,9 +58,9 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                 onClick={() => setEditing(true)}
               >
                 {empty ? (
-                  <Plus className='size-4 stroke-[1.75]' />
+                  <PlusIcon className='size-4 stroke-[1.75]' />
                 ) : (
-                  <Pencil className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
+                  <EditIcon className='size-4 stroke-[1.75] text-[#3C4440] dark:text-slate-300' />
                 )}
                 {empty ? 'Add' : 'Edit'}
               </Button>
@@ -107,7 +108,7 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
           action={
             canManage && (
               <Button size='sm' variant='secondary' onClick={() => setVaccine('new')}>
-                <Plus className='size-4 stroke-[1.75]' />
+                <PlusIcon className='size-4 stroke-[1.75]' />
                 Add
               </Button>
             )
@@ -137,7 +138,7 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                     )}
                   >
                     {item.given_on ? (
-                      <CheckCircle2 className='size-4' />
+                      <CheckCircleIcon className='size-4' />
                     ) : (
                       <Syringe className='size-4' />
                     )}
@@ -185,7 +186,7 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                         className='size-8 border border-[#EDF0EE] bg-white text-[#3C4440] hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
                         onClick={() => setVaccine(item)}
                       >
-                        <Pencil className='size-4 stroke-[1.75]' />
+                        <EditIcon className='size-4 stroke-[1.75]' />
                       </Button>
                       <Button
                         size='icon-sm'
@@ -195,7 +196,7 @@ export function HealthTab({ studentId, canManage }: { studentId: number; canMana
                         className='size-8 border border-[#FDA29B] text-[#D92D20] bg-white hover:bg-rose-50 dark:border-rose-900 dark:bg-card dark:text-rose-400 dark:hover:bg-rose-950/50'
                         onClick={() => setRemoving(item)}
                       >
-                        <Trash className='size-4 stroke-[1.75]' />
+                        <TrashIcon className='size-4 stroke-[1.75]' />
                       </Button>
                     </span>
                   )}

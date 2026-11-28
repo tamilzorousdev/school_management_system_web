@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Plus } from 'lucide-react'
+import { ArrowRightIcon, PlusIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { Combobox } from '@/components/common/combobox'
 import { ErrorState } from '@/components/common/display'
@@ -211,7 +211,7 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
           <div aria-hidden className='hidden gap-1.5 lg:grid'>
             <span className='invisible text-xs font-semibold'>to</span>
             <span className='flex h-9 items-center justify-center'>
-              <ArrowRight className='size-5 text-muted-foreground' />
+              <ArrowRightIcon className='size-5 text-muted-foreground' />
             </span>
           </div>
           <FormField id='promote-to' label={data ? `Class in ${data.to_year.name}` : 'Next class'}>
@@ -245,7 +245,7 @@ export function PromotionModal({ onClose }: { onClose: () => void }) {
                     loading={addSections.isPending}
                     onClick={() => void createNextSections()}
                   >
-                    <Plus className='size-3.5' />
+                    <PlusIcon className='size-3.5' />
                     {thisYearSections.data?.length
                       ? `Add ${thisYearSections.data.map((item) => item.name).join(', ')} for ${data?.to_year.name}`
                       : `Add Section A for ${data?.to_year.name}`}

@@ -115,9 +115,9 @@ export function TransportPage() {
         title='Buses and routes'
         description='School buses with their tracker, crew and documents, the routes and stops they run, and the students at each stop.'
         actions={
-          <Button variant='outline' asChild>
+          <Button variant='outline' size='sm' asChild>
             <Link to='/crew' search={{ page: 1 }}>
-              <IdCard />
+              <IdCard className='size-3.5' />
               Drivers and attendants
             </Link>
           </Button>
@@ -158,11 +158,13 @@ export function TransportPage() {
         <BusesTab
           search={search.search}
           page={search.page ?? 1}
+          limit={search.limit ?? 20}
           flag={search.flag}
           canManage={canManage}
           onSearch={(value) => setSearch({ search: value })}
           onFlag={(flag) => setSearch({ flag })}
-          onPage={(page) => setSearch({ page })}
+          onPage={(page) => navigate({ search: (prev) => ({ ...prev, page }) })}
+          onLimit={(limit) => setSearch({ limit })}
         />
       )}
       {search.tab === 'routes' && <RoutesTab canManage={canManage} />}
@@ -171,6 +173,7 @@ export function TransportPage() {
           filters={{
             search: search.search,
             page: search.page ?? 1,
+            limit: search.limit ?? 20,
             route_id: search.route_id,
             stop_id: search.stop_id,
             class_id: search.class_id,

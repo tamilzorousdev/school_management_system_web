@@ -1,5 +1,4 @@
-import { useRef } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import { useRef, type ComponentType } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
@@ -10,7 +9,7 @@ export interface Insight {
   label: string
   value: number | string
   hint?: string
-  icon: LucideIcon
+  icon: ComponentType<{ className?: string }>
   tone?: InsightTone
   active?: boolean
   onClick?: () => void

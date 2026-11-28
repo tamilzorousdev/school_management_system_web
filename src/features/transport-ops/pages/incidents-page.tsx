@@ -42,8 +42,10 @@ function TypeCell({ incident }: { incident: Incident }) {
         <type.icon className='size-4' />
       </span>
       <div className='grid max-w-md min-w-0 gap-0.5'>
-        <span className='font-bold'>{type.label}</span>
-        <span className='line-clamp-2 text-xs break-words text-muted-foreground'>
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+          {type.label}
+        </span>
+        <span className='line-clamp-2 text-[12px] leading-[16px] break-words text-slate-500 dark:text-slate-400'>
           {incident.description}
         </span>
       </div>
@@ -55,11 +57,11 @@ function StatusCell({ incident }: { incident: Incident }) {
   const status = INCIDENT_STATUS[incident.status]
   return (
     <div className='grid max-w-64 justify-items-start gap-1'>
-      <Badge tone={status.tone} dot pulse={incident.status === 'open'}>
+      <Badge tone={status.tone} dot pulse={incident.status === 'open'} className='font-medium'>
         {status.label}
       </Badge>
       {incident.status === 'resolved' && incident.resolved_by && (
-        <span className='line-clamp-2 text-[11px] text-muted-foreground'>
+        <span className='line-clamp-2 text-[11px] text-slate-500 dark:text-slate-400'>
           by {incident.resolved_by.name}
           {incident.resolution_note ? `: ${incident.resolution_note}` : ''}
         </span>
@@ -74,8 +76,9 @@ const studentsText = (incident: Incident) =>
 export function IncidentsPage() {
   const search = route.useSearch()
   const navigate = useNavigate({ from: '/transport/incidents' })
-  const { id, ...filters } = search
-  const list = useIncidents({ ...filters, limit: LIMIT })
+  const { id, limit: searchLimit, ...filters } = search
+  const limit = searchLimit ?? LIMIT
+  const list = useIncidents({ ...filters, limit })
   const insights = useIncidentInsights()
   const rows = list.data?.items ?? []
   const data = insights.data
@@ -134,32 +137,46 @@ export function IncidentsPage() {
   ]
 
   const columns: Column<Incident>[] = [
-    { key: 'type', header: 'Incident', cell: (incident) => <TypeCell incident={incident} /> },
+    { key: 'type', header: 'INCIDENT', cell: (incident) => <TypeCell incident={incident} /> },
     {
       key: 'bus',
-      header: 'Bus',
-      cell: (incident) => <span className='font-medium'>{incident.vehicle?.name ?? 'No bus'}</span>,
+      header: 'BUS',
+      cell: (incident) => (
+        <span className='text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+          {incident.vehicle?.name ?? 'No bus'}
+        </span>
+      ),
     },
     {
       key: 'reported_by',
-      header: 'Reported by',
-      cell: (incident) => incident.reported_by.name,
+      header: 'REPORTED BY',
+      cell: (incident) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          {incident.reported_by.name}
+        </span>
+      ),
     },
     {
       key: 'students',
-      header: 'Students',
+      header: 'STUDENTS',
       hideBelow: 'lg',
       cell: (incident) => (
-        <span className='line-clamp-2 max-w-56 text-sm'>{studentsText(incident)}</span>
+        <span className='line-clamp-2 max-w-56 text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          {studentsText(incident)}
+        </span>
       ),
     },
     {
       key: 'occurred_at',
-      header: 'Occurred',
+      header: 'OCCURRED',
       sortKey: 'occurred_at',
-      cell: (incident) => <span className='text-sm'>{formatDateTime(incident.occurred_at)}</span>,
+      cell: (incident) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 tabular-nums dark:text-slate-300'>
+          {formatDateTime(incident.occurred_at)}
+        </span>
+      ),
     },
-    { key: 'status', header: 'Status', cell: (incident) => <StatusCell incident={incident} /> },
+    { key: 'status', header: 'STATUS', cell: (incident) => <StatusCell incident={incident} /> },
   ]
 
   const filtered = Boolean(search.search || search.status || search.type)
@@ -186,6 +203,8 @@ export function IncidentsPage() {
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Search the description'
             label='Search incidents'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='incident-type'
@@ -239,10 +258,12 @@ export function IncidentsPage() {
           )}
           pagination={{
             page: search.page,
-            limit: LIMIT,
+            limit,
             total: list.data?.total ?? 0,
             label: 'incidents',
             onPageChange: (page) => navigate({ search: (prev) => ({ ...prev, page }) }),
+            onLimitChange: (next) =>
+              navigate({ search: (prev) => ({ ...prev, limit: next, page: 1 }), replace: true }),
           }}
         />
       </Card>

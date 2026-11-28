@@ -10,9 +10,9 @@ import {
   Mic,
   Plus,
   ShieldAlert,
-  Trash2,
 } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { TrashIcon } from '@/components/common/icon'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -216,14 +216,14 @@ export function QuizzesTab({
           )}
 
           <Button
-            size='sm'
+            size='icon'
             variant='ghost'
-            className='h-8 px-2 text-xs text-destructive hover:text-destructive'
+            className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] [&_svg]:size-5'
             onClick={() => setDeleting(quiz)}
             title='Delete quiz'
             aria-label={`Delete ${quiz.title}`}
           >
-            <Trash2 className='h-4 w-4' />
+            <TrashIcon className='size-5' />
           </Button>
         </div>
       ),
@@ -335,7 +335,7 @@ export function QuizzesTab({
         }}
         title='Delete this quiz?'
         description={deleting ? deleteWarning(deleting) : ''}
-        confirmText='Delete quiz'
+        confirmText='Delete'
         destructive
         loading={deleteMutation.isPending}
         onConfirm={confirmDelete}

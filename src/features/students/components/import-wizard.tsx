@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { CheckCircle2, Download, FileSpreadsheet, RotateCcw, Upload, XCircle } from 'lucide-react'
+import { FileSpreadsheet, XCircle } from 'lucide-react'
+import { CheckCircleIcon, DownloadIcon, RefreshIcon, UploadIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { Badge, type BadgeTone } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -73,7 +74,7 @@ export function ImportWizard({ onClose }: { onClose: () => void }) {
                     setFile(null)
                   }}
                 >
-                  <RotateCcw />
+                  <RefreshIcon />
                   Choose another file
                 </Button>
                 <Button
@@ -120,7 +121,7 @@ export function ImportWizard({ onClose }: { onClose: () => void }) {
                       : 'bg-muted'
                 )}
               >
-                {step > index + 1 ? <CheckCircle2 className='size-3.5' /> : index + 1}
+                {step > index + 1 ? <CheckCircleIcon className='size-3.5' /> : index + 1}
               </span>
               {label}
             </li>
@@ -150,7 +151,7 @@ export function ImportWizard({ onClose }: { onClose: () => void }) {
                   }
                 }}
               >
-                <Download />
+                <DownloadIcon />
                 Download template
               </Button>
             </div>
@@ -165,7 +166,7 @@ export function ImportWizard({ onClose }: { onClose: () => void }) {
                 )}
               >
                 <span className='grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
-                  {file ? <FileSpreadsheet className='size-5' /> : <Upload className='size-5' />}
+                  {file ? <FileSpreadsheet className='size-5' /> : <UploadIcon className='size-5' />}
                 </span>
                 <span className='grid min-w-0'>
                   <span className='truncate font-semibold'>

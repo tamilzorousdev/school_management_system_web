@@ -4,12 +4,12 @@ import {
   ArrowRightLeft,
   CircleOff,
   ListOrdered,
-  PauseCircle,
-  PlayCircle,
+  Pause,
+  Play,
   Plus,
-  UserMinus,
   UsersRound,
 } from 'lucide-react'
+import { TrashIcon } from '@/components/common/icon'
 import { AppModal } from '@/components/common/app-modal'
 import { FormField } from '@/components/common/form-field'
 import { Textarea } from '@/components/ui/input'
@@ -41,6 +41,7 @@ const LIMIT = 20
 interface Filters {
   search?: string
   page: number
+  limit: number
   route_id?: number
   stop_id?: number
   class_id?: number
@@ -58,7 +59,7 @@ export function StudentsTab({
   canManage: boolean
   onChange: (patch: Partial<Filters>) => void
 }) {
-  const riders = useRiders({ ...filters, limit: LIMIT })
+  const riders = useRiders({ ...filters, limit: filters.limit ?? LIMIT })
   const routes = useBusRoutes()
   const classes = useClasses()
   const detail = useRouteDetail(filters.route_id)
@@ -90,21 +91,21 @@ export function StudentsTab({
         {rider.pass_status === 'on_hold' ? (
           <Button
             size='sm'
-            variant='outline'
+            variant='secondary'
             aria-label={`Make ${rider.student.full_name}'s bus pass active`}
             onClick={() => void activate(rider)}
           >
-            <PlayCircle className='text-success' />
+            <Play className='size-3.5' />
             Activate pass
           </Button>
         ) : (
           <Button
             size='sm'
-            variant='outline'
+            variant='secondary'
             aria-label={`Put ${rider.student.full_name}'s bus pass on hold`}
             onClick={() => setHolding(rider)}
           >
-            <PauseCircle className='text-warning' />
+            <Pause className='size-3.5' />
             Hold pass
           </Button>
         )}
@@ -114,18 +115,18 @@ export function StudentsTab({
           aria-label={`Change stop for ${rider.student.full_name}`}
           onClick={() => setEditing(rider)}
         >
-          <ArrowRightLeft />
+          <ArrowRightLeft className='size-3.5' />
           Change
         </Button>
         <Button
-          size='sm'
+          size='icon-sm'
           variant='ghost'
           aria-label={`Take ${rider.student.full_name} off the bus`}
-          className='text-destructive hover:bg-destructive/10'
+          title='Remove from bus'
+          className='text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] dark:text-red-400 dark:hover:bg-destructive/10 dark:hover:text-red-300'
           onClick={() => setRemoving(rider)}
         >
-          <UserMinus />
-          Remove
+          <TrashIcon className='size-4' />
         </Button>
       </span>
     )
@@ -133,18 +134,20 @@ export function StudentsTab({
   const student = (rider: Rider) => (
     <span className='grid min-w-0'>
       <span className='flex min-w-0 items-center gap-1.5'>
-        <span className='truncate font-bold'>{rider.student.full_name}</span>
+        <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+          {rider.student.full_name}
+        </span>
         {rider.pass_status === 'on_hold' && (
-          <Badge tone='warning' title={rider.pass_note ?? undefined}>
+          <Badge tone='warning' className='font-medium' title={rider.pass_note ?? undefined}>
             Pass on hold
           </Badge>
         )}
       </span>
-      <span className='truncate font-mono text-xs text-muted-foreground'>
+      <span className='truncate font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
         {rider.student.admission_no}
       </span>
       {rider.student.class_section && (
-        <span className='truncate text-xs text-muted-foreground'>
+        <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
           Class {rider.student.class_section}
         </span>
       )}
@@ -181,29 +184,50 @@ export function StudentsTab({
     )
 
   const columns: Column<Rider>[] = [
-    { key: 'student', header: 'Student', sortKey: 'name', cell: student },
+    { key: 'student', header: 'STUDENT', sortKey: 'name', cell: student },
     {
       key: 'class',
-      header: 'Class',
+      header: 'CLASS',
       sortKey: 'class',
       hideBelow: 'xl',
-      cell: (rider) => rider.student.class_section ?? '—',
+      cell: (rider) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          {rider.student.class_section ?? '—'}
+        </span>
+      ),
     },
-    { key: 'route', header: 'Route', cell: (rider) => rider.route.name, hideBelow: 'lg' },
-    { key: 'stop', header: 'Stop', sortKey: 'stop', cell: stop },
+    {
+      key: 'route',
+      header: 'ROUTE',
+      cell: (rider) => (
+        <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+          {rider.route.name}
+        </span>
+      ),
+      hideBelow: 'lg',
+    },
+    { key: 'stop', header: 'STOP', sortKey: 'stop', cell: stop },
     {
       key: 'mode',
-      header: 'Uses the bus for',
-      cell: (rider) => <Badge tone='info'>{MODE_LABELS[rider.mode]}</Badge>,
+      header: 'USES THE BUS FOR',
+      cell: (rider) => (
+        <Badge tone='info' className='font-medium'>
+          {MODE_LABELS[rider.mode]}
+        </Badge>
+      ),
     },
     {
       key: 'fee',
-      header: 'Fee a month',
+      header: 'FEE A MONTH',
       hideBelow: 'xl',
       align: 'right',
-      cell: (rider) => <span className='tabular'>{rupees(rider.monthly_fee)}</span>,
+      cell: (rider) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {rupees(rider.monthly_fee)}
+        </span>
+      ),
     },
-    { key: 'actions', header: '', align: 'right', cell: actions },
+    { key: 'actions', header: 'ACTION', align: 'right', cell: actions },
   ]
 
   return (
@@ -228,6 +252,8 @@ export function StudentsTab({
           onChange={(value) => onChange({ search: value || undefined })}
           placeholder='Student name or admission no.'
           label='Search students on the bus'
+          compact
+          showShortcut={false}
         />
         <FilterSelect
           id='transport-route-filter'
@@ -279,16 +305,16 @@ export function StudentsTab({
           }
         />
         {filters.route_id && (
-          <Button variant='outline' asChild>
+          <Button variant='outline' size='sm' asChild>
             <Link to='/transport/routes/$routeId/students' params={{ routeId: filters.route_id }}>
-              <ListOrdered />
+              <ListOrdered className='size-3.5' />
               Route list
             </Link>
           </Button>
         )}
         {canManage && (
-          <Button onClick={() => setAdding(true)}>
-            <Plus />
+          <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
+            <Plus className='size-3.5' />
             Assign student
           </Button>
         )}
@@ -309,8 +335,8 @@ export function StudentsTab({
             ? 'Try another name, or clear the filters.'
             : 'Assign students to a route and stop, or add them from the route builder.',
           action: !filtered && canManage && (
-            <Button onClick={() => setAdding(true)}>
-              <Plus />
+            <Button variant='primary' size='sm' onClick={() => setAdding(true)}>
+              <Plus className='size-3.5' />
               Assign student
             </Button>
           ),
@@ -328,10 +354,11 @@ export function StudentsTab({
         )}
         pagination={{
           page: filters.page,
-          limit: LIMIT,
+          limit: filters.limit ?? LIMIT,
           total: riders.data?.total ?? 0,
           label: 'students',
           onPageChange: (page) => onChange({ page }),
+          onLimitChange: (limit) => onChange({ limit, page: 1 }),
         }}
       />
       <AssignTransportModal
@@ -350,7 +377,7 @@ export function StudentsTab({
         onOpenChange={(open) => !open && setRemoving(null)}
         title={`Take ${removing?.student.full_name ?? ''} off the bus?`}
         description='The student no longer has a bus stop. Parents and the bus crew are told, and parents stop getting bus alerts.'
-        confirmText='Remove from bus'
+        confirmText='Remove'
         destructive
         loading={remove.isPending}
         onConfirm={async () => {

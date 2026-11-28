@@ -127,9 +127,10 @@ export function DriverRatingsTab() {
   const [rating, setRating] = useState<string>()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(LIMIT)
   const ratings = useDriverRatings({
     page,
-    limit: LIMIT,
+    limit,
     search: search || undefined,
     driver_user_id: driver,
     rating: rating && rating !== 'low' ? Number(rating) : undefined,
@@ -141,53 +142,69 @@ export function DriverRatingsTab() {
   const columns: Column<DriverRating>[] = [
     {
       key: 'rating',
-      header: 'Rating',
+      header: 'RATING',
       cell: (row) => (
         <span className='grid gap-1'>
           <Stars value={row.rating} />
-          <span className='text-xs text-muted-foreground'>{formatDate(row.updated_at)}</span>
+          <span className='text-[12px] leading-[16px] text-slate-500 tabular-nums dark:text-slate-400'>
+            {formatDate(row.updated_at)}
+          </span>
         </span>
       ),
     },
     {
       key: 'driver',
-      header: 'Driver',
+      header: 'DRIVER',
       cell: (row) => (
         <span className='grid'>
-          <span className='font-semibold'>{row.driver.name}</span>
-          {row.vehicle && <span className='text-xs text-muted-foreground'>{row.vehicle.name}</span>}
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.driver.name}
+          </span>
+          {row.vehicle && (
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              {row.vehicle.name}
+            </span>
+          )}
         </span>
       ),
     },
     {
       key: 'feedback',
-      header: 'Feedback',
+      header: 'FEEDBACK',
       cell: (row) => (
         <span className='grid gap-1'>
           {row.tags.length > 0 && (
             <span className='flex flex-wrap gap-1'>
               {row.tags.map((tag) => (
-                <Badge key={tag.code} tone={tag.positive ? 'success' : 'warning'}>
+                <Badge key={tag.code} tone={tag.positive ? 'success' : 'warning'} className='font-medium'>
                   {tag.label}
                 </Badge>
               ))}
             </span>
           )}
-          {row.comment && <span className='text-sm'>{row.comment}</span>}
+          {row.comment && (
+            <span className='text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+              {row.comment}
+            </span>
+          )}
           {!row.tags.length && !row.comment && (
-            <span className='text-xs text-muted-foreground'>Stars only</span>
+            <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+              Stars only
+            </span>
           )}
         </span>
       ),
     },
     {
       key: 'parent',
-      header: 'From',
+      header: 'FROM',
       hideBelow: 'lg',
       cell: (row) => (
         <span className='grid'>
-          <span className='font-semibold'>{row.parent.name}</span>
-          <span className='text-xs text-muted-foreground'>
+          <span className='text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+            {row.parent.name}
+          </span>
+          <span className='text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             Parent of {row.student.full_name}
             {row.student.class_section ? ` · ${row.student.class_section}` : ''}
           </span>
@@ -200,7 +217,7 @@ export function DriverRatingsTab() {
     <div className='grid gap-4'>
       <Card className='overflow-hidden'>
         <div className='grid gap-0.5 border-b px-4 py-3 sm:px-5'>
-          <h2 className='font-bold'>Drivers</h2>
+          <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>Drivers</h2>
           <p className='text-xs text-muted-foreground'>
             Parents rate their child’s bus driver once a month. Lowest average first. Pick a driver
             to see their ratings.
@@ -262,6 +279,8 @@ export function DriverRatingsTab() {
             }}
             placeholder='Driver, parent, student or comment'
             label='Search ratings'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='rating-driver'
@@ -328,10 +347,14 @@ export function DriverRatingsTab() {
           )}
           pagination={{
             page,
-            limit: LIMIT,
+            limit,
             total: ratings.data?.total ?? 0,
             label: 'ratings',
             onPageChange: setPage,
+            onLimitChange: (next) => {
+              setLimit(next)
+              setPage(1)
+            },
           }}
         />
       </Card>

@@ -449,7 +449,7 @@ function BellEditor({
             <li
               key={row.key}
               className={cn(
-                'grid items-start gap-3 px-4 py-3 sm:px-5 md:grid-cols-[3rem_minmax(0,1fr)_8rem_8rem_auto_auto]',
+                'grid items-start gap-3 px-4 py-3 sm:px-5 md:gap-4 md:grid-cols-[3rem_minmax(0,1fr)_10rem_10rem_auto_auto]',
                 row.is_break && 'bg-muted/50',
                 row.is_special && 'bg-warning/5'
               )}

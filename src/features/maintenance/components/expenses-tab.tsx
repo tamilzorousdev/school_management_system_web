@@ -6,14 +6,14 @@ import {
   HandCoins,
   History,
   IndianRupee,
-  Pencil,
+  PenLine,
   Plus,
   Receipt,
   Tags,
-  Trash2,
 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { DataTable, type Column } from '@/components/common/data-table'
+import { TrashIcon } from '@/components/common/icon'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
@@ -61,12 +61,16 @@ const categoryLabel = (category: string) =>
 function ExpenseFlags({ expense }: { expense: Expense }) {
   return (
     <span className='flex flex-wrap gap-1'>
-      <Badge tone='neutral'>{categoryLabel(expense.category)}</Badge>
+      <Badge tone='neutral' className='font-medium'>
+        {categoryLabel(expense.category)}
+      </Badge>
       {expense.renewed_until && (
-        <Badge tone='success'>Renewed to {formatDate(expense.renewed_until)}</Badge>
+        <Badge tone='success' className='font-medium'>
+          Renewed to {formatDate(expense.renewed_until)}
+        </Badge>
       )}
       {expense.payment_mode === 'driver_paid' && (
-        <Badge tone={expense.reimbursed_at ? 'success' : 'info'}>
+        <Badge tone={expense.reimbursed_at ? 'success' : 'info'} className='font-medium'>
           {expense.reimbursed_at ? 'Paid back' : 'Driver paid'}
         </Badge>
       )}
@@ -78,6 +82,7 @@ export function ExpensesTab({
   search,
   setSearch,
   onPageChange,
+  onLimitChange,
   onClear,
   canManage,
   adding,
@@ -97,9 +102,10 @@ export function ExpensesTab({
   const reimburse = useMaintenanceMutation((id: number) => maintenanceApi.reimburseExpense(id))
 
   const sort = SORTS.find((item) => item === search.sort)
+  const limit = search.limit ?? LIMIT
   const params: ExpenseListParams = {
     page: search.page,
-    limit: LIMIT,
+    limit,
     search: search.search,
     sort,
     order: sort ? search.order : undefined,
@@ -181,34 +187,42 @@ export function ExpensesTab({
           needsPayBack(expense) && {
             key: 'pay',
             label: 'Mark as paid back',
-            icon: <HandCoins />,
+            icon: <HandCoins className='size-4' />,
             onClick: () => setPaying(expense),
-            className: 'text-info hover:bg-info/10',
+            className:
+              'text-slate-500 hover:bg-info/10 hover:text-info dark:text-slate-400 dark:hover:bg-info/10 dark:hover:text-info',
           },
         expense.bill_file && {
           key: 'bill',
           label: 'Open bill',
-          icon: <FileText />,
+          icon: <FileText className='size-4' />,
           onClick: () => openStoredFile(expense.bill_file),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         {
           key: 'history',
           label: 'Change history',
-          icon: <History />,
+          icon: <History className='size-4' />,
           onClick: () => setHistory(expense),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         canManage && {
           key: 'edit',
           label: 'Edit',
-          icon: <Pencil />,
+          icon: <PenLine className='size-4' />,
           onClick: () => openEdit(expense),
+          className:
+            'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
         },
         canManage && {
           key: 'delete',
           label: 'Delete',
-          icon: <Trash2 />,
+          icon: <TrashIcon className='size-4' />,
           onClick: () => setDeleting(expense),
-          className: 'text-destructive hover:bg-destructive/10',
+          className:
+            'text-[#D92D20] hover:bg-destructive/10 hover:text-[#B42318] dark:text-red-400 dark:hover:bg-destructive/10 dark:hover:text-red-300',
           destructive: true,
         },
       ] as (SheetAction | false | null)[]
@@ -243,29 +257,37 @@ export function ExpensesTab({
   const columns: Column<Expense>[] = [
     {
       key: 'spent_on',
-      header: 'Date',
+      header: 'DATE',
       sortKey: 'spent_on',
       cell: (expense) => (
-        <span className='tabular font-semibold'>{formatDate(expense.spent_on)}</span>
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {formatDate(expense.spent_on)}
+        </span>
       ),
     },
-    { key: 'bus', header: 'Bus', cell: (expense) => <BusCell vehicle={expense.vehicle} /> },
-    { key: 'category', header: 'For', cell: (expense) => <ExpenseFlags expense={expense} /> },
+    { key: 'bus', header: 'BUS', cell: (expense) => <BusCell vehicle={expense.vehicle} /> },
+    { key: 'category', header: 'FOR', cell: (expense) => <ExpenseFlags expense={expense} /> },
     {
       key: 'amount',
-      header: 'Amount',
+      header: 'AMOUNT',
       sortKey: 'amount',
       align: 'right',
-      cell: (expense) => <span className='tabular font-semibold'>{rupees(expense.amount)}</span>,
+      cell: (expense) => (
+        <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+          {rupees(expense.amount)}
+        </span>
+      ),
     },
     {
       key: 'paid_to',
-      header: 'Paid to',
+      header: 'PAID TO',
       hideBelow: 'lg',
       cell: (expense) => (
         <div className='grid min-w-0'>
-          <span className='truncate'>{expense.vendor?.name ?? expense.paid_to ?? '—'}</span>
-          <span className='truncate text-xs text-muted-foreground'>
+          <span className='truncate text-[13px] leading-[18px] text-slate-700 dark:text-slate-300'>
+            {expense.vendor?.name ?? expense.paid_to ?? '—'}
+          </span>
+          <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
             {PAYMENT_MODE[expense.payment_mode]}
           </span>
         </div>
@@ -273,15 +295,17 @@ export function ExpensesTab({
     },
     {
       key: 'note',
-      header: 'Note',
+      header: 'NOTE',
       hideBelow: 'xl',
       cell: (expense) => (
-        <span className='line-clamp-1 text-muted-foreground'>{expense.note ?? '—'}</span>
+        <span className='line-clamp-1 text-[13px] leading-[18px] text-slate-500 dark:text-slate-400'>
+          {expense.note ?? '—'}
+        </span>
       ),
     },
     {
       key: 'actions',
-      header: <span className='sr-only'>Actions</span>,
+      header: 'ACTION',
       align: 'right',
       className: 'w-40',
       cell: actions,
@@ -315,6 +339,8 @@ export function ExpensesTab({
             onChange={(value) => setSearch({ search: value || undefined })}
             placeholder='Search paid to, note or bus'
             label='Search expenses'
+            compact
+            showShortcut={false}
           />
           <FilterSelect
             id='expense-category-filter'
@@ -371,8 +397,8 @@ export function ExpensesTab({
               ? 'Try another bus, category or dates, or clear the filters.'
               : 'Add tyres, insurance and permit renewals, fines, tolls and other bus costs.',
             action: !filtered && canManage && (
-              <Button onClick={() => onAddingChange(true)}>
-                <Plus />
+              <Button variant='primary' size='sm' onClick={() => onAddingChange(true)}>
+                <Plus className='size-3.5' />
                 Add expense
               </Button>
             ),
@@ -381,12 +407,16 @@ export function ExpensesTab({
             <div className='grid gap-1.5'>
               <div className='flex items-start justify-between gap-2'>
                 <div className='grid min-w-0'>
-                  <span className='font-bold'>{formatDate(expense.spent_on)}</span>
-                  <span className='truncate text-xs text-muted-foreground'>
+                  <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+                    {formatDate(expense.spent_on)}
+                  </span>
+                  <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
                     {expense.vehicle.name} · {expense.vehicle.registration_no}
                   </span>
                 </div>
-                <span className='tabular font-bold'>{rupees(expense.amount)}</span>
+                <span className='text-[13px] leading-[18px] font-semibold text-slate-900 tabular-nums dark:text-slate-100'>
+                  {rupees(expense.amount)}
+                </span>
               </div>
               <ExpenseFlags expense={expense} />
               <span className='truncate text-xs text-muted-foreground'>
@@ -405,10 +435,11 @@ export function ExpensesTab({
           )}
           pagination={{
             page: search.page,
-            limit: LIMIT,
+            limit,
             total: expenses.data?.total ?? 0,
             label: 'expenses',
             onPageChange,
+            onLimitChange,
           }}
         />
       </Card>
