@@ -1,24 +1,28 @@
 import { useState } from 'react'
-import { MessageSquareText, Star, UserRound } from 'lucide-react'
+import { MessageSquareText, Settings2, Star, UserRound } from 'lucide-react'
 import { DataTable, type Column } from '@/components/common/data-table'
 import { EmptyState, ErrorState } from '@/components/common/display'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { can, useMe } from '@/features/auth/api'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DriverRatingSettingsModal } from './driver-rating-settings-modal'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import {
+  useDriverRatingSettings,
   useDriverRatingSummary,
   useDriverRatings,
   type DriverRating,
   type DriverRatingSummary,
-} from '../api'
+} from '@/features/transport/api'
 
 const LIMIT = 20
 
-const RATING_OPTIONS = [
-  { value: 'low', label: 'Low (1 and 2 stars)' },
+const ratingOptions = (lowMax: number) => [
+  { value: 'low', label: `Low (${lowMax} stars or less)` },
   ...[5, 4, 3, 2, 1].map((star) => ({
     value: String(star),
     label: `${star} star${star === 1 ? '' : 's'}`,
@@ -109,6 +113,7 @@ function DriverCard({
               This month {item.month_average?.toFixed(1) ?? '–'} ({item.month_count})
             </Badge>
             {item.low_count > 0 && <Badge tone='danger'>{item.low_count} low</Badge>}
+            {item.needs_attention && <Badge tone='warning'>Needs attention</Badge>}
             {item.top_tags.map((tag) => (
               <Badge key={tag.code} tone={tag.positive ? 'success' : 'warning'}>
                 {tag.label} · {tag.count}
@@ -123,6 +128,9 @@ function DriverCard({
 
 export function DriverRatingsTab() {
   const summary = useDriverRatingSummary()
+  const settings = useDriverRatingSettings()
+  const me = useMe()
+  const [editing, setEditing] = useState(false)
   const [driver, setDriver] = useState<number>()
   const [rating, setRating] = useState<string>()
   const [search, setSearch] = useState('')
@@ -216,12 +224,20 @@ export function DriverRatingsTab() {
   return (
     <div className='grid gap-4'>
       <Card className='overflow-hidden'>
-        <div className='grid gap-0.5 border-b px-4 py-3 sm:px-5'>
-          <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>Drivers</h2>
-          <p className='text-xs text-muted-foreground'>
-            Parents rate their child’s bus driver once a month. Lowest average first. Pick a driver
-            to see their ratings.
-          </p>
+        <div className='flex items-start justify-between gap-3 border-b px-4 py-3 sm:px-5'>
+          <div className='grid gap-0.5'>
+            <h2 className='text-sm font-bold text-slate-900 dark:text-slate-100'>Drivers</h2>
+            <p className='text-xs text-muted-foreground'>
+              Parents rate their child’s bus driver once a month. Lowest average first. Pick a
+              driver to see their ratings.
+            </p>
+          </div>
+          {settings.data && can(me.data, 'fleet.ratings') && (
+            <Button variant='outline' size='md' onClick={() => setEditing(true)}>
+              <Settings2 className='size-4 stroke-[1.75]' />
+              Settings
+            </Button>
+          )}
         </div>
         <div className='p-4 sm:p-5'>
           {summary.isPending ? (
@@ -302,7 +318,7 @@ export function DriverRatingsTab() {
             label='Filter by stars'
             allLabel='All stars'
             value={rating}
-            options={RATING_OPTIONS}
+            options={ratingOptions(settings.data?.low_rating_max ?? 2)}
             onChange={(value) => {
               setRating(value)
               setPage(1)
@@ -358,6 +374,9 @@ export function DriverRatingsTab() {
           }}
         />
       </Card>
+      {editing && settings.data && (
+        <DriverRatingSettingsModal settings={settings.data} onClose={() => setEditing(false)} />
+      )}
     </div>
   )
 }

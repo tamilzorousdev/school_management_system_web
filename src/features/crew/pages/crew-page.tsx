@@ -9,6 +9,7 @@ import {
   Plus,
   ShieldCheck,
   Smartphone,
+  Star,
   User,
   Users,
 } from 'lucide-react'
@@ -17,6 +18,7 @@ import { DataTable, type Column } from '@/components/common/data-table'
 import { InsightCards, type Insight } from '@/components/common/insight-cards'
 import { FilterSelect, ListToolbar, SearchBox } from '@/components/common/list-toolbar'
 import { Page, PageHeader } from '@/components/common/page'
+import { PageTabs } from '@/components/common/page-tabs'
 import { useShortcut } from '@/components/shortcuts/shortcut-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,8 +32,9 @@ import { alerts } from '@/lib/alerts'
 import { toApiError } from '@/lib/api/errors'
 import { crewApi, useCrewInsights, useCrewList, useCrewMutation, type CrewListItem } from '../api'
 import { CrewFormModal } from '../components/crew-form-modal'
+import { DriverRatingsTab } from '../components/driver-ratings-tab'
 import { DUTY_LABELS, DUTY_STATUS, EXPIRY_FILTER_LABELS, ROLE_LABELS } from '../labels'
-import type { CrewSearch } from '../search'
+import type { CrewSearch, CrewTab } from '../search'
 
 const route = getRouteApi('/_app/crew')
 const LIMIT = 20
@@ -43,7 +46,9 @@ export function CrewPage() {
   const canManage = can(me, 'fleet.manage')
   const [adding, setAdding] = useState(false)
 
-  const crew = useCrewList({ ...search, limit: LIMIT })
+  const { tab: tabParam, ...listFilters } = search
+  const tab: CrewTab = tabParam ?? 'crew'
+  const crew = useCrewList({ ...listFilters, limit: LIMIT })
   const insights = useCrewInsights()
   const busOptions = useBusOptions()
   const remindMany = useCrewMutation((ids: number[]) => crewApi.remindMany(ids))
@@ -260,9 +265,11 @@ export function CrewPage() {
       header: 'MOBILE',
       hideBelow: 'xl',
       cell: (member) => (
-        <span className='flex items-center gap-1.5 tabular text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
+        <span className='tabular flex items-center gap-1.5 text-[13px] leading-[18px] font-medium text-slate-800 dark:text-slate-200'>
           +91 {member.mobile}
-          {member.on_app && <Smartphone className='size-3.5 text-emerald-600 dark:text-emerald-400' />}
+          {member.on_app && (
+            <Smartphone className='size-3.5 text-emerald-600 dark:text-emerald-400' />
+          )}
         </span>
       ),
     },
@@ -321,157 +328,177 @@ export function CrewPage() {
         }
       />
 
-      <InsightCards items={cards} loading={insights.isPending} />
+      <PageTabs
+        label='Drivers and attendants sections'
+        value={tab}
+        onChange={(next: CrewTab) => navigate({ search: { page: 1, tab: next }, replace: true })}
+        tabs={[
+          { value: 'crew', label: 'Crew', icon: Users },
+          { value: 'ratings', label: 'Driver ratings', icon: Star },
+        ]}
+      />
 
-      <Card className='overflow-hidden'>
-        <ListToolbar
-          summary={crew.data ? `${crew.data.total} crew` : ''}
-          onClear={filtered ? () => navigate({ search: { page: 1 }, replace: true }) : undefined}
-        >
-          <SearchBox
-            value={search.search ?? ''}
-            onChange={(value) => setSearch({ search: value || undefined })}
-            placeholder='Name, mobile, employee, licence or badge no.'
-            label='Search drivers and attendants'
-            compact
-          />
-          <FilterSelect
-            id='crew-role-filter'
-            label='Filter by role'
-            allLabel='Drivers and attendants'
-            value={search.role}
-            options={toOptions(ROLE_LABELS)}
-            onChange={(value) => setSearch({ role: value as CrewSearch['role'] })}
-            className='h-8 text-[13px] border-[#9AA49F]'
-          />
-          <FilterSelect
-            id='crew-duty-filter'
-            label='Filter by duty status'
-            allLabel='Any duty status'
-            value={search.duty_status}
-            options={toOptions(DUTY_LABELS)}
-            onChange={(value) => setSearch({ duty_status: value as CrewSearch['duty_status'] })}
-            className='h-8 text-[13px] border-[#9AA49F]'
-          />
-          <FilterSelect
-            id='crew-expiry-filter'
-            label='Filter by document dates'
-            allLabel='Any document dates'
-            value={search.expiry_state}
-            options={toOptions(EXPIRY_FILTER_LABELS)}
-            onChange={(value) => setSearch({ expiry_state: value as CrewSearch['expiry_state'] })}
-            className='h-8 text-[13px] border-[#9AA49F]'
-          />
-          <FilterSelect
-            id='crew-bus-filter'
-            label='Filter by bus'
-            allLabel='Any bus'
-            value={search.vehicle_id ? String(search.vehicle_id) : undefined}
-            options={busOptions}
-            onChange={(value) =>
-              setSearch({ vehicle_id: value ? Number(value) : undefined, unassigned: undefined })
-            }
-            className='h-8 text-[13px] border-[#9AA49F]'
-          />
-          <FilterSelect
-            id='crew-status-filter'
-            label='Filter by status'
-            allLabel='Any status'
-            value={search.status}
-            options={toOptions(STAFF_STATUS_LABELS)}
-            onChange={(value) => setSearch({ status: value as CrewSearch['status'] })}
-            className='h-8 text-[13px] border-[#9AA49F]'
-          />
-          {reminding && (
-            <Button
-              variant='secondary'
-              size='sm'
-              className='border-[#C6CEC9] bg-white text-[#171B19] hover:bg-[#F9FAFB] font-medium'
-              onClick={sendReminders}
-              loading={remindMany.isPending}
-            >
-              <Bell className='size-4 stroke-[1.75]' />
-              Remind these crew
-            </Button>
-          )}
-        </ListToolbar>
+      {tab === 'ratings' && <DriverRatingsTab />}
 
-        <DataTable
-          rows={rows}
-          columns={columns}
-          rowKey={(member) => member.id}
-          loading={crew.isFetching}
-          error={crew.isError ? crew.error.message : null}
-          onRetry={() => crew.refetch()}
-          onRowClick={(member) => openMember(member.id)}
-          sort={{ sort: search.sort, order: search.order ?? 'asc' }}
-          onSortChange={(next) => setSearch(next as Partial<CrewSearch>)}
-          empty={{
-            icon: filtered ? AlertCircle : Users,
-            title: filtered ? 'No crew match these filters' : 'No drivers or attendants yet',
-            description: filtered
-              ? 'Try another name or number, or clear the filters.'
-              : 'Add bus drivers and attendants, upload their documents and approve them for duty.',
-            action: !filtered && canManage && (
+      {tab === 'crew' && <InsightCards items={cards} loading={insights.isPending} />}
+
+      {tab === 'crew' && (
+        <Card className='overflow-hidden'>
+          <ListToolbar
+            summary={crew.data ? `${crew.data.total} crew` : ''}
+            onClear={filtered ? () => navigate({ search: { page: 1 }, replace: true }) : undefined}
+          >
+            <SearchBox
+              value={search.search ?? ''}
+              onChange={(value) => setSearch({ search: value || undefined })}
+              placeholder='Name, mobile, employee, licence or badge no.'
+              label='Search drivers and attendants'
+              compact
+            />
+            <FilterSelect
+              id='crew-role-filter'
+              label='Filter by role'
+              allLabel='Drivers and attendants'
+              value={search.role}
+              options={toOptions(ROLE_LABELS)}
+              onChange={(value) => setSearch({ role: value as CrewSearch['role'] })}
+              className='h-8 border-[#9AA49F] text-[13px]'
+            />
+            <FilterSelect
+              id='crew-duty-filter'
+              label='Filter by duty status'
+              allLabel='Any duty status'
+              value={search.duty_status}
+              options={toOptions(DUTY_LABELS)}
+              onChange={(value) => setSearch({ duty_status: value as CrewSearch['duty_status'] })}
+              className='h-8 border-[#9AA49F] text-[13px]'
+            />
+            <FilterSelect
+              id='crew-expiry-filter'
+              label='Filter by document dates'
+              allLabel='Any document dates'
+              value={search.expiry_state}
+              options={toOptions(EXPIRY_FILTER_LABELS)}
+              onChange={(value) => setSearch({ expiry_state: value as CrewSearch['expiry_state'] })}
+              className='h-8 border-[#9AA49F] text-[13px]'
+            />
+            <FilterSelect
+              id='crew-bus-filter'
+              label='Filter by bus'
+              allLabel='Any bus'
+              value={search.vehicle_id ? String(search.vehicle_id) : undefined}
+              options={busOptions}
+              onChange={(value) =>
+                setSearch({ vehicle_id: value ? Number(value) : undefined, unassigned: undefined })
+              }
+              className='h-8 border-[#9AA49F] text-[13px]'
+            />
+            <FilterSelect
+              id='crew-status-filter'
+              label='Filter by status'
+              allLabel='Any status'
+              value={search.status}
+              options={toOptions(STAFF_STATUS_LABELS)}
+              onChange={(value) => setSearch({ status: value as CrewSearch['status'] })}
+              className='h-8 border-[#9AA49F] text-[13px]'
+            />
+            {reminding && (
               <Button
-                variant='primary'
-                size='md'
-                className='h-9 px-4 font-semibold'
-                onClick={() => setAdding(true)}
+                variant='secondary'
+                size='sm'
+                className='border-[#C6CEC9] bg-white font-medium text-[#171B19] hover:bg-[#F9FAFB]'
+                onClick={sendReminders}
+                loading={remindMany.isPending}
               >
-                <Plus className='size-4 stroke-[1.75]' />
-                Add driver or attendant
+                <Bell className='size-4 stroke-[1.75]' />
+                Remind these crew
               </Button>
-            ),
-          }}
-          card={(member) => {
-            const state = licence(member)
-            return (
-              <div className='flex items-start gap-3'>
-                <Avatar
-                  name={member.name}
-                  src={member.photo_url}
-                  previewable
-                  subtitle={`Employee No: ${member.employee_no}`}
-                />
-                <div className='grid min-w-0 flex-1 gap-1.5'>
-                  <div className='flex items-start justify-between gap-2'>
-                    <span className='grid min-w-0'>
-                      <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
-                        {member.name}
+            )}
+          </ListToolbar>
+
+          <DataTable
+            rows={rows}
+            columns={columns}
+            rowKey={(member) => member.id}
+            loading={crew.isFetching}
+            error={crew.isError ? crew.error.message : null}
+            onRetry={() => crew.refetch()}
+            onRowClick={(member) => openMember(member.id)}
+            sort={{ sort: search.sort, order: search.order ?? 'asc' }}
+            onSortChange={(next) => setSearch(next as Partial<CrewSearch>)}
+            empty={{
+              icon: filtered ? AlertCircle : Users,
+              title: filtered ? 'No crew match these filters' : 'No drivers or attendants yet',
+              description: filtered
+                ? 'Try another name or number, or clear the filters.'
+                : 'Add bus drivers and attendants, upload their documents and approve them for duty.',
+              action: !filtered && canManage && (
+                <Button
+                  variant='primary'
+                  size='md'
+                  className='h-9 px-4 font-semibold'
+                  onClick={() => setAdding(true)}
+                >
+                  <Plus className='size-4 stroke-[1.75]' />
+                  Add driver or attendant
+                </Button>
+              ),
+            }}
+            card={(member) => {
+              const state = licence(member)
+              return (
+                <div className='flex items-start gap-3'>
+                  <Avatar
+                    name={member.name}
+                    src={member.photo_url}
+                    previewable
+                    subtitle={`Employee No: ${member.employee_no}`}
+                  />
+                  <div className='grid min-w-0 flex-1 gap-1.5'>
+                    <div className='flex items-start justify-between gap-2'>
+                      <span className='grid min-w-0'>
+                        <span className='truncate text-[13px] leading-[18px] font-semibold text-slate-900 dark:text-slate-100'>
+                          {member.name}
+                        </span>
+                        <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                          {ROLE_BADGE[member.role].label}
+                          {member.vehicle ? ` · ${member.vehicle.name}` : ' · Not on a bus'}
+                        </span>
                       </span>
-                      <span className='truncate text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
-                        {ROLE_BADGE[member.role].label}
-                        {member.vehicle ? ` · ${member.vehicle.name}` : ' · Not on a bus'}
-                      </span>
+                      <Badge
+                        tone={DUTY_STATUS[member.duty_status].tone}
+                        dot
+                        className='font-medium'
+                      >
+                        {DUTY_STATUS[member.duty_status].label}
+                      </Badge>
+                    </div>
+                    <span className='flex items-center gap-1.5 font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
+                      {member.employee_no}
+                      {member.on_app && (
+                        <Smartphone className='size-3 text-emerald-600 dark:text-emerald-400' />
+                      )}
                     </span>
-                    <Badge tone={DUTY_STATUS[member.duty_status].tone} dot className='font-medium'>
-                      {DUTY_STATUS[member.duty_status].label}
-                    </Badge>
+                    {state && member.licence_no && (
+                      <span className='font-mono text-[12px] leading-[16px] text-slate-600 dark:text-slate-300'>
+                        {member.licence_no}
+                      </span>
+                    )}
+                    <ExpiryBadges items={member.expiries} />
                   </div>
-                  <span className='flex items-center gap-1.5 font-mono text-[12px] leading-[16px] text-slate-500 dark:text-slate-400'>
-                    {member.employee_no}
-                    {member.on_app && <Smartphone className='size-3 text-emerald-600 dark:text-emerald-400' />}
-                  </span>
-                  {state && member.licence_no && (
-                    <span className='font-mono text-[12px] leading-[16px] text-slate-600 dark:text-slate-300'>
-                      {member.licence_no}
-                    </span>
-                  )}
-                  <ExpiryBadges items={member.expiries} />
                 </div>
-              </div>
-            )
-          }}
-          pagination={{
-            page: search.page,
-            limit: LIMIT,
-            total: crew.data?.total ?? 0,
-            label: 'crew',
-            onPageChange: (page) => navigate({ search: (prev) => ({ ...prev, page }) }),
-          }}
-        />
-      </Card>
+              )
+            }}
+            pagination={{
+              page: search.page,
+              limit: LIMIT,
+              total: crew.data?.total ?? 0,
+              label: 'crew',
+              onPageChange: (page) => navigate({ search: (prev) => ({ ...prev, page }) }),
+            }}
+          />
+        </Card>
+      )}
 
       <CrewFormModal open={adding} onOpenChange={setAdding} onSaved={openMember} />
     </Page>

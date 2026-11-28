@@ -6,7 +6,11 @@ const id = z.coerce.number().int().min(1).optional().catch(undefined)
 const flag = z.boolean().optional().catch(undefined)
 const order = z.enum(['asc', 'desc']).optional().catch(undefined)
 
+export const CREW_TABS = ['crew', 'ratings'] as const
+export type CrewTab = (typeof CREW_TABS)[number]
+
 export const crewSearchSchema = z.object({
+  tab: z.enum(CREW_TABS).optional().catch(undefined),
   page,
   search: text,
   sort: z

@@ -15,9 +15,15 @@ export type Behaviour = 'good' | 'bad'
 
 export const RATING_MONTHS = [1, 2, 3, 6, 12] as const
 
+export const RATING_PERIODS = ['months', 'term', 'year'] as const
+
+export type RatingPeriodKind = (typeof RATING_PERIODS)[number]
+
 export interface FeedbackSettings {
   teacher_rating_enabled: boolean
   teacher_rating_months: number
+  teacher_rating_period: RatingPeriodKind
+  teacher_rating_min_responses: number
   student_feedback_enabled: boolean
   cycle: Period | null
   term: (Period & { id: number; name: string }) | null
@@ -121,6 +127,8 @@ export interface StudentFeedbackParams {
 export interface FeedbackSettingsInput {
   teacher_rating_enabled?: boolean
   teacher_rating_months?: number
+  teacher_rating_period?: RatingPeriodKind
+  teacher_rating_min_responses?: number
   student_feedback_enabled?: boolean
 }
 

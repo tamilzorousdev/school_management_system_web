@@ -1,13 +1,6 @@
 import { z } from 'zod'
 
-export const TRANSPORT_TABS = [
-  'buses',
-  'routes',
-  'students',
-  'passes',
-  'expiries',
-  'ratings',
-] as const
+export const TRANSPORT_TABS = ['buses', 'routes', 'students', 'passes', 'expiries'] as const
 export type TransportTab = (typeof TRANSPORT_TABS)[number]
 
 export const transportSearchSchema = z.object({

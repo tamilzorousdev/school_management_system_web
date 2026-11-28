@@ -437,6 +437,12 @@ export interface DriverRatingSummary {
   low_count: number
   distribution: number[]
   top_tags: (RatingTag & { count: number })[]
+  needs_attention: boolean
+}
+
+export interface DriverRatingSettings {
+  low_rating_max: number
+  min_responses: number
 }
 
 export interface DriverRatingInsights {
@@ -542,6 +548,7 @@ export const transportKeys = {
   ratings: (params: DriverRatingParams) => [...transportKeys.all, 'ratings', params] as const,
   ratingSummary: () => [...transportKeys.all, 'rating-summary'] as const,
   ratingInsights: () => [...transportKeys.all, 'rating-insights'] as const,
+  ratingSettings: () => [...transportKeys.all, 'rating-settings'] as const,
   passes: (params: BusPassParams) => [...transportKeys.all, 'passes', params] as const,
   passInsights: () => [...transportKeys.all, 'pass-insights'] as const,
   passSettings: () => [...transportKeys.all, 'pass-settings'] as const,
@@ -572,6 +579,9 @@ export const transportApi = {
     api.get<Paginated<DriverRating>>(`${base}/driver-ratings`, { ...params }),
   driverRatingSummary: () => api.get<DriverRatingSummary[]>(`${base}/driver-ratings/summary`),
   driverRatingInsights: () => api.get<DriverRatingInsights>(`${base}/driver-ratings/insights`),
+  driverRatingSettings: () => api.get<DriverRatingSettings>(`${base}/driver-ratings/settings`),
+  saveDriverRatingSettings: (input: Partial<DriverRatingSettings>) =>
+    api.put<DriverRatingSettings>(`${base}/driver-ratings/settings`, input),
   buses: (params: BusListParams) => api.get<Paginated<Bus>>(`${base}/vehicles`, { ...params }),
   createBus: (input: BusInput) => api.post<Bus>(`${base}/vehicles`, input),
   updateBus: (id: number, input: Partial<BusInput>) =>
@@ -700,6 +710,13 @@ export function useDriverRatings(params: DriverRatingParams) {
     queryKey: transportKeys.ratings(params),
     queryFn: () => transportApi.driverRatings(params),
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useDriverRatingSettings() {
+  return useQuery({
+    queryKey: transportKeys.ratingSettings(),
+    queryFn: transportApi.driverRatingSettings,
   })
 }
 
